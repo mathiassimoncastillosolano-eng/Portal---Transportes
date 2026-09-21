@@ -1,10 +1,10 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { BuscadorViajes } from '../../componentes/viajes/BuscadorViajes'
 import { CarruselDestinos } from '../../componentes/destinos/CarruselDestinos'
 import { CarruselServicios } from '../../componentes/servicios/CarruselServicios'
 import { useBusqueda } from '../../hooks/useBusqueda'
-import { destinos } from '../../datos/destinos'
+import { obtenerDestinos } from '../../servicios/destinosServicio'
 import { tiposServicio } from '../../datos/servicios'
 import './paginaInicio.css'
 
@@ -16,6 +16,25 @@ export function PaginaInicio() {
     puedeIrAtras: false,
     puedeIrAdelante: true,
   })
+  const [destinos, setDestinos] = useState([])
+
+  useEffect(() => {
+    let cancelado = false
+
+    obtenerDestinos()
+      .then((datos) => {
+        if (!cancelado) setDestinos(datos)
+      })
+      .catch(() => {
+        // Si la consulta a la BD falla, la sección de Destinos simplemente
+        // no se muestra: no se recurre a datos mock ni ficticios.
+        if (!cancelado) setDestinos([])
+      })
+
+    return () => {
+      cancelado = true
+    }
+  }, [])
 
   function manejarBuscar(parametros) {
     // La búsqueda se dispara aquí mismo para que el usuario ya vea
@@ -74,55 +93,57 @@ export function PaginaInicio() {
         </div>
       </section>
 
-      <section className="seccion contenedor seccion-destinos">
-        <div className="seccion-destinos__cabecera">
-          <div className="encabezado-seccion">
-            <span className="encabezado-seccion__etiqueta">Destinos</span>
-            <h2 className="encabezado-seccion__titulo">Descubre nuestros destinos</h2>
-            <p className="encabezado-seccion__texto">
-              Las rutas más elegidas por nuestros pasajeros, con salidas todos los días.
-            </p>
+      {destinos.length > 0 && (
+        <section className="seccion contenedor seccion-destinos">
+          <div className="seccion-destinos__cabecera">
+            <div className="encabezado-seccion">
+              <span className="encabezado-seccion__etiqueta">Destinos</span>
+              <h2 className="encabezado-seccion__titulo">Descubre nuestros destinos</h2>
+              <p className="encabezado-seccion__texto">
+                Las rutas más elegidas por nuestros pasajeros, con salidas todos los días.
+              </p>
+            </div>
+
+            <div className="seccion-destinos__flechas">
+              <button
+                type="button"
+                className="seccion-destinos__flecha"
+                onClick={() => referenciaCarruselDestinos.current?.desplazar(-1)}
+                disabled={!estadoCarruselDestinos.puedeIrAtras}
+                aria-label="Ver destinos anteriores"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M15 5 8 12l7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="seccion-destinos__flecha"
+                onClick={() => referenciaCarruselDestinos.current?.desplazar(1)}
+                disabled={!estadoCarruselDestinos.puedeIrAdelante}
+                aria-label="Ver más destinos"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
           </div>
 
-          <div className="seccion-destinos__flechas">
-            <button
-              type="button"
-              className="seccion-destinos__flecha"
-              onClick={() => referenciaCarruselDestinos.current?.desplazar(-1)}
-              disabled={!estadoCarruselDestinos.puedeIrAtras}
-              aria-label="Ver destinos anteriores"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M15 5 8 12l7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="seccion-destinos__flecha"
-              onClick={() => referenciaCarruselDestinos.current?.desplazar(1)}
-              disabled={!estadoCarruselDestinos.puedeIrAdelante}
-              aria-label="Ver más destinos"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
+          <CarruselDestinos
+            destinos={destinos}
+            ref={referenciaCarruselDestinos}
+            onEstadoCambio={setEstadoCarruselDestinos}
+          />
 
-        <CarruselDestinos
-          destinos={destinos}
-          ref={referenciaCarruselDestinos}
-          onEstadoCambio={setEstadoCarruselDestinos}
-        />
-
-        <NavLink to="/destinos" className="enlace-ver-todo">
-          Ver todos los destinos
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </NavLink>
-      </section>
+          <NavLink to="/destinos" className="enlace-ver-todo">
+            Ver todos los destinos
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </NavLink>
+        </section>
+      )}
 
       <section className="seccion seccion-servicios">
         <div className="contenedor seccion-servicios__cabecera">

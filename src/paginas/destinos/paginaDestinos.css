@@ -4,6 +4,15 @@
   gap: var(--espacio-5);
 }
 
+.pagina-destinos__vacio {
+  color: var(--color-texto-secundario);
+  padding: var(--espacio-6);
+  text-align: center;
+  background: var(--color-superficie);
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: var(--radio-lg);
+}
+
 @media (max-width: 900px) {
   .pagina-destinos__cuadricula {
     grid-template-columns: repeat(2, 1fr);

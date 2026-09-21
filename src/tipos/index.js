@@ -16,11 +16,9 @@
 
 /**
  * @typedef {Object} Destino
- * @property {string} id
+ * @property {number} id
  * @property {string} ciudad
- * @property {string} descripcion
  * @property {string} imagen
- * @property {number} desde
  */
 
 /**
