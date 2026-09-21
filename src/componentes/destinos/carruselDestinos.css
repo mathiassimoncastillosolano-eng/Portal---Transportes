@@ -1,0 +1,36 @@
+.carrusel-destinos__pista {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  padding-block: 2px;
+  /* Contenido, nunca produce scroll horizontal en la página */
+  scrollbar-width: none;
+}
+
+.carrusel-destinos__pista::-webkit-scrollbar {
+  display: none;
+}
+
+.carrusel-destinos__item {
+  flex: 0 0 auto;
+  width: clamp(230px, 24vw, 284px);
+  scroll-snap-align: start;
+}
+
+@media (max-width: 900px) {
+  .carrusel-destinos__item {
+    width: clamp(215px, 36vw, 258px);
+  }
+}
+
+@media (max-width: 560px) {
+  .carrusel-destinos__pista {
+    gap: 1rem;
+  }
+
+  .carrusel-destinos__item {
+    width: 72vw;
+  }
+}

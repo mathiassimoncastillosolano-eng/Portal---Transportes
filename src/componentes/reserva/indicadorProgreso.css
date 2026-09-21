@@ -1,0 +1,95 @@
+.indicador-progreso {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.indicador-progreso__paso {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  gap: 0.5rem;
+}
+
+.indicador-progreso__marcador {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: var(--tamano-xs);
+  font-weight: 700;
+  border: 1.5px solid var(--color-borde-fuerte);
+  background: var(--color-superficie);
+  color: var(--color-texto-terciario);
+  transition: background var(--transicion-base), border-color var(--transicion-base), color var(--transicion-base), box-shadow var(--transicion-base);
+  z-index: 1;
+}
+
+.indicador-progreso__etiqueta {
+  font-size: var(--tamano-xs);
+  font-weight: 600;
+  color: var(--color-texto-terciario);
+  transition: color var(--transicion-base);
+}
+
+.indicador-progreso__linea {
+  position: absolute;
+  top: 15px;
+  left: calc(50% + 21px);
+  right: calc(-50% + 21px);
+  height: 2px;
+  background: var(--color-borde);
+  z-index: 0;
+}
+
+.indicador-progreso__paso--completado .indicador-progreso__marcador {
+  background: var(--gradiente-acento);
+  border-color: transparent;
+  color: #06281B;
+}
+
+.indicador-progreso__paso--completado .indicador-progreso__etiqueta {
+  color: var(--color-texto-principal);
+}
+
+.indicador-progreso__paso--completado .indicador-progreso__linea {
+  background: var(--color-verde-600);
+}
+
+.indicador-progreso__paso--activo .indicador-progreso__marcador {
+  background: var(--color-azul-800);
+  border-color: var(--color-azul-800);
+  color: #fff;
+  box-shadow: var(--sombra-foco-azul);
+}
+
+.indicador-progreso__paso--activo .indicador-progreso__etiqueta {
+  color: var(--color-azul-800);
+}
+
+@media (max-width: 640px) {
+  .indicador-progreso__etiqueta {
+    display: none;
+  }
+
+  .indicador-progreso {
+    max-width: 240px;
+  }
+
+  .indicador-progreso__linea {
+    left: calc(50% + 17px);
+    right: calc(-50% + 17px);
+  }
+
+  .indicador-progreso__marcador {
+    width: 26px;
+    height: 26px;
+  }
+}

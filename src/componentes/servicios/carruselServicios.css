@@ -1,0 +1,65 @@
+.carrusel-servicios {
+  width: 100%;
+  max-width: var(--ancho-contenido);
+  margin-inline: auto;
+  padding-inline: var(--espacio-6);
+  overflow: hidden;
+  /* Máscara suave en los bordes del contenedor (no de la pantalla): el
+     contenido se desvanece contra el mismo límite que usa el resto de
+     la página, en vez de extenderse hasta tocar los extremos. */
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--espacio-7),
+    #000 calc(100% - var(--espacio-7)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--espacio-7),
+    #000 calc(100% - var(--espacio-7)),
+    transparent 100%
+  );
+}
+
+@media (max-width: 640px) {
+  .carrusel-servicios {
+    padding-inline: var(--espacio-4);
+  }
+}
+
+.carrusel-servicios__pista {
+  display: flex;
+  align-items: stretch;
+  width: max-content;
+  will-change: transform;
+  cursor: grab;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.carrusel-servicios__pista--arrastrando {
+  cursor: grabbing;
+}
+
+.carrusel-servicios__item {
+  flex: 0 0 auto;
+  width: clamp(232px, 21vw, 292px);
+  padding-block: var(--espacio-3);
+  padding-inline: var(--espacio-3);
+}
+
+.carrusel-servicios__pista img {
+  -webkit-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .carrusel-servicios__item {
+    width: clamp(208px, 68vw, 260px);
+    padding-inline: var(--espacio-2);
+  }
+}

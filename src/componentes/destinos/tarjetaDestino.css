@@ -1,0 +1,62 @@
+.tarjeta-destino {
+  position: relative;
+  display: block;
+  border-radius: var(--radio-lg);
+  overflow: hidden;
+  aspect-ratio: 5 / 4;
+  isolation: isolate;
+  box-shadow: var(--sombra-suave);
+  cursor: default;
+  transition: box-shadow var(--transicion-base), transform var(--transicion-base);
+}
+
+.tarjeta-destino:hover {
+  box-shadow: var(--sombra-flotante);
+  transform: translateY(-3px);
+}
+
+.tarjeta-destino--grande .tarjeta-destino__ciudad {
+  font-size: var(--tamano-xl);
+}
+
+.tarjeta-destino img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tarjeta-destino:hover img {
+  transform: scale(1.05);
+}
+
+.tarjeta-destino__superposicion {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(9, 26, 32, 0.82) 0%, rgba(9, 26, 32, 0.15) 60%, rgba(9, 26, 32, 0) 78%);
+}
+
+.tarjeta-destino__contenido {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--espacio-4);
+  color: #fff;
+}
+
+.tarjeta-destino__ciudad {
+  font-family: var(--fuente-titulos);
+  font-size: var(--tamano-lg);
+  font-weight: 600;
+  color: #fff;
+}
+
+.tarjeta-destino__etiqueta {
+  margin-top: 0.2rem;
+  font-size: var(--tamano-xs);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.78);
+}

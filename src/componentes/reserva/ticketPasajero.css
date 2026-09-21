@@ -1,0 +1,202 @@
+.ticket-pasajero {
+  position: relative;
+  flex-shrink: 0;
+  width: 172px;
+}
+
+.ticket-pasajero__cuerpo {
+  position: relative;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: var(--color-superficie);
+  border: 1.5px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  padding: var(--espacio-4) var(--espacio-4) var(--espacio-3) calc(var(--espacio-4) + 6px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  overflow: hidden;
+  transition: border-color var(--transicion-rapida), box-shadow var(--transicion-rapida), transform var(--transicion-rapida), background var(--transicion-rapida);
+}
+
+/* Franja lateral: el canal principal (junto al ícono) para comunicar si
+   el pasajero está completo, independiente del estado "activo". */
+.ticket-pasajero__franja {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--color-borde-fuerte);
+  transition: background var(--transicion-rapida);
+}
+
+.ticket-pasajero--completo .ticket-pasajero__franja {
+  background: var(--gradiente-acento);
+}
+
+/* Línea perforada + "recorte" tipo ticket real, en vez de un simple
+   separador: dos muescas semicirculares del color del fondo de página. */
+.ticket-pasajero__cuerpo::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 30px;
+  height: 0;
+  border-bottom: 2px dashed var(--color-borde);
+}
+
+.ticket-pasajero::before,
+.ticket-pasajero::after {
+  content: '';
+  position: absolute;
+  bottom: 24px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-fondo);
+  border: 1.5px solid var(--color-borde);
+  z-index: 1;
+}
+
+.ticket-pasajero::before {
+  left: -6px;
+}
+
+.ticket-pasajero::after {
+  right: -6px;
+}
+
+.ticket-pasajero__cuerpo:hover {
+  border-color: var(--color-borde-fuerte);
+  transform: translateY(-1px);
+}
+
+.ticket-pasajero__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.ticket-pasajero__marca {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--fuente-titulos);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-texto-terciario);
+}
+
+.ticket-pasajero__marca-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gradiente-acento);
+  flex-shrink: 0;
+}
+
+/* Insignia circular de estado: el canal visual principal (ícono + color),
+   el texto queda relegado al pie de la tarjeta como refuerzo. */
+.ticket-pasajero__estado-icono {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-texto-terciario);
+  background: var(--color-fondo-alterno);
+  border: 1.5px solid transparent;
+  transition: background var(--transicion-rapida), color var(--transicion-rapida);
+}
+
+.ticket-pasajero__estado-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+}
+
+.ticket-pasajero--completo .ticket-pasajero__estado-icono {
+  background: var(--color-verde-600);
+  color: #fff;
+}
+
+.ticket-pasajero__asiento {
+  font-family: var(--fuente-titulos);
+  font-weight: 600;
+  font-size: var(--tamano-sm);
+  color: var(--color-texto-principal);
+}
+
+.ticket-pasajero__piso {
+  color: var(--color-texto-secundario);
+  font-weight: 500;
+}
+
+.ticket-pasajero__pie {
+  padding-top: var(--espacio-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-texto-terciario);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticket-pasajero--completo .ticket-pasajero__pie {
+  color: var(--color-verde-800);
+}
+
+.ticket-pasajero--activo .ticket-pasajero__cuerpo {
+  border-color: var(--color-azul-800);
+  box-shadow: var(--sombra-foco-azul);
+  background: var(--color-azul-50);
+}
+
+.ticket-pasajero--activo .ticket-pasajero__marca,
+.ticket-pasajero--activo .ticket-pasajero__piso {
+  color: var(--color-azul-700);
+}
+
+.ticket-pasajero--activo::before,
+.ticket-pasajero--activo::after {
+  background: var(--color-azul-50);
+}
+
+.ticket-pasajero__eliminar {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-borde);
+  background: var(--color-superficie);
+  color: var(--color-texto-secundario);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--sombra-tenue);
+  transition: background var(--transicion-rapida), color var(--transicion-rapida), border-color var(--transicion-rapida), transform var(--transicion-rapida);
+  z-index: 2;
+}
+
+.ticket-pasajero__eliminar:hover {
+  background: var(--color-estado-agotado);
+  border-color: var(--color-estado-agotado);
+  color: #fff;
+  transform: scale(1.06);
+}
+
+@media (max-width: 560px) {
+  .ticket-pasajero {
+    width: 150px;
+  }
+}

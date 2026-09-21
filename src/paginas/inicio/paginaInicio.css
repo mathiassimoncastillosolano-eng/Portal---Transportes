@@ -1,0 +1,215 @@
+.hero-inicio {
+  position: relative;
+  min-height: 680px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 130px;
+}
+
+.hero-inicio__fondo {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.hero-inicio__imagen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.02);
+}
+
+.hero-inicio__superposicion {
+  position: absolute;
+  inset: 0;
+  background: var(--gradiente-hero);
+}
+
+.hero-inicio__contenido {
+  position: relative;
+  z-index: 1;
+  padding-top: var(--espacio-9);
+  max-width: 640px;
+}
+
+.hero-inicio__insignia {
+  background: rgba(16, 185, 129, 0.16);
+  color: var(--color-verde-500);
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  margin-bottom: var(--espacio-5);
+}
+
+.hero-inicio__titulo {
+  font-size: var(--tamano-4xl);
+  font-weight: 600;
+  color: #fff;
+}
+
+.hero-inicio__subtitulo {
+  margin-top: var(--espacio-5);
+  font-size: var(--tamano-md);
+  color: rgba(247, 249, 251, 0.86);
+  max-width: 46ch;
+  line-height: 1.6;
+}
+
+.hero-inicio__estadisticas {
+  margin-top: var(--espacio-7);
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-6);
+}
+
+.hero-inicio__estadistica {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.hero-inicio__estadistica-numero {
+  font-family: var(--fuente-titulos);
+  font-size: var(--tamano-xl);
+  font-weight: 700;
+  color: #fff;
+}
+
+.hero-inicio__estadistica-etiqueta {
+  font-size: var(--tamano-xs);
+  color: rgba(247, 249, 251, 0.68);
+}
+
+.hero-inicio__estadistica-separador {
+  width: 1px;
+  height: 32px;
+  background: rgba(247, 249, 251, 0.2);
+}
+
+.hero-inicio__buscador {
+  position: relative;
+  z-index: 1;
+  margin-top: var(--espacio-8);
+  transform: translateY(70px);
+}
+
+@media (max-width: 900px) {
+  .hero-inicio {
+    min-height: auto;
+    padding-top: var(--espacio-8);
+    padding-bottom: 90px;
+  }
+
+  .hero-inicio__titulo {
+    font-size: var(--tamano-3xl);
+  }
+
+  .hero-inicio__buscador {
+    transform: translateY(50px);
+  }
+}
+
+@media (max-width: 520px) {
+  .hero-inicio__titulo {
+    font-size: var(--tamano-2xl);
+  }
+
+  .hero-inicio__estadisticas {
+    gap: var(--espacio-4);
+  }
+}
+
+/* ---------- Destinos ---------- */
+
+.seccion-destinos__cabecera {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espacio-5);
+  margin-bottom: var(--espacio-6);
+}
+
+.seccion-destinos__cabecera .encabezado-seccion {
+  margin-bottom: 0;
+}
+
+.seccion-destinos__flechas {
+  display: flex;
+  gap: 0.6rem;
+  flex-shrink: 0;
+  padding-bottom: 0.35rem;
+}
+
+.seccion-destinos__flecha {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-borde);
+  background: var(--color-superficie);
+  color: var(--color-azul-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--transicion-rapida), border-color var(--transicion-rapida),
+    transform var(--transicion-rapida), opacity var(--transicion-rapida);
+}
+
+.seccion-destinos__flecha:hover:not(:disabled) {
+  background: var(--color-azul-50);
+  border-color: var(--color-azul-700);
+  transform: translateY(-2px);
+}
+
+.seccion-destinos__flecha:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .seccion-destinos__cabecera {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ---------- Servicios ---------- */
+
+.seccion-servicios {
+  background: linear-gradient(180deg, var(--color-azul-50) 0%, var(--color-azul-100) 100%);
+  border-top: 1px solid var(--color-borde);
+}
+
+.seccion-servicios__cabecera {
+  margin-bottom: var(--espacio-6);
+}
+
+/* Enlace "ver todo" compartido por Destinos y Servicios: mismo estilo,
+   misma microinteracción de flecha al pasar el cursor. */
+.enlace-ver-todo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: var(--espacio-6);
+  font-weight: 600;
+  font-size: var(--tamano-sm);
+  color: var(--color-azul-800);
+  border-bottom: 1.5px solid var(--color-azul-800);
+  padding-bottom: 2px;
+  transition: color var(--transicion-rapida), border-color var(--transicion-rapida);
+}
+
+.enlace-ver-todo svg {
+  transition: transform var(--transicion-rapida);
+}
+
+.enlace-ver-todo:hover {
+  color: var(--color-verde-700);
+  border-color: var(--color-verde-700);
+}
+
+.enlace-ver-todo:hover svg {
+  transform: translateX(3px);
+}

@@ -1,0 +1,66 @@
+.pagina-mis-pasajes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+
+.pagina-mis-pasajes__confirmacion {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--color-verde-100);
+  color: var(--color-verde-800);
+  font-weight: 600;
+  font-size: var(--tamano-sm);
+  padding: var(--espacio-4) var(--espacio-5);
+  border-radius: var(--radio-md);
+  border: 1px solid rgba(16, 163, 74, 0.16);
+}
+
+.pagina-mis-pasajes__conmutador {
+  display: inline-flex;
+  background: var(--color-fondo-alterno);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-pastilla);
+  padding: 4px;
+  width: fit-content;
+}
+
+.pagina-mis-pasajes__opcion {
+  background: none;
+  border: none;
+  padding: 0.6rem 1.3rem;
+  border-radius: var(--radio-pastilla);
+  font-size: var(--tamano-sm);
+  font-weight: 600;
+  color: var(--color-texto-secundario);
+  cursor: pointer;
+  transition: background var(--transicion-rapida), color var(--transicion-rapida), box-shadow var(--transicion-rapida);
+}
+
+.pagina-mis-pasajes__opcion--activa {
+  background: var(--color-superficie);
+  color: var(--color-azul-800);
+  box-shadow: var(--sombra-suave);
+}
+
+.pagina-mis-pasajes__lista {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--espacio-5);
+}
+
+.pagina-mis-pasajes__vacio {
+  color: var(--color-texto-secundario);
+  padding: var(--espacio-6);
+  text-align: center;
+  background: var(--color-superficie);
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: var(--radio-lg);
+}
+
+@media (max-width: 800px) {
+  .pagina-mis-pasajes__lista {
+    grid-template-columns: 1fr;
+  }
+}

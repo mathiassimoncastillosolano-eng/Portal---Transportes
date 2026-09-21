@@ -1,0 +1,91 @@
+:root {
+  /* Color — identidad de marca (paleta original conservada, con derivaciones más ricas) */
+  --color-azul-950: #071E25;
+  --color-azul-900: #0B3540;
+  --color-azul-850: #0D414D;
+  --color-azul-800: #0F4C5C;
+  --color-azul-700: #0B6878;
+  --color-azul-600: #147F91;
+  --color-azul-200: #CFE3E7;
+  --color-azul-100: #E4EEF0;
+  --color-azul-50: #F2F7F8;
+
+  --color-verde-800: #0E7A3C;
+  --color-verde-700: #16A34A;
+  --color-verde-600: #10B981;
+  --color-verde-500: #2DD4A8;
+  --color-verde-100: #E1F7EE;
+  --color-verde-50: #EFFBF5;
+
+  --color-fondo: #F7F9FB;
+  --color-fondo-alterno: #F1F5F7;
+  --color-superficie: #FFFFFF;
+  --color-superficie-velada: rgba(255, 255, 255, 0.72);
+
+  --color-texto-principal: #172B3A;
+  --color-texto-secundario: #64748B;
+  --color-texto-terciario: #93A2B3;
+  --color-texto-invertido: #F7F9FB;
+
+  --color-borde: #E2E8ED;
+  --color-borde-fuerte: #CBD6DE;
+
+  --color-estado-disponible: #16A34A;
+  --color-estado-pocos: #F59E0B;
+  --color-estado-agotado: #EF4444;
+
+  /* Gradientes — derivados de la identidad azul/verde original */
+  --gradiente-hero: linear-gradient(120deg, rgba(7, 30, 37, 0.96) 0%, rgba(11, 53, 64, 0.82) 38%, rgba(15, 76, 92, 0.42) 72%, rgba(15, 76, 92, 0.08) 100%);
+  --gradiente-marca: linear-gradient(125deg, #0B3540 0%, #0F4C5C 42%, #0B6878 75%, #10B981 130%);
+  --gradiente-marca-suave: linear-gradient(125deg, #0F4C5C 0%, #147F91 60%, #2DD4A8 130%);
+  --gradiente-superficie: linear-gradient(165deg, #FFFFFF 0%, #F7FAFB 100%);
+  --gradiente-acento: linear-gradient(120deg, #10B981 0%, #16A34A 100%);
+  --gradiente-halo: radial-gradient(60% 60% at 50% 0%, rgba(16, 185, 129, 0.16) 0%, rgba(16, 185, 129, 0) 70%);
+
+  /* Tipografía */
+  --fuente-titulos: "Space Grotesk", "Inter", -apple-system, sans-serif;
+  --fuente-texto: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --tamano-xs: 0.8125rem;
+  --tamano-sm: 0.9375rem;
+  --tamano-base: 1rem;
+  --tamano-md: 1.125rem;
+  --tamano-lg: 1.375rem;
+  --tamano-xl: 1.75rem;
+  --tamano-2xl: 2.25rem;
+  --tamano-3xl: 3rem;
+  --tamano-4xl: 3.75rem;
+
+  /* Espaciado */
+  --espacio-1: 0.25rem;
+  --espacio-2: 0.5rem;
+  --espacio-3: 0.75rem;
+  --espacio-4: 1rem;
+  --espacio-5: 1.5rem;
+  --espacio-6: 2rem;
+  --espacio-7: 2.5rem;
+  --espacio-8: 3.5rem;
+  --espacio-9: 5rem;
+  --espacio-10: 7rem;
+
+  /* Bordes y sombras */
+  --radio-sm: 10px;
+  --radio-md: 16px;
+  --radio-lg: 22px;
+  --radio-xl: 28px;
+  --radio-pastilla: 999px;
+
+  --sombra-tenue: 0 1px 2px rgba(15, 34, 44, 0.05);
+  --sombra-suave: 0 1px 2px rgba(15, 34, 44, 0.04), 0 8px 24px -8px rgba(15, 34, 44, 0.12);
+  --sombra-marcada: 0 4px 8px rgba(15, 34, 44, 0.06), 0 24px 48px -16px rgba(15, 34, 44, 0.22);
+  --sombra-flotante: 0 8px 16px -4px rgba(11, 53, 64, 0.14), 0 32px 64px -24px rgba(11, 53, 64, 0.3);
+  --sombra-interior: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --sombra-foco-verde: 0 0 0 4px rgba(16, 185, 129, 0.16);
+  --sombra-foco-azul: 0 0 0 4px rgba(15, 76, 92, 0.12);
+
+  --ancho-contenido: 1220px;
+
+  --transicion-rapida: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transicion-base: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transicion-premium: 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}

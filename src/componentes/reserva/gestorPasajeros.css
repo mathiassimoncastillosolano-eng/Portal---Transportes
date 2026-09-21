@@ -1,0 +1,46 @@
+.gestor-pasajeros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+
+.gestor-pasajeros__encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  flex-wrap: wrap;
+}
+
+.gestor-pasajeros__titulo {
+  font-size: var(--tamano-lg);
+  font-weight: 600;
+}
+
+.gestor-pasajeros__progreso {
+  margin-top: 0.3rem;
+  font-size: var(--tamano-sm);
+  font-weight: 600;
+  color: var(--color-texto-secundario);
+}
+
+.gestor-pasajeros__tickets {
+  display: flex;
+  gap: var(--espacio-3);
+  overflow-x: auto;
+  padding: 0.4rem 0.5rem var(--espacio-2);
+  scrollbar-width: thin;
+}
+
+.gestor-pasajeros__subtitulo {
+  font-size: var(--tamano-sm);
+  font-weight: 700;
+  color: var(--color-texto-principal);
+}
+
+@media (max-width: 560px) {
+  .gestor-pasajeros__tickets {
+    margin-inline: calc(var(--espacio-4) * -1);
+    padding-inline: var(--espacio-4);
+  }
+}

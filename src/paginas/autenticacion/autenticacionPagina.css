@@ -1,0 +1,228 @@
+.pagina-autenticacion {
+  min-height: calc(100vh - 76px);
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  background: var(--color-fondo);
+}
+
+/* ---------- Panel de marca (izquierda) ---------- */
+
+.pagina-autenticacion__marca {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--espacio-8) var(--espacio-8);
+  background: var(--gradiente-marca);
+  color: #fff;
+  overflow: hidden;
+}
+
+.pagina-autenticacion__marca::before {
+  content: '';
+  position: absolute;
+  inset: -20% -10% auto auto;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.28) 0%, rgba(16, 185, 129, 0) 70%);
+}
+
+.pagina-autenticacion__marca::after {
+  content: '';
+  position: absolute;
+  inset: auto -15% -25% auto;
+  width: 55%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+.pagina-autenticacion__marca-logo {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--fuente-titulos);
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.pagina-autenticacion__marca-isotipo {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.pagina-autenticacion__marca-cuerpo {
+  position: relative;
+  z-index: 1;
+  max-width: 420px;
+}
+
+.pagina-autenticacion__marca-titulo {
+  font-size: var(--tamano-3xl);
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.pagina-autenticacion__marca-texto {
+  margin-top: var(--espacio-4);
+  font-size: var(--tamano-md);
+  color: rgba(247, 249, 251, 0.82);
+  line-height: 1.6;
+}
+
+.pagina-autenticacion__marca-lista {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.pagina-autenticacion__marca-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: var(--tamano-sm);
+  color: rgba(247, 249, 251, 0.9);
+}
+
+.pagina-autenticacion__marca-item-icono {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-verde-500);
+}
+
+/* ---------- Panel de formulario (derecha) ---------- */
+
+.pagina-autenticacion__panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--espacio-9) var(--espacio-6);
+}
+
+.pagina-autenticacion__tarjeta {
+  width: 100%;
+  max-width: 420px;
+}
+
+.pagina-autenticacion__tarjeta--ancha {
+  max-width: 480px;
+}
+
+.pagina-autenticacion__titulo {
+  font-size: var(--tamano-2xl);
+  font-weight: 600;
+}
+
+.pagina-autenticacion__subtitulo {
+  margin-top: var(--espacio-2);
+  color: var(--color-texto-secundario);
+  font-size: var(--tamano-sm);
+  line-height: 1.55;
+}
+
+.pagina-autenticacion__social {
+  margin-top: var(--espacio-6);
+}
+
+.pagina-autenticacion__divisor {
+  margin: var(--espacio-5) 0;
+}
+
+.pagina-autenticacion__formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.pagina-autenticacion__fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--espacio-4);
+}
+
+.pagina-autenticacion__error {
+  color: var(--color-estado-agotado);
+  font-size: var(--tamano-sm);
+  background: #FBE4E4;
+  border-radius: var(--radio-sm);
+  padding: 0.7rem 0.9rem;
+  font-weight: 500;
+}
+
+.pagina-autenticacion__demo {
+  background: none;
+  border: none;
+  color: var(--color-texto-secundario);
+  font-size: var(--tamano-xs);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  align-self: center;
+  transition: color var(--transicion-rapida);
+}
+
+.pagina-autenticacion__demo:hover {
+  color: var(--color-azul-800);
+}
+
+.pagina-autenticacion__pie {
+  margin-top: var(--espacio-6);
+  text-align: center;
+  font-size: var(--tamano-sm);
+  color: var(--color-texto-secundario);
+}
+
+.pagina-autenticacion__enlace {
+  color: var(--color-azul-800);
+  font-weight: 600;
+}
+
+@media (max-width: 980px) {
+  .pagina-autenticacion {
+    grid-template-columns: 1fr;
+  }
+
+  .pagina-autenticacion__marca {
+    padding: var(--espacio-7) var(--espacio-6);
+    min-height: 260px;
+  }
+
+  .pagina-autenticacion__marca-lista {
+    display: none;
+  }
+
+  .pagina-autenticacion__marca-titulo {
+    font-size: var(--tamano-2xl);
+  }
+
+  .pagina-autenticacion__panel {
+    padding: var(--espacio-7) var(--espacio-5);
+  }
+}
+
+@media (max-width: 420px) {
+  .pagina-autenticacion__fila {
+    grid-template-columns: 1fr;
+  }
+}
