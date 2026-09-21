@@ -19,6 +19,9 @@
 .tarjeta-servicio__imagen {
   flex: 0 0 128px;
   overflow: hidden;
+  /* Respaldo visual si la imagen del tipo de bus no carga (url_imagen
+     vacía o inválida): evita que la tarjeta se vea rota. */
+  background: var(--color-fondo-alterno);
 }
 
 .tarjeta-servicio__imagen img {

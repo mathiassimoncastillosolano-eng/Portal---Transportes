@@ -1,8 +1,35 @@
-import { tiposServicio } from '../../datos/servicios'
+import { useEffect, useState } from 'react'
+import { obtenerServicios } from '../../servicios/serviciosServicio'
 import { TarjetaServicio } from '../../componentes/servicios/TarjetaServicio'
 import './paginaServicios.css'
 
 export function PaginaServicios() {
+  const [servicios, setServicios] = useState([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let cancelado = false
+
+    async function cargarServicios() {
+      setCargando(true)
+      setError(null)
+      try {
+        const datos = await obtenerServicios()
+        if (!cancelado) setServicios(datos)
+      } catch {
+        if (!cancelado) setError('No se pudieron cargar los servicios. Intenta nuevamente más tarde.')
+      } finally {
+        if (!cancelado) setCargando(false)
+      }
+    }
+
+    cargarServicios()
+    return () => {
+      cancelado = true
+    }
+  }, [])
+
   return (
     <section className="seccion contenedor">
       <div className="encabezado-seccion">
@@ -14,11 +41,21 @@ export function PaginaServicios() {
         </p>
       </div>
 
-      <div className="pagina-servicios__cuadricula">
-        {tiposServicio.map((servicio) => (
-          <TarjetaServicio key={servicio.id} servicio={servicio} />
-        ))}
-      </div>
+      {cargando && <p className="pagina-servicios__vacio">Cargando servicios...</p>}
+
+      {error && <p className="pagina-servicios__vacio">{error}</p>}
+
+      {!error && !cargando && servicios.length === 0 && (
+        <p className="pagina-servicios__vacio">Todavía no hay servicios disponibles.</p>
+      )}
+
+      {!error && servicios.length > 0 && (
+        <div className="pagina-servicios__cuadricula">
+          {servicios.map((servicio) => (
+            <TarjetaServicio key={servicio.id} servicio={servicio} />
+          ))}
+        </div>
+      )}
     </section>
   )
 }

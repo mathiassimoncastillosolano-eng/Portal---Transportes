@@ -3,3 +3,12 @@
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: var(--espacio-6) var(--espacio-5);
 }
+
+.pagina-servicios__vacio {
+  color: var(--color-texto-secundario);
+  padding: var(--espacio-6);
+  text-align: center;
+  background: var(--color-superficie);
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: var(--radio-lg);
+}

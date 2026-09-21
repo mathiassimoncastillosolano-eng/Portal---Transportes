@@ -5,7 +5,7 @@ import { CarruselDestinos } from '../../componentes/destinos/CarruselDestinos'
 import { CarruselServicios } from '../../componentes/servicios/CarruselServicios'
 import { useBusqueda } from '../../hooks/useBusqueda'
 import { obtenerDestinos } from '../../servicios/destinosServicio'
-import { tiposServicio } from '../../datos/servicios'
+import { obtenerServicios } from '../../servicios/serviciosServicio'
 import './paginaInicio.css'
 
 export function PaginaInicio() {
@@ -17,6 +17,7 @@ export function PaginaInicio() {
     puedeIrAdelante: true,
   })
   const [destinos, setDestinos] = useState([])
+  const [servicios, setServicios] = useState([])
 
   useEffect(() => {
     let cancelado = false
@@ -29,6 +30,24 @@ export function PaginaInicio() {
         // Si la consulta a la BD falla, la sección de Destinos simplemente
         // no se muestra: no se recurre a datos mock ni ficticios.
         if (!cancelado) setDestinos([])
+      })
+
+    return () => {
+      cancelado = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelado = false
+
+    obtenerServicios()
+      .then((datos) => {
+        if (!cancelado) setServicios(datos)
+      })
+      .catch(() => {
+        // Si la consulta a la BD falla, la sección de Servicios simplemente
+        // no se muestra: no se recurre a datos mock ni ficticios.
+        if (!cancelado) setServicios([])
       })
 
     return () => {
@@ -145,29 +164,31 @@ export function PaginaInicio() {
         </section>
       )}
 
-      <section className="seccion seccion-servicios">
-        <div className="contenedor seccion-servicios__cabecera">
-          <div className="encabezado-seccion">
-            <span className="encabezado-seccion__etiqueta">Servicios</span>
-            <h2 className="encabezado-seccion__titulo">Viaja como prefieras</h2>
-            <p className="encabezado-seccion__texto">
-              Cinco niveles de servicio pensados para cada tipo de viaje, desde
-              lo esencial hasta la experiencia más exclusiva.
-            </p>
+      {servicios.length > 0 && (
+        <section className="seccion seccion-servicios">
+          <div className="contenedor seccion-servicios__cabecera">
+            <div className="encabezado-seccion">
+              <span className="encabezado-seccion__etiqueta">Servicios</span>
+              <h2 className="encabezado-seccion__titulo">Viaja como prefieras</h2>
+              <p className="encabezado-seccion__texto">
+                Distintos niveles de servicio pensados para cada tipo de viaje,
+                desde lo esencial hasta la experiencia más exclusiva.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <CarruselServicios servicios={tiposServicio} />
+          <CarruselServicios servicios={servicios} />
 
-        <div className="contenedor">
-          <NavLink to="/servicios" className="enlace-ver-todo">
-            Conocer todos los servicios
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </NavLink>
-        </div>
-      </section>
+          <div className="contenedor">
+            <NavLink to="/servicios" className="enlace-ver-todo">
+              Conocer todos los servicios
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </NavLink>
+          </div>
+        </section>
+      )}
     </>
   )
 }
