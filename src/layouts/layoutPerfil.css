@@ -1,0 +1,45 @@
+.layout-perfil {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-6);
+}
+
+.layout-perfil__pestanas {
+  display: flex;
+  gap: var(--espacio-2);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.layout-perfil__pestana {
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--tamano-sm);
+  font-weight: 600;
+  color: var(--color-texto-secundario);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--transicion-rapida), border-color var(--transicion-rapida);
+}
+
+.layout-perfil__pestana:hover {
+  color: var(--color-texto-principal);
+}
+
+.layout-perfil__pestana--activa {
+  color: var(--color-azul-800);
+  border-color: var(--color-verde-600);
+}
+
+.layout-perfil__pestana:focus-visible {
+  border-radius: var(--radio-sm);
+}
+
+.layout-perfil__contenido {
+  min-height: 40vh;
+}
+
+@media (max-width: 560px) {
+  .layout-perfil__pestanas {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}

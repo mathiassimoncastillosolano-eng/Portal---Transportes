@@ -1,0 +1,88 @@
+.pagina-reserva {
+  padding-top: var(--espacio-7);
+}
+
+.pagina-reserva__encabezado {
+  margin: var(--espacio-7) 0 var(--espacio-6);
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-4);
+}
+
+.pagina-reserva__volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--tamano-sm);
+  color: var(--color-texto-secundario);
+  padding: 0.5rem 0.7rem 0.5rem 0.4rem;
+  border-radius: var(--radio-pastilla);
+  transition: background var(--transicion-rapida), color var(--transicion-rapida);
+}
+
+.pagina-reserva__volver:hover {
+  background: var(--color-fondo-alterno);
+  color: var(--color-texto-principal);
+}
+
+.pagina-reserva__titulo {
+  font-size: var(--tamano-xl);
+  font-weight: 600;
+}
+
+.pagina-reserva__cuerpo {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  align-items: start;
+  gap: var(--espacio-6);
+}
+
+.pagina-reserva__contenido {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+  min-width: 0;
+}
+
+.pagina-reserva__pago-exitoso {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  background: var(--color-verde-50);
+  color: var(--color-verde-800);
+  border: 1px solid var(--color-verde-500);
+  border-radius: var(--radio-md);
+  padding: var(--espacio-4) var(--espacio-5);
+  font-size: var(--tamano-sm);
+  font-weight: 600;
+}
+
+.pagina-reserva__pago-exitoso svg {
+  flex-shrink: 0;
+}
+
+.pagina-reserva__aviso-tope {
+  background: #FDF0DA;
+  color: #92580A;
+  border: 1px solid #F2CE94;
+  border-radius: var(--radio-md);
+  padding: var(--espacio-3) var(--espacio-5);
+  font-size: var(--tamano-sm);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .pagina-reserva__cuerpo {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .pagina-reserva__encabezado {
+    margin-top: var(--espacio-6);
+  }
+}

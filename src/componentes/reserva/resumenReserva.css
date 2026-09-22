@@ -1,0 +1,137 @@
+.resumen-reserva {
+  /* 76px es la altura fija de la barra de navegación (también sticky,
+     con z-index superior): sin este colchón, el resumen quedaba
+     parcialmente tapado por el header al hacer scroll. */
+  position: sticky;
+  top: calc(76px + var(--espacio-5));
+  max-height: calc(100vh - 76px - var(--espacio-6) * 2);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  background: var(--gradiente-superficie);
+  border-radius: var(--radio-lg);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: var(--sombra-suave);
+  padding: var(--espacio-6);
+}
+
+.resumen-reserva__titulo {
+  font-size: var(--tamano-md);
+  font-weight: 600;
+}
+
+.resumen-reserva__ruta {
+  margin-top: var(--espacio-4);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--fuente-titulos);
+  font-size: var(--tamano-lg);
+  font-weight: 600;
+}
+
+.resumen-reserva__ruta svg {
+  color: var(--color-verde-600);
+}
+
+.resumen-reserva__fecha {
+  margin-top: 0.3rem;
+  font-size: var(--tamano-sm);
+  color: var(--color-texto-secundario);
+  text-transform: capitalize;
+}
+
+.resumen-reserva__asientos {
+  margin-top: var(--espacio-5);
+  padding-top: var(--espacio-5);
+  border-top: 1px dashed var(--color-borde);
+}
+
+.resumen-reserva__asientos-titulo {
+  font-size: var(--tamano-xs);
+  font-weight: 700;
+  color: var(--color-texto-secundario);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.resumen-reserva__asientos-chips {
+  margin-top: var(--espacio-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.resumen-reserva__chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--fuente-titulos);
+  font-size: var(--tamano-xs);
+  font-weight: 700;
+  color: var(--color-azul-800);
+  background: var(--color-azul-100);
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radio-pastilla);
+}
+
+.resumen-reserva__lista {
+  margin: var(--espacio-5) 0 0;
+  padding-top: var(--espacio-5);
+  border-top: 1px dashed var(--color-borde);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+.resumen-reserva__lista > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--tamano-sm);
+}
+
+.resumen-reserva__lista dt {
+  color: var(--color-texto-secundario);
+}
+
+.resumen-reserva__lista dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-texto-principal);
+}
+
+.resumen-reserva__total {
+  margin-top: var(--espacio-5);
+  padding-top: var(--espacio-5);
+  border-top: 1px solid var(--color-borde);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resumen-reserva__total-monto {
+  font-family: var(--fuente-titulos);
+  font-size: var(--tamano-xl);
+  font-weight: 700;
+  color: var(--color-azul-800);
+}
+
+.resumen-reserva__lista + .resumen-reserva__total,
+.resumen-reserva__total {
+  margin-bottom: var(--espacio-5);
+}
+
+.resumen-reserva__ayuda {
+  margin-top: var(--espacio-3);
+  text-align: center;
+  font-size: var(--tamano-xs);
+  color: var(--color-texto-secundario);
+  background: var(--color-fondo-alterno);
+  border-radius: var(--radio-sm);
+  padding: var(--espacio-3);
+}
+
+@media (max-width: 900px) {
+  .resumen-reserva {
+    position: static;
+  }
+}

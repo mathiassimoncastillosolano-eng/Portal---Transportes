@@ -1,0 +1,17 @@
+.pagina-destinos__cuadricula {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--espacio-5);
+}
+
+@media (max-width: 900px) {
+  .pagina-destinos__cuadricula {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .pagina-destinos__cuadricula {
+    grid-template-columns: 1fr;
+  }
+}

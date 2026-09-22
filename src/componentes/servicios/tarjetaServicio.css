@@ -1,0 +1,104 @@
+.tarjeta-servicio {
+  height: 338px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-superficie);
+  border-radius: var(--radio-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-borde);
+  box-shadow: var(--sombra-suave);
+  transition: transform var(--transicion-base), box-shadow var(--transicion-base), border-color var(--transicion-base);
+}
+
+.tarjeta-servicio:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--sombra-flotante);
+  border-color: transparent;
+}
+
+.tarjeta-servicio__imagen {
+  flex: 0 0 128px;
+  overflow: hidden;
+}
+
+.tarjeta-servicio__imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tarjeta-servicio:hover .tarjeta-servicio__imagen img {
+  transform: scale(1.06);
+}
+
+/* Cuerpo con altura fija (heredada de la card): la jerarquía interna
+   (icono → título → descripción → característica) siempre ocupa el
+   mismo espacio, sin importar cuánto texto tenga cada servicio. */
+.tarjeta-servicio__cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--espacio-5) var(--espacio-5) var(--espacio-4);
+}
+
+.tarjeta-servicio__icono {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--gradiente-acento);
+  color: #06281B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -2.5rem;
+  margin-bottom: var(--espacio-3);
+  box-shadow: 0 8px 16px -6px rgba(16, 163, 74, 0.5);
+  position: relative;
+  z-index: 1;
+  border: 3px solid var(--color-superficie);
+}
+
+.tarjeta-servicio__nombre {
+  flex-shrink: 0;
+  font-family: var(--fuente-titulos);
+  font-size: var(--tamano-md);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Siempre reserva el espacio de 2 líneas, tenga o no tenga el
+   servicio una descripción de esa longitud: evita que una card
+   "crezca" y rompa la alineación del carrusel. */
+.tarjeta-servicio__descripcion {
+  flex-shrink: 0;
+  margin-top: 0.35rem;
+  font-size: var(--tamano-sm);
+  color: var(--color-texto-secundario);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(1.5em * 2);
+}
+
+/* Siempre pegada a la base de la card: si la descripción es corta,
+   el espacio libre se acumula arriba de esta línea, nunca cambia
+   la altura total de la tarjeta. */
+.tarjeta-servicio__caracteristica {
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: var(--espacio-3);
+  border-top: 1px dashed var(--color-borde);
+  font-size: var(--tamano-xs);
+  font-weight: 600;
+  color: var(--color-azul-800);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

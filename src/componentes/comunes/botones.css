@@ -1,0 +1,115 @@
+.boton-principal {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-2);
+  border: none;
+  cursor: pointer;
+  background: var(--gradiente-acento);
+  color: #06281B;
+  font-weight: 700;
+  font-size: var(--tamano-sm);
+  padding: 0.9rem 1.7rem;
+  border-radius: var(--radio-pastilla);
+  transition: transform var(--transicion-rapida), box-shadow var(--transicion-rapida), filter var(--transicion-rapida);
+  box-shadow: 0 12px 24px -10px rgba(16, 163, 74, 0.5), var(--sombra-interior);
+  letter-spacing: 0.01em;
+}
+
+.boton-principal:hover:not(:disabled) {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px -10px rgba(16, 163, 74, 0.55), var(--sombra-interior);
+}
+
+.boton-principal:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.boton-principal:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.boton-secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-2);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--tamano-sm);
+  padding: 0.9rem 1.6rem;
+  border-radius: var(--radio-pastilla);
+  transition: background var(--transicion-rapida), border-color var(--transicion-rapida), color var(--transicion-rapida), transform var(--transicion-rapida);
+}
+
+.boton-secundario--contorno {
+  background: var(--color-superficie);
+  border: 1.5px solid var(--color-borde);
+  color: var(--color-texto-principal);
+}
+
+.boton-secundario--contorno:hover:not(:disabled) {
+  border-color: var(--color-azul-700);
+  background: var(--color-azul-50);
+  transform: translateY(-1px);
+}
+
+.boton-secundario--fantasma {
+  background: rgba(247, 249, 251, 0.08);
+  border: 1.5px solid rgba(247, 249, 251, 0.4);
+  color: var(--color-texto-invertido);
+}
+
+.boton-secundario--fantasma:hover:not(:disabled) {
+  background: rgba(247, 249, 251, 0.16);
+  border-color: rgba(247, 249, 251, 0.75);
+}
+
+.boton-secundario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- Botón "Continuar con Google" (solo frontend, sin autenticación real) ---------- */
+
+.boton-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  width: 100%;
+  background: var(--color-superficie);
+  border: 1.5px solid var(--color-borde);
+  color: var(--color-texto-principal);
+  font-weight: 600;
+  font-size: var(--tamano-sm);
+  padding: 0.85rem 1.5rem;
+  border-radius: var(--radio-pastilla);
+  cursor: pointer;
+  transition: border-color var(--transicion-rapida), box-shadow var(--transicion-rapida), transform var(--transicion-rapida), background var(--transicion-rapida);
+}
+
+.boton-google:hover:not(:disabled) {
+  border-color: var(--color-borde-fuerte);
+  box-shadow: var(--sombra-suave);
+  transform: translateY(-1px);
+  background: var(--color-fondo-alterno);
+}
+
+.boton-google:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.boton-google:focus-visible {
+  box-shadow: var(--sombra-foco-azul);
+}
+
+.boton-google__icono {
+  flex-shrink: 0;
+  display: flex;
+}

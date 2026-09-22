@@ -1,0 +1,38 @@
+.selector-fecha {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.selector-fecha__etiqueta {
+  font-size: var(--tamano-xs);
+  font-weight: 600;
+  color: var(--color-texto-secundario);
+}
+
+.selector-fecha__envoltura {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.selector-fecha__icono {
+  flex-shrink: 0;
+  color: var(--color-verde-600);
+}
+
+.selector-fecha__control {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: var(--tamano-md);
+  font-weight: 600;
+  color: var(--color-texto-principal);
+  cursor: pointer;
+  width: 100%;
+}
+
+.selector-fecha__control:focus {
+  outline: none;
+}

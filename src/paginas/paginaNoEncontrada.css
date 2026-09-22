@@ -1,0 +1,34 @@
+.pagina-no-encontrada {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 60vh;
+  padding: var(--espacio-9) 0;
+}
+
+.pagina-no-encontrada__codigo {
+  font-family: var(--fuente-titulos);
+  font-size: var(--tamano-4xl);
+  font-weight: 700;
+  background: var(--gradiente-marca);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.pagina-no-encontrada__titulo {
+  margin-top: var(--espacio-2);
+  font-size: var(--tamano-xl);
+}
+
+.pagina-no-encontrada__texto {
+  margin-top: var(--espacio-3);
+  color: var(--color-texto-secundario);
+  max-width: 42ch;
+}
+
+.pagina-no-encontrada__enlace {
+  margin-top: var(--espacio-6);
+}

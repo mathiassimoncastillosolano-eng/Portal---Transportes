@@ -1,0 +1,38 @@
+.estado-disponibilidad {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--tamano-xs);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 0.34rem 0.75rem;
+  border-radius: var(--radio-pastilla);
+}
+
+.estado-disponibilidad__punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.estado-disponibilidad--disponible {
+  color: var(--color-estado-disponible);
+  background: var(--color-verde-100);
+}
+
+.estado-disponibilidad--pocos {
+  color: #92580A;
+  background: #FDF0DA;
+}
+
+.estado-disponibilidad--agotado {
+  color: var(--color-estado-agotado);
+  background: #FBE4E4;
+}
+
+.estado-disponibilidad--completado {
+  color: var(--color-texto-secundario);
+  background: #EEF1F4;
+}

@@ -1,0 +1,227 @@
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-fondo);
+  color: var(--color-texto-principal);
+  font-family: var(--fuente-texto);
+  font-size: var(--tamano-base);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--fuente-titulos);
+  margin: 0;
+  color: var(--color-texto-principal);
+  letter-spacing: -0.015em;
+  line-height: 1.12;
+}
+
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2.5px solid var(--color-verde-600);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+#raiz {
+  min-height: 100vh;
+}
+
+.diseno-principal {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--color-fondo);
+}
+
+.diseno-principal main {
+  flex: 1;
+}
+
+/* ---------- Utilidades de layout ---------- */
+
+.contenedor {
+  width: 100%;
+  max-width: var(--ancho-contenido);
+  margin-inline: auto;
+  padding-inline: var(--espacio-6);
+}
+
+@media (max-width: 640px) {
+  .contenedor {
+    padding-inline: var(--espacio-4);
+  }
+}
+
+.seccion {
+  padding-block: var(--espacio-9);
+}
+
+@media (max-width: 780px) {
+  .seccion {
+    padding-block: var(--espacio-8);
+  }
+}
+
+.encabezado-seccion {
+  max-width: 640px;
+  margin-bottom: var(--espacio-7);
+}
+
+.encabezado-seccion__etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--color-verde-700);
+  font-weight: 700;
+  font-size: var(--tamano-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: var(--espacio-3);
+}
+
+.encabezado-seccion__etiqueta::before {
+  content: '';
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gradiente-acento);
+}
+
+.encabezado-seccion__titulo {
+  font-size: var(--tamano-2xl);
+  font-weight: 600;
+}
+
+.encabezado-seccion__texto {
+  margin-top: var(--espacio-3);
+  color: var(--color-texto-secundario);
+  font-size: var(--tamano-md);
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .encabezado-seccion__titulo {
+    font-size: var(--tamano-xl);
+  }
+}
+
+/* ---------- Insignia / badge premium reutilizable ---------- */
+
+.insignia {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--tamano-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radio-pastilla);
+  background: var(--color-verde-100);
+  color: var(--color-verde-800);
+}
+
+/* ---------- Superficie de cristal (glass) reutilizable ---------- */
+
+.superficie-cristal {
+  background: var(--color-superficie-velada);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* ---------- Divisor "o" reutilizable (formularios) ---------- */
+
+.divisor-o {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  color: var(--color-texto-terciario);
+  font-size: var(--tamano-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.divisor-o::before,
+.divisor-o::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-borde);
+}
+
+/* ---------- Animación de aparición progresiva (uso puntual) ---------- */
+
+@keyframes aparecer-desde-abajo {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animar-aparicion {
+  animation: aparecer-desde-abajo 640ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes aparecer-suave {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animar-aparicion-suave {
+  animation: aparecer-suave 420ms ease both;
+}
