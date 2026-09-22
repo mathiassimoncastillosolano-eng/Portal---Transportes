@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { CampoTexto } from '../../componentes/comunes/CampoTexto'
 import { BotonPrincipal } from '../../componentes/comunes/BotonPrincipal'
-import { BotonGoogle } from '../../componentes/comunes/BotonGoogle'
+import { validarRegistro } from '../../utilidades/validarRegistro'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import './autenticacionPagina.css'
 
@@ -48,15 +48,7 @@ export function PaginaCrearCuenta() {
   }
 
   function validar() {
-    const nuevosErrores = {}
-    if (!valores.nombres.trim()) nuevosErrores.nombres = 'Ingresa tus nombres.'
-    if (!valores.apellidos.trim()) nuevosErrores.apellidos = 'Ingresa tus apellidos.'
-    if (!/^\S+@\S+\.\S+$/.test(valores.correo)) nuevosErrores.correo = 'Ingresa un correo válido.'
-    if (valores.telefono.trim().length < 6) nuevosErrores.telefono = 'Ingresa un teléfono válido.'
-    if (valores.contrasena.length < 6) nuevosErrores.contrasena = 'Debe tener al menos 6 caracteres.'
-    if (valores.confirmarContrasena !== valores.contrasena) {
-      nuevosErrores.confirmarContrasena = 'Las contraseñas no coinciden.'
-    }
+    const nuevosErrores = validarRegistro(valores)
     setErrores(nuevosErrores)
     return Object.keys(nuevosErrores).length === 0
   }
@@ -68,10 +60,13 @@ export function PaginaCrearCuenta() {
 
     setCargando(true)
     try {
-      await registrarUsuario(valores)
-      navegar('/perfil')
+      const cuenta = await registrarUsuario(valores)
+      navegar('/iniciar-sesion', {
+        replace: true,
+        state: { cuentaCreada: true, correoRegistro: cuenta.correo },
+      })
     } catch (err) {
-      setErrorGeneral(err.message ?? 'No se pudo crear la cuenta.')
+      setErrorGeneral(err.detalles?.length ? err.detalles.join(' ') : (err.message ?? 'No se pudo crear la cuenta.'))
     } finally {
       setCargando(false)
     }
@@ -122,12 +117,6 @@ export function PaginaCrearCuenta() {
             Regístrate para comprar pasajes y guardar tus tickets electrónicos.
           </p>
 
-          <div className="pagina-autenticacion__social">
-            <BotonGoogle texto="Registrarte con Google" />
-          </div>
-
-          <div className="divisor-o pagina-autenticacion__divisor">o regístrate con tu correo</div>
-
           <form className="pagina-autenticacion__formulario" onSubmit={manejarEnvio}>
             <div className="pagina-autenticacion__fila">
               <CampoTexto
@@ -158,12 +147,11 @@ export function PaginaCrearCuenta() {
             />
 
             <CampoTexto
-              etiqueta="Teléfono"
+              etiqueta="Teléfono (opcional)"
               tipo="tel"
               valor={valores.telefono}
               alCambiar={(valor) => actualizarCampo('telefono', valor)}
               error={errores.telefono}
-              requerido
               icono={ICONO_TELEFONO}
             />
 

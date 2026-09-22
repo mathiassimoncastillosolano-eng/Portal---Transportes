@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ModalBase } from '../comunes/ModalBase'
 import { CampoTexto } from '../comunes/CampoTexto'
 import { BotonPrincipal } from '../comunes/BotonPrincipal'
-import { BotonGoogle } from '../comunes/BotonGoogle'
+import { validarRegistro } from '../../utilidades/validarRegistro'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import './autenticacion.css'
 
@@ -21,21 +21,18 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
   const [errores, setErrores] = useState({})
   const [cargando, setCargando] = useState(false)
   const [errorGeneral, setErrorGeneral] = useState('')
+  const [cuentaCreada, setCuentaCreada] = useState(false)
+
+  useEffect(() => {
+    if (!abierto) setCuentaCreada(false)
+  }, [abierto])
 
   function actualizarCampo(campo, valor) {
     setValores((actual) => ({ ...actual, [campo]: valor }))
   }
 
   function validar() {
-    const nuevosErrores = {}
-    if (!valores.nombres.trim()) nuevosErrores.nombres = 'Ingresa tus nombres.'
-    if (!valores.apellidos.trim()) nuevosErrores.apellidos = 'Ingresa tus apellidos.'
-    if (!/^\S+@\S+\.\S+$/.test(valores.correo)) nuevosErrores.correo = 'Ingresa un correo válido.'
-    if (valores.telefono.trim().length < 6) nuevosErrores.telefono = 'Ingresa un teléfono válido.'
-    if (valores.contrasena.length < 6) nuevosErrores.contrasena = 'Debe tener al menos 6 caracteres.'
-    if (valores.confirmarContrasena !== valores.contrasena) {
-      nuevosErrores.confirmarContrasena = 'Las contraseñas no coinciden.'
-    }
+    const nuevosErrores = validarRegistro(valores)
     setErrores(nuevosErrores)
     return Object.keys(nuevosErrores).length === 0
   }
@@ -49,12 +46,21 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
     try {
       await registrarUsuario(valores)
       setValores(VALORES_INICIALES)
-      alCerrar()
+      setCuentaCreada(true)
     } catch (err) {
-      setErrorGeneral(err.message ?? 'No se pudo crear la cuenta.')
+      setErrorGeneral(err.detalles?.length ? err.detalles.join(' ') : (err.message ?? 'No se pudo crear la cuenta.'))
     } finally {
       setCargando(false)
     }
+  }
+
+  if (cuentaCreada) {
+    return (
+      <ModalBase titulo="Cuenta creada" abierto={abierto} alCerrar={alCerrar}>
+        <p role="status">Tu cuenta se creó correctamente. Inicia sesión para continuar.</p>
+        <BotonPrincipal onClick={alIrAIniciarSesion}>Iniciar sesión</BotonPrincipal>
+      </ModalBase>
+    )
   }
 
   return (
@@ -64,10 +70,6 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
       abierto={abierto}
       alCerrar={alCerrar}
     >
-      <BotonGoogle texto="Registrarte con Google" />
-
-      <div className="divisor-o formulario-autenticacion__divisor">o regístrate con tu correo</div>
-
       <form className="formulario-autenticacion" onSubmit={manejarEnvio}>
         <div className="formulario-autenticacion__fila">
           <CampoTexto
@@ -97,12 +99,11 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
         />
 
         <CampoTexto
-          etiqueta="Teléfono"
+          etiqueta="Teléfono (opcional)"
           tipo="tel"
           valor={valores.telefono}
           alCambiar={(valor) => actualizarCampo('telefono', valor)}
           error={errores.telefono}
-          requerido
         />
 
         <div className="formulario-autenticacion__fila">

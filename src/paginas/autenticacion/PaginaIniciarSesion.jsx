@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { CampoTexto } from '../../componentes/comunes/CampoTexto'
 import { BotonPrincipal } from '../../componentes/comunes/BotonPrincipal'
 import { BotonGoogle } from '../../componentes/comunes/BotonGoogle'
@@ -24,7 +24,8 @@ const ICONO_CANDADO = (
 export function PaginaIniciarSesion() {
   const { iniciarSesion } = useAutenticacion()
   const navegar = useNavigate()
-  const [correo, setCorreo] = useState('')
+  const ubicacion = useLocation()
+  const [correo, setCorreo] = useState(ubicacion.state?.correoRegistro ?? '')
   const [contrasena, setContrasena] = useState('')
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
@@ -84,6 +85,9 @@ export function PaginaIniciarSesion() {
       <div className="pagina-autenticacion__panel">
         <div className="pagina-autenticacion__tarjeta animar-aparicion">
           <h2 className="pagina-autenticacion__titulo">Iniciar sesión</h2>
+          {ubicacion.state?.cuentaCreada && (
+            <p role="status">Tu cuenta se creó correctamente. Inicia sesión para continuar.</p>
+          )}
           <p className="pagina-autenticacion__subtitulo">
             Ingresa a tu cuenta para ver tus pasajes y tickets electrónicos.
           </p>

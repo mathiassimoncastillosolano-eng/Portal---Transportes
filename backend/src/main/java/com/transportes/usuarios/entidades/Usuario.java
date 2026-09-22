@@ -8,18 +8,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
-/**
- * Entidad JPA que mapea la tabla {@code usuario}, ya existente en la base de
- * datos PostgreSQL/Supabase del proyecto.
- *
- * <p>Esta entidad NO gestiona el registro de cuentas: los usuarios se
- * insertan manualmente en la base de datos. Su unico proposito dentro de
- * esta implementacion es servir de soporte para el inicio de sesion, la
- * generacion del JWT y la consulta/edicion del perfil autenticado.</p>
- */
+/** Entidad compartida por registro, login y perfil. */
 @Entity
-@Table(name = "usuario")
+@Table(name = "usuario", schema = "public")
+@Getter
+@Setter
 public class Usuario {
 
     @Id
@@ -40,96 +36,18 @@ public class Usuario {
     private String contrasenaHash;
 
     @Column(name = "activo", nullable = false)
-    private Boolean activo;
+    private Boolean activo = true;
 
-    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    @Column(name = "fecha_creacion", nullable = false, insertable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
-    @Column(name = "fecha_actualizacion", nullable = false)
+    @Column(name = "fecha_actualizacion", nullable = false, insertable = false)
     private LocalDateTime fechaActualizacion;
 
     @Column(name = "nro_telefono", length = 20)
     private String nroTelefono;
 
-    public Usuario() {
-    }
-
-    public Integer getIdUsuario() {
-        return idUsuario;
-    }
-
-    public void setIdUsuario(Integer idUsuario) {
-        this.idUsuario = idUsuario;
-    }
-
-    public String getNombres() {
-        return nombres;
-    }
-
-    public void setNombres(String nombres) {
-        this.nombres = nombres;
-    }
-
-    public String getApellidos() {
-        return apellidos;
-    }
-
-    public void setApellidos(String apellidos) {
-        this.apellidos = apellidos;
-    }
-
-    public String getCorreo() {
-        return correo;
-    }
-
-    public void setCorreo(String correo) {
-        this.correo = correo;
-    }
-
-    public String getContrasenaHash() {
-        return contrasenaHash;
-    }
-
-    public void setContrasenaHash(String contrasenaHash) {
-        this.contrasenaHash = contrasenaHash;
-    }
-
-    public Boolean getActivo() {
-        return activo;
-    }
-
-    public void setActivo(Boolean activo) {
-        this.activo = activo;
-    }
-
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
-    }
-
-    public void setFechaCreacion(LocalDateTime fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
-    }
-
-    public LocalDateTime getFechaActualizacion() {
-        return fechaActualizacion;
-    }
-
-    public void setFechaActualizacion(LocalDateTime fechaActualizacion) {
-        this.fechaActualizacion = fechaActualizacion;
-    }
-
-    public String getNroTelefono() {
-        return nroTelefono;
-    }
-
-    public void setNroTelefono(String nroTelefono) {
-        this.nroTelefono = nroTelefono;
-    }
-
-    /**
-     * Indica si el usuario puede iniciar sesion segun el flag {@code activo}.
-     * Se trata como {@code false} si el valor almacenado fuera nulo.
-     */
+    /** Una cuenta solo esta activa si su indicador es true. */
     public boolean estaActivo() {
         return Boolean.TRUE.equals(activo);
     }

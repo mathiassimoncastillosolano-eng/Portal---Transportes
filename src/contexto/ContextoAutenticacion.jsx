@@ -35,9 +35,7 @@ export function ProveedorAutenticacion({ children }) {
   }, [])
 
   const registrarUsuario = useCallback(async (datos) => {
-    const nuevoUsuario = await registrarUsuarioServicio(datos)
-    setUsuario(nuevoUsuario)
-    return nuevoUsuario
+    return registrarUsuarioServicio(datos)
   }, [])
 
   const cerrarSesion = useCallback(async () => {

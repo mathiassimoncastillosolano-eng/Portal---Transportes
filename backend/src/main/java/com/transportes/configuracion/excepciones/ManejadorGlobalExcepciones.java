@@ -2,9 +2,13 @@ package com.transportes.configuracion.excepciones;
 
 import com.transportes.auth.excepciones.CredencialesInvalidasException;
 import com.transportes.usuarios.excepciones.UsuarioNoEncontradoException;
+import com.transportes.usuarios.excepciones.CorreoYaRegistradoException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -24,6 +28,43 @@ import java.util.List;
  */
 @RestControllerAdvice
 public class ManejadorGlobalExcepciones {
+
+    @ExceptionHandler(CorreoYaRegistradoException.class)
+    public ResponseEntity<RespuestaError> manejarCorreoDuplicado(
+            CorreoYaRegistradoException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<RespuestaError> manejarIntegridad(
+            DataIntegrityViolationException excepcion, HttpServletRequest request) {
+        Throwable causa = excepcion;
+        while (causa != null) {
+            if (causa instanceof org.hibernate.exception.ConstraintViolationException restriccion
+                    && "23505".equals(restriccion.getSQLState())
+                    && "uq_usuario_correo".equals(restriccion.getConstraintName())) {
+                return construirRespuesta(HttpStatus.CONFLICT,
+                        "El correo ya está registrado", request, null);
+            }
+            causa = causa.getCause();
+        }
+        return construirRespuesta(HttpStatus.INTERNAL_SERVER_ERROR,
+                "No se pudo guardar la cuenta", request, null);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<RespuestaError> manejarSolicitud(
+            ResponseStatusException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.valueOf(excepcion.getStatusCode().value()),
+                excepcion.getReason() == null ? "Solicitud no válida" : excepcion.getReason(), request, null);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<RespuestaError> manejarJsonInvalido(
+            HttpMessageNotReadableException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.BAD_REQUEST,
+                "El cuerpo de la solicitud debe ser un JSON válido", request, null);
+    }
 
     @ExceptionHandler(CredencialesInvalidasException.class)
     public ResponseEntity<RespuestaError> manejarCredencialesInvalidas(
