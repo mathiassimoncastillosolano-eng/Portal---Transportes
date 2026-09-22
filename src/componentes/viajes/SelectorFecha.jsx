@@ -1,7 +1,8 @@
 import './selectorFecha.css'
+import { fechaLocal } from '../../utilidades/fechas'
 
 export function SelectorFecha({ etiqueta, valor, alCambiar }) {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = fechaLocal()
 
   return (
     <div className="selector-fecha">
@@ -13,6 +14,9 @@ export function SelectorFecha({ etiqueta, valor, alCambiar }) {
         </svg>
         <input
           type="date"
+          name="fecha"
+          aria-label={etiqueta}
+          required
           className="selector-fecha__control"
           value={valor}
           min={hoy}

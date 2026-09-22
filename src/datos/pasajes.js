@@ -1,4 +1,4 @@
-import { empresasTransporte } from './empresas'
+import { empresasTransporte } from './empresas.js'
 
 /**
  * Genera un lote de pasajes simulados para un usuario recién registrado

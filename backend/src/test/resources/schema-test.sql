@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS usuario (
  CONSTRAINT uq_usuario_correo UNIQUE (correo)
 );
 CREATE TABLE IF NOT EXISTS ubicacion (
- id_ubicacion integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ id_ubicacion bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
  nombre varchar(255) NOT NULL, distrito varchar(255), provincia varchar(255),
  departamento varchar(255), url_imagen varchar(255), activa boolean NOT NULL,
  fecha_creacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP

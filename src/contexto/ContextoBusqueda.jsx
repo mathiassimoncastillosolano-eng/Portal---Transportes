@@ -1,11 +1,6 @@
-import { createContext, useCallback, useState } from 'react'
+import { createContext, useCallback, useRef, useState } from 'react'
 import { buscarViajes } from '../servicios/viajesServicio'
 
-// Vive por encima de las rutas (ver main.jsx) para que la búsqueda
-// realizada en Inicio sobreviva la navegación hacia /resultados y hacia
-// /reservar → "Volver", sin tener que repetirla ni perder los resultados
-// ya obtenidos (la búsqueda simulada usa datos aleatorios, así que
-// repetirla mostraría un viaje distinto al que el usuario ya eligió).
 export const ContextoBusqueda = createContext(null)
 
 export function ProveedorBusqueda({ children }) {
@@ -13,23 +8,28 @@ export function ProveedorBusqueda({ children }) {
   const [buscando, setBuscando] = useState(false)
   const [error, setError] = useState(null)
   const [criterios, setCriterios] = useState(null)
+  const ultimaSolicitud = useRef(0)
 
   const ejecutarBusqueda = useCallback(async (parametros) => {
+    const solicitud = ++ultimaSolicitud.current
     setBuscando(true)
     setError(null)
-    setCriterios(parametros)
+    setResultados([])
+    setCriterios({ ...parametros, horario: parametros.horario ?? 'cualquiera' })
     try {
       const viajes = await buscarViajes(parametros)
-      setResultados(viajes)
+      // Una respuesta anterior no debe reemplazar la búsqueda actual.
+      if (solicitud === ultimaSolicitud.current) setResultados(viajes)
     } catch (err) {
-      setError(err.message ?? 'Ocurrió un problema al buscar pasajes.')
-      setResultados([])
+      if (solicitud === ultimaSolicitud.current) setError(err.message ?? 'Ocurrió un problema al buscar pasajes.')
     } finally {
-      setBuscando(false)
+      if (solicitud === ultimaSolicitud.current) setBuscando(false)
     }
   }, [])
 
-  const valor = { resultados, buscando, error, criterios, ejecutarBusqueda }
-
-  return <ContextoBusqueda.Provider value={valor}>{children}</ContextoBusqueda.Provider>
+  return (
+    <ContextoBusqueda.Provider value={{ resultados, buscando, error, criterios, ejecutarBusqueda }}>
+      {children}
+    </ContextoBusqueda.Provider>
+  )
 }
