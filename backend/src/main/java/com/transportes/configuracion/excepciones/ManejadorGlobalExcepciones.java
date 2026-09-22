@@ -102,6 +102,13 @@ public class ManejadorGlobalExcepciones {
                 "Los datos enviados no son validos.", request, detalles);
     }
 
+    @ExceptionHandler({org.springframework.web.bind.MissingServletRequestParameterException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<RespuestaError> manejarParametros(Exception excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.BAD_REQUEST,
+                "Revisa origen, destino y fecha (AAAA-MM-DD).", request, null);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<RespuestaError> manejarErrorGeneral(
             Exception excepcion, HttpServletRequest request) {

@@ -1,6 +1,6 @@
 import { EstadoDisponibilidad } from '../comunes/EstadoDisponibilidad'
 import { BotonPrincipal } from '../comunes/BotonPrincipal'
-import { formatearPrecio } from '../../utilidades/formato'
+import { formatearPrecio, formatearFechaCorta } from '../../utilidades/formato'
 import './tarjetaResultadoViaje.css'
 
 const ICONOS_SERVICIO = {
@@ -86,7 +86,10 @@ export function TarjetaResultadoViaje({ resultado, esMasEconomico, alSeleccionar
           </div>
 
           <div className="tarjeta-resultado-viaje__punto tarjeta-resultado-viaje__punto--derecha">
-            <span className="tarjeta-resultado-viaje__hora">{resultado.horaLlegada}</span>
+            <span className="tarjeta-resultado-viaje__hora">{resultado.horaLlegada ?? 'Por confirmar'}</span>
+            {resultado.fechaLlegada && resultado.fechaLlegada !== resultado.fechaSalida && (
+              <span className="tarjeta-resultado-viaje__duracion">Llega el {formatearFechaCorta(resultado.fechaLlegada)}</span>
+            )}
             <span className="tarjeta-resultado-viaje__ciudad">{resultado.destino}</span>
           </div>
         </div>
@@ -107,7 +110,7 @@ export function TarjetaResultadoViaje({ resultado, esMasEconomico, alSeleccionar
       <div className="tarjeta-resultado-viaje__lateral">
         <div className="tarjeta-resultado-viaje__precio-columna">
           <span className="tarjeta-resultado-viaje__precio-etiqueta">Desde, por persona</span>
-          <span className="tarjeta-resultado-viaje__precio">{formatearPrecio(resultado.precio)}</span>
+          <span className="tarjeta-resultado-viaje__precio">{resultado.precio == null ? 'No disponible' : formatearPrecio(resultado.precio)}</span>
         </div>
         <BotonPrincipal deshabilitado={agotado} onClick={() => alSeleccionar(resultado)} ancho="100%">
           {agotado ? 'Sin cupo' : 'Elegir asientos →'}

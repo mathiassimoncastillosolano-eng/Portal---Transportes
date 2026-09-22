@@ -9,7 +9,7 @@ package com.transportes.destinos.dto;
  * @param imagen URL de la imagen de la ubicación.
  */
 public record DestinoRespuestaDTO(
-        Integer id,
+        Long id,
         String ciudad,
         String imagen
 ) {

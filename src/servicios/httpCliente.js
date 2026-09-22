@@ -3,7 +3,7 @@
 // encabezado Authorization y el manejo uniforme de errores devueltos por
 // la API (ver RespuestaError en el backend).
 
-const URL_BASE_API = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+const URL_BASE_API = (import.meta.env?.VITE_API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
 const CLAVE_TOKEN = 'rutalibre:token'
 
@@ -26,7 +26,8 @@ export function eliminarToken() {
  * mensaje legible para mostrar en la interfaz.
  */
 export async function solicitarApi(ruta, opciones = {}) {
-  const token = obtenerToken()
+  const { autenticar = true, ...opcionesFetch } = opciones
+  const token = autenticar ? obtenerToken() : null
 
   const encabezados = {
     'Content-Type': 'application/json',
@@ -40,7 +41,7 @@ export async function solicitarApi(ruta, opciones = {}) {
   let respuesta
   try {
     respuesta = await fetch(`${URL_BASE_API}${ruta}`, {
-      ...opciones,
+      ...opcionesFetch,
       headers: encabezados,
     })
   } catch (error) {
