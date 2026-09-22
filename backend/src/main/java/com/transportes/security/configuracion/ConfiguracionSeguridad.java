@@ -4,6 +4,7 @@ import com.transportes.security.servicios.JwtService;
 import com.transportes.security.servicios.TokenInvalidadoService;
 import com.transportes.usuarios.servicios.UsuarioService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -29,8 +30,8 @@ import java.util.List;
  *     <li>CSRF deshabilitado: es irrelevante para una API sin estado
  *         consumida por un frontend SPA con Bearer tokens (no usa
  *         cookies de sesion).</li>
- *     <li>{@code /api/auth/login} es la unica ruta de autenticacion
- *         publica. El resto de rutas bajo {@code /api/usuarios/**} y
+ *     <li>Login y POST /api/usuarios/registro son publicos.
+ *         El resto de rutas bajo {@code /api/usuarios/**} y
  *         {@code /api/auth/logout} requieren un JWT valido.</li>
  * </ul>
  */
@@ -72,8 +73,8 @@ public class ConfiguracionSeguridad {
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(manejo -> manejo.authenticationEntryPoint(puntoEntradaJwt))
                 .authorizeHttpRequests(rutas -> rutas
-                        // Login: unico endpoint publico de autenticacion. No existe
-                        // endpoint de registro (fuera de alcance de este trabajo).
+                        // Crear una cuenta no requiere una sesion previa.
+                        .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
                         // Perfil y cierre de sesion: requieren JWT valido.
                         .requestMatchers("/api/usuarios/**", "/api/auth/logout").authenticated()
