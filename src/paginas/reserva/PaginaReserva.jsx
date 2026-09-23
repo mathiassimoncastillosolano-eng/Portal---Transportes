@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { IndicadorProgreso } from '../../componentes/reserva/IndicadorProgreso'
 import { InfoViajeCompacta } from '../../componentes/reserva/InfoViajeCompacta'
@@ -10,7 +10,13 @@ import { DATOS_PASAJERO_VACIOS, pasajeroEstaCompleto } from '../../componentes/r
 import { PasarelaPago, VALORES_PAGO_INICIALES, validarPago } from '../../componentes/reserva/PasarelaPago'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { useBusqueda } from '../../hooks/useBusqueda'
-import { generarMapaAsientos, MAXIMO_PASAJEROS_POR_COMPRA } from '../../servicios/viajesServicio'
+import {
+  MAXIMO_PASAJEROS_POR_COMPRA,
+  ID_VIAJE_PRUEBA,
+  obtenerMapaAsientosViaje,
+  bloquearAsiento,
+  liberarAsiento,
+} from '../../servicios/viajesServicio'
 import { formatearPrecio } from '../../utilidades/formato'
 import './paginaReserva.css'
 
@@ -51,13 +57,40 @@ export function PaginaReserva() {
   const [pagando, setPagando] = useState(false)
   const [pagoCompletado, setPagoCompletado] = useState(false)
 
-  const mapaAsientos = useMemo(
-    () => (state?.resultado ? generarMapaAsientos(state.resultado) : null),
-    [state?.resultado],
-  )
+  const [mapaAsientos, setMapaAsientos] = useState(null)
+  const [cargandoMapa, setCargandoMapa] = useState(true)
+  const [errorMapa, setErrorMapa] = useState(null)
+  const [tokensBloqueo, setTokensBloqueo] = useState({}) // clave -> tokenBloqueo
+  const [bloqueando, setBloqueando] = useState(false)
+  const [errorBloqueo, setErrorBloqueo] = useState(null)
+
+  async function cargarMapaAsientos() {
+    setCargandoMapa(true)
+    setErrorMapa(null)
+    try {
+      const mapa = await obtenerMapaAsientosViaje(ID_VIAJE_PRUEBA)
+      setMapaAsientos(mapa)
+    } catch (error) {
+      setErrorMapa(error.message)
+    } finally {
+      setCargandoMapa(false)
+    }
+  }
+
+  useEffect(() => {
+    cargarMapaAsientos()
+  }, [])
 
   if (!state?.resultado || !state?.fecha) {
     return <Navigate to="/" replace />
+  }
+
+  if (cargandoMapa) {
+    return <p className="pagina-reserva__estado">Cargando disponibilidad de asientos…</p>
+  }
+
+  if (errorMapa) {
+    return <p className="pagina-reserva__estado pagina-reserva__estado--error">{errorMapa}</p>
   }
 
   const { resultado, fecha } = state
@@ -69,8 +102,7 @@ export function PaginaReserva() {
   )
   const limiteAlcanzado = asientosSeleccionados.length >= MAXIMO_PASAJEROS_POR_COMPRA
 
-  const recargoTotal = asientosSeleccionados.reduce((total, asiento) => total + (asiento.precioAdicional ?? 0), 0)
-  const precioTotal = resultado.precio * asientosSeleccionados.length + recargoTotal
+  const precioTotal = asientosSeleccionados.reduce((total, asiento) => total + (asiento.precio ?? 0), 0)
 
   const pasajerosCompletos =
     asientosSeleccionados.length > 0 &&
@@ -97,9 +129,9 @@ export function PaginaReserva() {
       {
         clave,
         numero: asientoDelMapa.numero,
+        idAsiento: asientoDelMapa.idAsiento,
         piso: pisoActivo,
-        tipo: asientoDelMapa.tipo,
-        precioAdicional: asientoDelMapa.precioAdicional,
+        precio: asientoDelMapa.precio,
       },
     ])
   }
@@ -130,9 +162,20 @@ export function PaginaReserva() {
   }
 
   function manejarEliminarTicket(clave) {
-    const restantes = asientosSeleccionados.filter((asiento) => asiento.clave !== clave)
+    const token = tokensBloqueo[clave]
+    const asiento = asientosSeleccionados.find((a) => a.clave === clave)
+    if (token && asiento) {
+      liberarAsiento(ID_VIAJE_PRUEBA, asiento.idAsiento, token)
+    }
+
+    const restantes = asientosSeleccionados.filter((a) => a.clave !== clave)
     setAsientosSeleccionados(restantes)
     setPasajeros((anterior) => {
+      const copia = { ...anterior }
+      delete copia[clave]
+      return copia
+    })
+    setTokensBloqueo((anterior) => {
       const copia = { ...anterior }
       delete copia[clave]
       return copia
@@ -151,6 +194,39 @@ export function PaginaReserva() {
 
   function manejarCambiarAsientos() {
     setPasoActual('asiento')
+  }
+
+  async function confirmarPasajerosYContinuar() {
+    if (!pasajerosCompletos) return
+
+    setBloqueando(true)
+    setErrorBloqueo(null)
+
+    const nuevosTokens = {}
+    try {
+      for (const asiento of asientosSeleccionados) {
+        const resultadoBloqueo = await bloquearAsiento(ID_VIAJE_PRUEBA, asiento.idAsiento, pasajeros[asiento.clave])
+        nuevosTokens[asiento.clave] = resultadoBloqueo.tokenBloqueo
+      }
+      setTokensBloqueo((anterior) => ({ ...anterior, ...nuevosTokens }))
+      setPasoActual('pago')
+    } catch (error) {
+      await Promise.all(
+        Object.entries(nuevosTokens).map(([clave, token]) => {
+          const asientoFallido = asientosSeleccionados.find((a) => a.clave === clave)
+          return asientoFallido ? liberarAsiento(ID_VIAJE_PRUEBA, asientoFallido.idAsiento, token) : null
+        }),
+      )
+      setErrorBloqueo(
+        error.status === 409
+          ? 'Uno de tus asientos ya fue tomado por otro cliente. Elige otro asiento.'
+          : error.message,
+      )
+      setPasoActual('asiento')
+      cargarMapaAsientos()
+    } finally {
+      setBloqueando(false)
+    }
   }
 
   function manejarCambiarCampoPago(campo, valor) {
@@ -202,8 +278,8 @@ export function PaginaReserva() {
     filasDetalle =
       cantidad > 0
         ? [
-            { etiqueta: 'Precio', valor: `${formatearPrecio(resultado.precio)} × ${cantidad}` },
-            ...(recargoTotal > 0 ? [{ etiqueta: 'Asientos preferenciales', valor: `+${formatearPrecio(recargoTotal)}` }] : []),
+            { etiqueta: 'Asientos seleccionados', valor: `${cantidad}` },
+            { etiqueta: 'Precio total', valor: formatearPrecio(precioTotal) },
           ]
         : [{ etiqueta: 'Servicio', valor: resultado.tipoBus }, { etiqueta: 'Precio base', valor: formatearPrecio(resultado.precio) }]
     textoBoton = cantidad > 0 ? `Continuar con ${cantidad} pasajero${cantidad === 1 ? '' : 's'} →` : 'Selecciona un asiento'
@@ -216,7 +292,7 @@ export function PaginaReserva() {
       { etiqueta: 'Servicio', valor: resultado.tipoBus },
       ...(mostrarPiso && asientoActivo ? [{ etiqueta: 'Piso', valor: `Piso ${asientoActivo.piso}` }] : []),
       ...(asientoActivo
-        ? [{ etiqueta: 'Precio de este asiento', valor: formatearPrecio(resultado.precio + (asientoActivo.precioAdicional ?? 0)) }]
+        ? [{ etiqueta: 'Precio de este asiento', valor: formatearPrecio(asientoActivo.precio) }]
         : []),
     ]
     textoBoton = pasajerosCompletos ? 'Continuar al pago →' : 'Completa los datos de todos los pasajeros'
@@ -310,6 +386,12 @@ export function PaginaReserva() {
               />
             </>
           )}
+
+          {errorBloqueo && (
+            <p className="pagina-reserva__aviso-tope" role="alert">
+              {errorBloqueo}
+            </p>
+          )}
         </div>
 
         <ResumenReserva
@@ -320,12 +402,19 @@ export function PaginaReserva() {
           filasDetalle={filasDetalle}
           precioTotal={asientosSeleccionados.length > 0 ? precioTotal : undefined}
           textoBoton={textoBoton}
-          onContinuar={pasoActual === 'asiento' ? irAPasajeros : pasoActual === 'pasajero' ? () => pasajerosCompletos && setPasoActual('pago') : manejarPago}
+          onContinuar={
+            pasoActual === 'asiento'
+              ? irAPasajeros
+              : pasoActual === 'pasajero'
+                ? confirmarPasajerosYContinuar
+                : manejarPago
+          }
           deshabilitado={deshabilitadoBoton}
-          cargando={pagando}
+          cargando={pasoActual === 'pasajero' ? bloqueando : pagando}
           mensajeAyuda={mensajeAyuda}
         />
       </div>
     </section>
   )
+
 }

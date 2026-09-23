@@ -1,6 +1,7 @@
 import { empresasTransporte } from '../datos/empresas'
 import { tiposServicio } from '../datos/servicios'
 import { generarPasajesDemo } from '../datos/pasajes'
+import { solicitarApi } from './httpCliente'
 
 // Todas las funciones de este archivo simulan un backend real. Los
 // resultados se generan en el navegador a partir de datos estáticos y
@@ -252,4 +253,97 @@ export async function comprarPasaje(usuarioId, resultadoViaje, fecha) {
   localStorage.setItem(claveUsuario(usuarioId), JSON.stringify(actualizados))
 
   return nuevoPasaje
+}
+
+  export const ID_VIAJE_PRUEBA = 2
+
+function generarTokenBloqueo() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  return `token-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+/**
+ * Trae el mapa de asientos real de un viaje y lo adapta a la misma forma
+ * que generarMapaAsientos() (mock), para no tener que tocar los
+ * componentes de UI (SelectorPiso, MapaAsientosBus, etc).
+ *
+ * ⚠️ Los nombres de campo exactos del JSON que devuelve el backend
+ * (MapaAsientosViajeDTO / PisoMapaDTO / AsientoDisponibilidadDTO) son una
+ * suposición razonable basada en los nombres de las clases y en cómo se
+ * describió el contrato — hay que confirmarlos contra una respuesta real
+ * y ajustar `adaptarMapaAsientosBackend` si difieren.
+ */
+export async function obtenerMapaAsientosViaje(idViaje) {
+  const respuesta = await solicitarApi(`/api/viajes/${idViaje}/asientos`)
+  return adaptarMapaAsientosBackend(respuesta)
+}
+
+function adaptarMapaAsientosBackend(respuesta) {
+  const listaPisos = Object.values(respuesta.mapaPorPiso ?? {})
+
+  const mapaPorPiso = {}
+  listaPisos.forEach((piso) => {
+    mapaPorPiso[piso.piso] = {
+      piso: piso.piso,
+      filas: piso.filas,
+      asientosPorLado: piso.asientosPorLado,
+      descripcion: piso.descripcion,
+      asientos: (piso.asientos ?? []).map((asiento) => ({
+        idAsiento: asiento.idAsiento,
+        numero: asiento.numero,
+        fila: asiento.fila,
+        letra: asiento.letra,
+        lado: asiento.lado,
+        piso: piso.piso,
+        estado: asiento.estado, // 'disponible' | 'ocupado' (el backend no distingue 'bloqueado')
+        precio: asiento.precio, // precio absoluto de este asiento, no un recargo
+      })),
+    }
+  })
+
+  return { pisos: respuesta.pisos ?? listaPisos.length, mapaPorPiso }
+}
+
+/**
+ * Bloquea temporalmente un asiento y registra al pasajero en un solo
+ * paso, usando POST /bloquear (ya validado). Devuelve el tokenBloqueo
+ * generado para poder liberarlo después si hace falta.
+ */
+export async function bloquearAsiento(idViaje, idAsiento, datosPasajero) {
+  const tokenBloqueo = generarTokenBloqueo()
+
+  const respuesta = await solicitarApi(`/api/viajes/${idViaje}/asientos/${idAsiento}/bloquear`, {
+    method: 'POST',
+    body: JSON.stringify({
+      tokenBloqueo,
+      tipoDocumento: datosPasajero.tipoDocumento,
+      numeroDocumento: datosPasajero.numeroDocumento,
+      nombres: datosPasajero.nombres,
+      apellidos: datosPasajero.apellidos,
+      fechaNacimiento: datosPasajero.fechaNacimiento,
+    }),
+  })
+
+  return { ...respuesta, tokenBloqueo }
+}
+
+/**
+ * Libera un asiento previamente bloqueado por este cliente (mismo
+ * tokenBloqueo), usando POST /liberar (ya validado). Silencioso ante
+ * errores: si ya expiró o ya se liberó, no debe romper la UI.
+ */
+export async function liberarAsiento(idViaje, idAsiento, tokenBloqueo) {
+  if (!tokenBloqueo) return
+  try {
+    await solicitarApi(`/api/viajes/${idViaje}/asientos/${idAsiento}/liberar`, {
+      method: 'POST',
+      body: JSON.stringify({ tokenBloqueo }),
+    })
+  } catch {
+    // No bloqueante: si el token ya expiró o el asiento ya se liberó,
+    // no hay nada que el usuario deba ver.
+  }
+
 }

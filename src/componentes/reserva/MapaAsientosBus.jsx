@@ -1,10 +1,8 @@
 import { useMemo } from 'react'
-import { formatearPrecio } from '../../utilidades/formato'
 import './mapaAsientosBus.css'
 
 const LEYENDA = [
   { estado: 'disponible', etiqueta: 'Disponible' },
-  { estado: 'preferencial', etiqueta: 'Preferencial' },
   { estado: 'seleccionado', etiqueta: 'Seleccionado' },
   { estado: 'ocupado', etiqueta: 'Ocupado' },
 ]
@@ -30,13 +28,7 @@ function IconoAsiento({ estado }) {
 function Asiento({ asiento, seleccionado, deshabilitadoPorTope, onSeleccionar }) {
   const ocupado = asiento.estado === 'ocupado'
   const bloqueado = ocupado || (deshabilitadoPorTope && !seleccionado)
-  const estadoVisual = ocupado
-    ? 'ocupado'
-    : seleccionado
-      ? 'seleccionado'
-      : asiento.tipo === 'preferencial'
-        ? 'preferencial'
-        : 'disponible'
+  const estadoVisual = ocupado ? 'ocupado' : seleccionado ? 'seleccionado' : 'disponible'
 
   const descripcionEstado = ocupado
     ? ', ocupado'
@@ -53,7 +45,7 @@ function Asiento({ asiento, seleccionado, deshabilitadoPorTope, onSeleccionar })
       disabled={ocupado}
       aria-pressed={seleccionado}
       aria-disabled={bloqueado || undefined}
-      aria-label={`Asiento ${asiento.numero}${descripcionEstado}${asiento.tipo === 'preferencial' ? ', preferencial' : ''}`}
+      aria-label={`Asiento ${asiento.numero}${descripcionEstado}`}
       title={`Asiento ${asiento.numero}`}
       onClick={() => !ocupado && !(deshabilitadoPorTope && !seleccionado) && onSeleccionar(asiento)}
     >
@@ -75,7 +67,8 @@ export function MapaAsientosBus({ asientos, filas, numerosSeleccionados, limiteA
       if (!mapa.has(asiento.fila)) mapa.set(asiento.fila, { izquierda: [], derecha: [] })
       mapa.get(asiento.fila)[asiento.lado].push(asiento)
     })
-    return Array.from({ length: filas }, (_, indice) => mapa.get(indice + 1))
+    const filaMinima = asientos.reduce((min, a) => Math.min(min, a.fila), Infinity)
+    return Array.from({ length: filas }, (_, indice) => mapa.get(filaMinima + indice))
   }, [asientos, filas])
 
   return (
@@ -114,7 +107,7 @@ export function MapaAsientosBus({ asientos, filas, numerosSeleccionados, limiteA
         <div className="mapa-asientos__filas">
           {filasAgrupadas.map((fila, indice) => (
             <div className="mapa-asientos__fila" key={indice + 1}>
-              <span className="mapa-asientos__numero-fila" aria-hidden="true">{indice + 1}</span>
+              <span className="mapa-asientos__numero-fila" aria-hidden="true">{fila?.izquierda[0]?.fila ?? fila?.derecha[0]?.fila ?? indice + 1}</span>
               <div className="mapa-asientos__lado">
                 {fila.izquierda.map((asiento) => (
                   <Asiento
@@ -145,9 +138,6 @@ export function MapaAsientosBus({ asientos, filas, numerosSeleccionados, limiteA
         <div className="mapa-asientos__posterior" aria-hidden="true">Parte posterior</div>
       </div>
 
-      <p className="mapa-asientos__nota">
-        Los asientos preferenciales tienen un costo adicional de {formatearPrecio(15)}.
-      </p>
-    </div>
+      </div>
   )
 }

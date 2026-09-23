@@ -1,8 +1,7 @@
 package com.transportes.configuracion.excepciones;
 
-import com.transportes.auth.excepciones.CredencialesInvalidasException;
-import com.transportes.usuarios.excepciones.UsuarioNoEncontradoException;
-import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -12,7 +11,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.List;
+import com.transportes.auth.excepciones.CredencialesInvalidasException;
+import com.transportes.usuarios.excepciones.UsuarioNoEncontradoException;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Manejador global de excepciones para toda la API.
@@ -75,5 +77,17 @@ public class ManejadorGlobalExcepciones {
         RespuestaError cuerpo = new RespuestaError(
                 status.value(), status.getReasonPhrase(), mensaje, request.getRequestURI(), detalles);
         return ResponseEntity.status(status).body(cuerpo);
+    }
+
+    @ExceptionHandler(com.transportes.viajes.excepciones.ViajeNoEncontradoException.class)
+    public ResponseEntity<RespuestaError> manejarViajeNoEncontrado(
+                com.transportes.viajes.excepciones.ViajeNoEncontradoException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.NOT_FOUND, excepcion.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.transportes.viajes.excepciones.AsientoNoDisponibleException.class)
+    public ResponseEntity<RespuestaError> manejarAsientoNoDisponible(
+                com.transportes.viajes.excepciones.AsientoNoDisponibleException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request, null);
     }
 }
