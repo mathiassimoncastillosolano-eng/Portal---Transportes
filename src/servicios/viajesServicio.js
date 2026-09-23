@@ -1,79 +1,34 @@
-import { empresasTransporte } from '../datos/empresas'
-import { tiposServicio } from '../datos/servicios'
-import { generarPasajesDemo } from '../datos/pasajes'
-import { solicitarApi } from './httpCliente'
+import { generarPasajesDemo } from '../datos/pasajes.js'
+import { solicitarApi } from './httpCliente.js'
 
-// Todas las funciones de este archivo simulan un backend real. Los
-// resultados se generan en el navegador a partir de datos estáticos y
-// nunca se realiza ninguna petición de red.
-
+// La búsqueda consulta la base real. Las funciones de asientos y compra
+// que siguen pertenecen a los módulos de demostración pendientes de integrar.
 const CLAVE_PASAJES = 'rutalibre:pasajes:'
-
 function retrasoSimulado(ms = 620) {
   return new Promise((resolver) => setTimeout(resolver, ms))
 }
 
-const serviciosPorTipo = {
-  Económico: ['WiFi', 'Baño'],
-  'Semi Cama': ['WiFi', 'Baño', 'TV'],
-  'Bus Cama': ['WiFi', 'Baño', 'TV', 'Snack'],
-  Prime: ['WiFi', 'Baño', 'TV', 'Snack', 'USB'],
-  Ultra: ['WiFi', 'Baño', 'TV', 'Snack', 'USB', 'Cabina privada'],
-}
-
-function generarHoraAleatoria() {
-  const hora = Math.floor(Math.random() * 24)
-  const minuto = Math.random() > 0.5 ? '00' : '30'
-  return `${String(hora).padStart(2, '0')}:${minuto}`
-}
-
-function sumarHoras(horaInicial, horas) {
-  const [h, m] = horaInicial.split(':').map(Number)
-  const totalMinutos = h * 60 + m + horas * 60
-  const horaFinal = Math.floor(totalMinutos / 60) % 24
-  const minutoFinal = totalMinutos % 60
-  return `${String(horaFinal).padStart(2, '0')}:${String(minutoFinal).padStart(2, '0')}`
-}
-
-/**
- * Simula la búsqueda de pasajes disponibles entre dos ciudades.
- * @returns {Promise<import('../tipos').ResultadoViaje[]>}
- */
-export async function buscarViajes({ origen, destino }) {
-  await retrasoSimulado()
-
-  const cantidad = 4 + Math.floor(Math.random() * 3)
-  const resultados = []
-
-  for (let i = 0; i < cantidad; i += 1) {
-    const empresa = empresasTransporte[i % empresasTransporte.length]
-    const servicio = tiposServicio[i % tiposServicio.length]
-    const duracionHoras = 5 + Math.floor(Math.random() * 14)
-    const horaSalida = generarHoraAleatoria()
-    const horaLlegada = sumarHoras(horaSalida, duracionHoras)
-    const asientosDisponibles = Math.floor(Math.random() * 20)
-
-    let estado = 'disponible'
-    if (asientosDisponibles === 0) estado = 'agotado'
-    else if (asientosDisponibles <= 4) estado = 'pocos-asientos'
-
-    resultados.push({
-      id: `${origen}-${destino}-${i}-${Date.now()}`,
-      empresa: empresa.nombre,
-      origen,
-      destino,
-      horaSalida,
-      horaLlegada,
-      duracion: `${duracionHoras} h`,
-      tipoBus: servicio.nombre,
-      servicios: serviciosPorTipo[servicio.nombre] ?? ['WiFi', 'Baño'],
-      asientosDisponibles,
-      precio: Math.round((35 + duracionHoras * 6 + Math.random() * 30) / 5) * 5,
-      estado,
-    })
+export async function buscarViajes({ origen, destino, fecha, horario = 'cualquiera', tiposServicio = [] }) {
+  if (!origen?.trim() || !destino?.trim() || !fecha) {
+    throw new Error('Origen, destino y fecha son obligatorios.')
   }
+  const parametros = new URLSearchParams({ origen: origen.trim(), destino: destino.trim(), fecha, horario })
+  tiposServicio.forEach((tipo) => parametros.append('tipoServicio', tipo))
+  const viajes = await solicitarApi(`/api/viajes/buscar?${parametros}`, { autenticar: false })
+  if (!Array.isArray(viajes)) throw new Error('El servidor devolvió una respuesta de viajes no válida.')
+  return viajes
+}
 
-  return resultados.sort((a, b) => a.horaSalida.localeCompare(b.horaSalida))
+export async function obtenerTiposDeBus() {
+  const tipos = await solicitarApi('/api/viajes/tipos-bus', { autenticar: false })
+  if (!Array.isArray(tipos)) throw new Error('No se pudo leer el catálogo de tipos de servicio.')
+  return tipos
+}
+
+export async function obtenerDetalleViaje(id) {
+  const viaje = await solicitarApi(`/api/viajes/${encodeURIComponent(id)}`, { autenticar: false })
+  if (!viaje?.id) throw new Error('No se pudo leer el detalle del viaje.')
+  return viaje
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BuscadorViajes } from '../../componentes/viajes/BuscadorViajes'
 import { TarjetaResultadoViaje } from '../../componentes/viajes/TarjetaResultadoViaje'
@@ -7,208 +7,116 @@ import { BotonSecundario } from '../../componentes/comunes/BotonSecundario'
 import { useBusqueda } from '../../hooks/useBusqueda'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { useModalesAutenticacion } from '../../layouts/LayoutPrincipal'
+import { obtenerTiposDeBus } from '../../servicios/viajesServicio'
 import './paginaResultados.css'
 
-function fechaDeManana() {
-  const manana = new Date()
-  manana.setDate(manana.getDate() + 1)
-  return manana.toISOString().split('T')[0]
-}
-
-function franjaDeHora(horaTexto) {
-  const hora = Number(horaTexto?.split(':')?.[0] ?? -1)
-  if (hora < 0) return 'cualquiera'
-  if (hora < 6) return 'madrugada'
-  if (hora < 12) return 'mañana'
-  if (hora < 19) return 'tarde'
-  return 'noche'
-}
-
-const FILTROS_INICIALES = { horario: 'cualquiera', servicios: new Set() }
-
-/**
- * Vista independiente de resultados de búsqueda: filtro de fecha/ruta,
- * filtros de horario/servicio, y la lista de viajes encontrados. Los
- * resultados llegan de `buscarViajes` ya ordenados por hora de salida;
- * aquí solo se filtran, nunca se reordenan.
- */
 export function PaginaResultados() {
   const { resultados, buscando, error, criterios, ejecutarBusqueda } = useBusqueda()
   const { estaAutenticado } = useAutenticacion()
   const { abrirInicioSesion } = useModalesAutenticacion()
   const navegar = useNavigate()
   const [parametrosUrl, setParametrosUrl] = useSearchParams()
-  const yaEvaluoAlEntrar = useRef(false)
-
-  const [horario, setHorario] = useState(FILTROS_INICIALES.horario)
-  const [serviciosSeleccionados, setServiciosSeleccionados] = useState(FILTROS_INICIALES.servicios)
+  const origen = parametrosUrl.get('origen') ?? ''
+  const destino = parametrosUrl.get('destino') ?? ''
+  const fecha = parametrosUrl.get('fecha') ?? ''
+  const horarioUrl = parametrosUrl.get('horario') ?? 'cualquiera'
+  const horario = horarioUrl === 'manana' ? 'mañana' : horarioUrl
+  const tiposUrl = JSON.stringify(parametrosUrl.getAll('tipoServicio').sort())
+  const serviciosSeleccionados = useMemo(() => new Set(JSON.parse(tiposUrl)), [tiposUrl])
+  const [serviciosDisponibles, setServiciosDisponibles] = useState([])
+  const [errorTipos, setErrorTipos] = useState(null)
 
   useEffect(() => {
-    if (yaEvaluoAlEntrar.current) return
-    yaEvaluoAlEntrar.current = true
-
-    const origenUrl = parametrosUrl.get('origen')
-    const destinoUrl = parametrosUrl.get('destino')
-
-    // Si el usuario llegó desde Inicio, la búsqueda ya se disparó y sus
-    // criterios coinciden con la URL: se conserva tal cual, sin repetirla.
-    const yaHayBusquedaVigente = criterios && criterios.origen === origenUrl && criterios.destino === destinoUrl
-
-    if (origenUrl && destinoUrl && !yaHayBusquedaVigente) {
-      ejecutarBusqueda({
-        origen: origenUrl,
-        destino: destinoUrl,
-        fecha: parametrosUrl.get('fecha') || fechaDeManana(),
-      })
-    } else if (!origenUrl && !destinoUrl && !criterios) {
-      // No hay ninguna búsqueda ni en la URL ni conservada en el
-      // contexto: no tiene sentido esta vista.
-      navegar('/', { replace: true })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let vigente = true
+    obtenerTiposDeBus().then((tipos) => {
+      if (vigente) setServiciosDisponibles(tipos.map((t) => t.nombreTipo))
+    }).catch((err) => { if (vigente) setErrorTipos(err.message) })
+    return () => { vigente = false }
   }, [])
 
-  // Una nueva búsqueda (otra ruta u otra fecha) reinicia los filtros: no
-  // tendría sentido conservar "Tarde" si el usuario cambió de ciudades.
   useEffect(() => {
-    setHorario(FILTROS_INICIALES.horario)
-    setServiciosSeleccionados(new Set())
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [criterios?.origen, criterios?.destino, criterios?.fecha])
+    if (!origen && !destino && !fecha) { navegar('/', { replace: true }); return }
+    if (criterios?.origen !== origen || criterios?.destino !== destino ||
+        criterios?.fecha !== fecha || criterios?.horario !== horario ||
+        JSON.stringify([...(criterios?.tiposServicio ?? [])].sort()) !== tiposUrl) {
+      ejecutarBusqueda({ origen, destino, fecha, horario, tiposServicio: JSON.parse(tiposUrl) })
+    }
+  }, [origen, destino, fecha, horario, tiposUrl, criterios, ejecutarBusqueda, navegar])
 
   function manejarBuscar(parametros) {
-    setParametrosUrl({ origen: parametros.origen, destino: parametros.destino, fecha: parametros.fecha })
-    ejecutarBusqueda(parametros)
+    setParametrosUrl(parametros)
   }
-
+  function cambiarHorario(nuevoHorario) {
+    const siguientes = new URLSearchParams(parametrosUrl)
+    siguientes.set('horario', nuevoHorario)
+    setParametrosUrl(siguientes)
+  }
   function manejarSeleccion(resultado) {
-    if (!estaAutenticado) {
-      abrirInicioSesion()
-      return
-    }
-    const fecha = criterios?.fecha ?? fechaDeManana()
-    navegar('/reservar', { state: { resultado, fecha } })
+    if (!estaAutenticado) { abrirInicioSesion(); return }
+    navegar('/reservar', { state: { resultado, fecha: resultado.fechaSalida } })
   }
-
   function alternarServicio(servicio) {
-    if (servicio === null) {
-      setServiciosSeleccionados(new Set())
-      return
-    }
-    setServiciosSeleccionados((anterior) => {
-      const copia = new Set(anterior)
-      if (copia.has(servicio)) copia.delete(servicio)
-      else copia.add(servicio)
-      return copia
-    })
+    const copia = new Set(serviciosSeleccionados)
+    if (servicio === null) copia.clear()
+    else if (copia.has(servicio)) copia.delete(servicio)
+    else copia.add(servicio)
+    const siguientes = new URLSearchParams(parametrosUrl)
+    siguientes.delete('tipoServicio')
+    copia.forEach((tipo) => siguientes.append('tipoServicio', tipo))
+    setParametrosUrl(siguientes)
   }
-
   function limpiarFiltros() {
-    setHorario(FILTROS_INICIALES.horario)
-    setServiciosSeleccionados(new Set())
+    setParametrosUrl({ origen, destino, fecha, horario: 'cualquiera' })
   }
 
-  const serviciosDisponibles = useMemo(
-    () => Array.from(new Set(resultados.map((resultado) => resultado.tipoBus))),
-    [resultados],
-  )
-
-  const idMasEconomico = useMemo(() => {
-    const disponibles = resultados.filter((resultado) => resultado.estado !== 'agotado')
-    if (disponibles.length === 0) return null
-    return disponibles.reduce((min, actual) => (actual.precio < min.precio ? actual : min), disponibles[0]).id
-  }, [resultados])
-
-  const resultadosFiltrados = useMemo(
-    () =>
-      resultados.filter((resultado) => {
-        if (horario !== 'cualquiera' && franjaDeHora(resultado.horaSalida) !== horario) return false
-        if (serviciosSeleccionados.size > 0 && !serviciosSeleccionados.has(resultado.tipoBus)) return false
-        return true
-      }),
-    [resultados, horario, serviciosSeleccionados],
-  )
-
+  const resultadosFiltrados = resultados
+  const disponibles = resultadosFiltrados.filter((r) => r.estado !== 'agotado' && r.precio != null)
+  const idMasEconomico = disponibles.length
+    ? disponibles.reduce((menor, r) => r.precio < menor.precio ? r : menor).id : null
   const hayFiltrosActivos = horario !== 'cualquiera' || serviciosSeleccionados.size > 0
-  const sinResultadosPorFiltros = !buscando && !error && resultados.length > 0 && resultadosFiltrados.length === 0
 
   return (
     <section className="seccion contenedor pagina-resultados">
       <div className="pagina-resultados__filtro">
-        <BuscadorViajes
-          key={criterios ? `${criterios.origen}-${criterios.destino}-${criterios.fecha}` : 'inicial'}
-          alBuscar={manejarBuscar}
-          buscando={buscando}
-          valoresIniciales={criterios}
-        />
+        <BuscadorViajes key={`${origen}-${destino}-${fecha}`} alBuscar={manejarBuscar}
+          buscando={buscando} valoresIniciales={{ origen, destino, fecha }} />
       </div>
-
       <div className="pagina-resultados__cuerpo">
         <div className="encabezado-seccion">
-          {criterios && (
-            <h1 className="encabezado-seccion__titulo">
-              {criterios.origen} → {criterios.destino}
-            </h1>
-          )}
-          <p className="encabezado-seccion__texto">
-            {buscando
-              ? 'Buscando las mejores opciones disponibles…'
-              : hayFiltrosActivos
-                ? `${resultadosFiltrados.length} de ${resultados.length} viajes con estos filtros`
-                : `${resultados.length} viajes encontrados para tu búsqueda`}
+          <h1 className="encabezado-seccion__titulo">{origen} → {destino}</h1>
+          <p className="encabezado-seccion__texto" aria-live="polite">
+            {buscando ? 'Consultando viajes disponibles…' : `${resultadosFiltrados.length} viajes encontrados${hayFiltrosActivos ? ' con estos filtros' : ''}`}
           </p>
         </div>
-
-        {error && <p className="resultados-busqueda__error">{error}</p>}
-
-        {buscando ? (
-          <div className="pagina-resultados__grilla">
-            <div className="resultados-busqueda__esqueleto resultados-busqueda__esqueleto--filtro" />
+        <div className="pagina-resultados__grilla">
+          {errorTipos && <p role="alert">{errorTipos} Puedes seguir buscando por ruta, fecha y horario.</p>}
+          <FiltrosResultados horario={horario} alCambiarHorario={cambiarHorario}
+            serviciosDisponibles={serviciosDisponibles} serviciosSeleccionados={serviciosSeleccionados}
+            alAlternarServicio={alternarServicio} hayFiltrosActivos={hayFiltrosActivos} alLimpiarFiltros={limpiarFiltros} />
+          {buscando ? (
+            <div className="resultados-busqueda__lista" aria-busy="true">
+              {[1, 2, 3].map((n) => <div key={n} className="resultados-busqueda__esqueleto" />)}
+            </div>
+          ) : error ? (
+            <div className="resultados-busqueda__vacio" role="alert">
+              <p className="resultados-busqueda__error">{error}</p>
+              <BotonSecundario onClick={() => ejecutarBusqueda({ origen, destino, fecha, horario, tiposServicio: JSON.parse(tiposUrl) })}>Reintentar</BotonSecundario>
+            </div>
+          ) : resultadosFiltrados.length === 0 ? (
+            <div className="resultados-busqueda__vacio">
+              <h2>No encontramos viajes {hayFiltrosActivos ? 'con estos filtros' : 'para esta búsqueda'}.</h2>
+              <p>Prueba con otra fecha o modifica los filtros.</p>
+              {hayFiltrosActivos && <BotonSecundario onClick={limpiarFiltros}>Limpiar filtros</BotonSecundario>}
+            </div>
+          ) : (
             <div className="resultados-busqueda__lista">
-              {[1, 2, 3].map((clave) => (
-                <div key={clave} className="resultados-busqueda__esqueleto" />
+              {resultadosFiltrados.map((resultado) => (
+                <TarjetaResultadoViaje key={resultado.id} resultado={resultado}
+                  esMasEconomico={resultado.id === idMasEconomico} alSeleccionar={manejarSeleccion} />
               ))}
             </div>
-          </div>
-        ) : resultados.length === 0 ? (
-          !error && (
-            <div className="resultados-busqueda__vacio">
-              <h2>No encontramos viajes para esta búsqueda.</h2>
-              <p>Prueba con otra fecha o revisa el origen y destino ingresados.</p>
-            </div>
-          )
-        ) : (
-          <div className="pagina-resultados__grilla">
-            <FiltrosResultados
-              horario={horario}
-              alCambiarHorario={setHorario}
-              serviciosDisponibles={serviciosDisponibles}
-              serviciosSeleccionados={serviciosSeleccionados}
-              alAlternarServicio={alternarServicio}
-              hayFiltrosActivos={hayFiltrosActivos}
-              alLimpiarFiltros={limpiarFiltros}
-            />
-
-            {sinResultadosPorFiltros ? (
-              <div className="resultados-busqueda__vacio">
-                <h2>No encontramos viajes con estos filtros.</h2>
-                <p>Prueba modificando la hora o el tipo de servicio.</p>
-                <BotonSecundario onClick={limpiarFiltros}>Limpiar filtros</BotonSecundario>
-              </div>
-            ) : (
-              <div className="resultados-busqueda__lista">
-                {resultadosFiltrados.map((resultado) => (
-                  <TarjetaResultadoViaje
-                    key={resultado.id}
-                    resultado={resultado}
-                    esMasEconomico={resultado.id === idMasEconomico}
-                    alSeleccionar={manejarSeleccion}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </section>
   )

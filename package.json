@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test": "node --test src/utilidades/*.test.js src/servicios/*.test.js",
+    "test:registro": "node --test src/utilidades/validarRegistro.test.js",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"

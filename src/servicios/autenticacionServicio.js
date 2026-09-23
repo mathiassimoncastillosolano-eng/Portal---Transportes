@@ -3,11 +3,7 @@ import { eliminarToken, guardarToken, obtenerToken, solicitarApi } from './httpC
 // Servicio de autenticación real: habla con el backend de Spring Boot
 // (login con JWT, perfil del usuario autenticado y cierre de sesión).
 //
-// Importante: este proyecto NO implementa registro de cuentas. Los
-// usuarios se crean manualmente en la base de datos. `registrarUsuario`
-// se conserva únicamente para que el formulario de "Crear cuenta" (que ya
-// existía en el diseño) siga mostrando un mensaje claro en vez de romperse,
-// pero no realiza ninguna petición al backend.
+// El registro crea la cuenta. La sesion JWT se obtiene despues mediante login.
 
 /**
  * Adapta la respuesta del backend (idUsuario, nroTelefono, estadisticas)
@@ -38,10 +34,17 @@ export async function iniciarSesion(correo, contrasena) {
   return obtenerUsuarioDeSesion()
 }
 
-export async function registrarUsuario() {
-  throw new Error(
-    'La creación de cuentas todavía no está disponible. Por ahora, solicita tus credenciales al administrador de RutaLibre.'
-  )
+export async function registrarUsuario(datos) {
+  return solicitarApi('/api/usuarios/registro', {
+    method: 'POST',
+    body: JSON.stringify({
+      nombres: datos.nombres.trim(),
+      apellidos: datos.apellidos.trim(),
+      correo: datos.correo.trim().toLowerCase(),
+      contrasena: datos.contrasena,
+      nroTelefono: datos.telefono?.trim() || null,
+    }),
+  })
 }
 
 export async function cerrarSesion() {

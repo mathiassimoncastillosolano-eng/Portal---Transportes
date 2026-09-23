@@ -9,7 +9,7 @@ import java.util.List;
  * Repositorio JPA para consultar las ubicaciones almacenadas en la base
  * de datos, utilizadas como destinos en el frontend.
  */
-public interface UbicacionRepositorio extends JpaRepository<Ubicacion, Integer> {
+public interface UbicacionRepositorio extends JpaRepository<Ubicacion, Long> {
 
     /**
      * Obtiene únicamente las ubicaciones activas, ordenadas

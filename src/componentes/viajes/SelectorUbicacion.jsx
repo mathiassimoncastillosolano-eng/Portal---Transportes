@@ -1,9 +1,8 @@
 import { useRef, useState } from 'react'
-import { ciudades } from '../../datos/ciudades'
 import { useClicFuera } from '../../hooks/useClicFuera'
 import './selectorUbicacion.css'
 
-export function SelectorUbicacion({ etiqueta, valor, alCambiar, excluir }) {
+export function SelectorUbicacion({ etiqueta, valor, alCambiar, excluir, ciudades = [] }) {
   const [abierto, setAbierto] = useState(false)
   const referencia = useRef(null)
   useClicFuera(referencia, () => setAbierto(false))
@@ -15,6 +14,8 @@ export function SelectorUbicacion({ etiqueta, valor, alCambiar, excluir }) {
       <span className="selector-ubicacion__etiqueta">{etiqueta}</span>
       <button
         type="button"
+        aria-label={etiqueta}
+        aria-expanded={abierto}
         className="selector-ubicacion__control"
         onClick={() => setAbierto((valorActual) => !valorActual)}
       >

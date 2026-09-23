@@ -12,7 +12,7 @@ const CONFIGURACION_ESTADOS = {
 function etiquetaAsientos(estado, asientosDisponibles) {
   if (typeof asientosDisponibles !== 'number') return null
   if (estado === 'agotado') return 'Sin asientos disponibles'
-  if (asientosDisponibles <= 4) {
+  if (asientosDisponibles < 10) {
     return `Últimos ${asientosDisponibles} asiento${asientosDisponibles === 1 ? '' : 's'}`
   }
   return `${asientosDisponibles} asientos disponibles`

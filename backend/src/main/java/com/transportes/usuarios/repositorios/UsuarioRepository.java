@@ -8,13 +8,12 @@ import java.util.Optional;
 /**
  * Acceso a datos para la entidad {@link Usuario}.
  *
- * No incluye metodos de creacion de usuarios: las cuentas se insertan
- * manualmente en la base de datos, tal como lo indica el alcance de esta
- * implementacion (no se desarrolla registro de usuarios).
+ * Compartido por el registro de cuentas, el login y el perfil.
  */
 public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
 
     Optional<Usuario> findByCorreoIgnoreCase(String correo);
+    boolean existsByCorreoIgnoreCase(String correo);
     
 
 }

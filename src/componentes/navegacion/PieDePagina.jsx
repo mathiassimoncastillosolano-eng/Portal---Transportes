@@ -93,7 +93,7 @@ export function PieDePagina() {
 
       <div className="contenedor pie-de-pagina__linea-inferior">
         <p>© {anioActual} RutaLibre. Todos los derechos reservados.</p>
-        <p>Portal de demostración — sin conexión a un backend real.</p>
+        <p>Portal en desarrollo. Reservas y pagos en demostración.</p>
       </div>
     </footer>
   )
