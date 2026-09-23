@@ -7,6 +7,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import com.transportes.viajes.dto.TipoServicioDto;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -45,19 +47,39 @@ public class ViajeRepository {
             JOIN servicio_bus sb ON sb.id_servicio_bus = tbs.id_servicio_bus
             GROUP BY tbs.id_tipo_bus
         ) s ON s.id_tipo_bus = tb.id_tipo_bus
-        WHERE LOWER(uo.nombre) = LOWER(:origen)
-          AND LOWER(ud.nombre) = LOWER(:destino)
-          AND v.fecha_salida = :fecha AND v.estado_viaje = 'PROGRAMADO'
+        WHERE v.estado_viaje = 'PROGRAMADO'
           AND pv.activa AND r.activa AND ao.activa AND ad.activa
           AND uo.activa AND ud.activa AND b.activo
-          AND EXTRACT(HOUR FROM v.hora_salida) >= :horaDesde
-          AND EXTRACT(HOUR FROM v.hora_salida) < :horaHasta
-        ORDER BY v.hora_salida, v.id_viaje
         """;
 
     public List<ViajeResumenDto> buscar(String origen, String destino, LocalDate fecha, int desde, int hasta) {
-        return jdbc.query(BUSQUEDA, Map.of("origen", origen, "destino", destino,
-                "fecha", fecha, "horaDesde", desde, "horaHasta", hasta), (rs, fila) -> {
+        return buscar(origen, destino, fecha, desde, hasta, List.of());
+    }
+
+    public List<ViajeResumenDto> buscar(String origen, String destino, LocalDate fecha, int desde, int hasta, List<String> tipos) {
+        var parametros = new HashMap<String, Object>(Map.of("origen", origen, "destino", destino,
+                "fecha", fecha, "horaDesde", desde, "horaHasta", hasta));
+        String filtro = " AND LOWER(uo.nombre)=LOWER(:origen) AND LOWER(ud.nombre)=LOWER(:destino)"
+                + " AND v.fecha_salida=:fecha AND EXTRACT(HOUR FROM v.hora_salida)>=:horaDesde"
+                + " AND EXTRACT(HOUR FROM v.hora_salida)<:horaHasta";
+        if (!tipos.isEmpty()) {
+            filtro += " AND LOWER(tb.nombre_tipo) IN (:tipos)";
+            parametros.put("tipos", tipos);
+        }
+        return consultar(filtro + " ORDER BY v.hora_salida, v.id_viaje", parametros);
+    }
+
+    public List<ViajeResumenDto> detalle(long id) {
+        return consultar(" AND v.id_viaje=:id", Map.of("id", id));
+    }
+
+    public List<TipoServicioDto> tipos() {
+        return jdbc.query("SELECT id_tipo_bus,nombre_tipo FROM tipo_bus ORDER BY nombre_tipo", Map.of(),
+                (rs, fila) -> new TipoServicioDto(rs.getLong("id_tipo_bus"), rs.getString("nombre_tipo")));
+    }
+
+    private List<ViajeResumenDto> consultar(String filtro, Map<String, ?> parametros) {
+        return jdbc.query(BUSQUEDA + filtro, parametros, (rs, fila) -> {
             LocalDate salida = rs.getObject("fecha_salida", LocalDate.class);
             LocalTime hora = rs.getObject("hora_salida", LocalTime.class);
             Integer minutos = rs.getObject("duracion_estimada_min", Integer.class);
@@ -71,7 +93,7 @@ public class ViajeRepository {
                     duracion, rs.getString("nombre_tipo"),
                     Arrays.stream(rs.getString("servicios").split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList(),
                     disponibles, rs.getBigDecimal("precio"),
-                    disponibles == 0 ? "agotado" : disponibles <= 4 ? "pocos-asientos" : "disponible");
+                    disponibles == 0 ? "agotado" : disponibles < 10 ? "pocos-asientos" : "disponible");
         });
     }
 }

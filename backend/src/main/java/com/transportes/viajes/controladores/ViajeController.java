@@ -16,7 +16,14 @@ public class ViajeController {
     @GetMapping("/buscar")
     public List<ViajeResumenDto> buscar(@RequestParam String origen, @RequestParam String destino,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
-            @RequestParam(defaultValue = "cualquiera") String horario) {
-        return viajes.buscar(origen, destino, fecha, horario);
+            @RequestParam(defaultValue = "cualquiera") String horario,
+            @RequestParam(required = false) List<String> tipoServicio) {
+        return viajes.buscar(origen, destino, fecha, horario, tipoServicio);
     }
+
+    @GetMapping("/tipos-bus")
+    public List<com.transportes.viajes.dto.TipoServicioDto> tipos() { return viajes.tipos(); }
+
+    @GetMapping("/{id}")
+    public ViajeResumenDto detalle(@PathVariable long id) { return viajes.detalle(id); }
 }

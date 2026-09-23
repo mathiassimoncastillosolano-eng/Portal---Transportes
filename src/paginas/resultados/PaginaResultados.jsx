@@ -7,6 +7,7 @@ import { BotonSecundario } from '../../componentes/comunes/BotonSecundario'
 import { useBusqueda } from '../../hooks/useBusqueda'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { useModalesAutenticacion } from '../../layouts/LayoutPrincipal'
+import { obtenerTiposDeBus } from '../../servicios/viajesServicio'
 import './paginaResultados.css'
 
 export function PaginaResultados() {
@@ -18,53 +19,57 @@ export function PaginaResultados() {
   const origen = parametrosUrl.get('origen') ?? ''
   const destino = parametrosUrl.get('destino') ?? ''
   const fecha = parametrosUrl.get('fecha') ?? ''
-  const horario = parametrosUrl.get('horario') ?? 'cualquiera'
-  const [serviciosSeleccionados, setServiciosSeleccionados] = useState(new Set())
+  const horarioUrl = parametrosUrl.get('horario') ?? 'cualquiera'
+  const horario = horarioUrl === 'manana' ? 'mañana' : horarioUrl
+  const tiposUrl = JSON.stringify(parametrosUrl.getAll('tipoServicio').sort())
+  const serviciosSeleccionados = useMemo(() => new Set(JSON.parse(tiposUrl)), [tiposUrl])
+  const [serviciosDisponibles, setServiciosDisponibles] = useState([])
+  const [errorTipos, setErrorTipos] = useState(null)
+
+  useEffect(() => {
+    let vigente = true
+    obtenerTiposDeBus().then((tipos) => {
+      if (vigente) setServiciosDisponibles(tipos.map((t) => t.nombreTipo))
+    }).catch((err) => { if (vigente) setErrorTipos(err.message) })
+    return () => { vigente = false }
+  }, [])
 
   useEffect(() => {
     if (!origen && !destino && !fecha) { navegar('/', { replace: true }); return }
     if (criterios?.origen !== origen || criterios?.destino !== destino ||
-        criterios?.fecha !== fecha || criterios?.horario !== horario) {
-      ejecutarBusqueda({ origen, destino, fecha, horario })
+        criterios?.fecha !== fecha || criterios?.horario !== horario ||
+        JSON.stringify([...(criterios?.tiposServicio ?? [])].sort()) !== tiposUrl) {
+      ejecutarBusqueda({ origen, destino, fecha, horario, tiposServicio: JSON.parse(tiposUrl) })
     }
-  }, [origen, destino, fecha, horario, criterios, ejecutarBusqueda, navegar])
-
-  useEffect(() => { setServiciosSeleccionados(new Set()) }, [origen, destino, fecha])
+  }, [origen, destino, fecha, horario, tiposUrl, criterios, ejecutarBusqueda, navegar])
 
   function manejarBuscar(parametros) {
-    setServiciosSeleccionados(new Set())
     setParametrosUrl(parametros)
-    ejecutarBusqueda({ ...parametros, horario: 'cualquiera' })
   }
   function cambiarHorario(nuevoHorario) {
-    setParametrosUrl({ origen, destino, fecha, horario: nuevoHorario })
+    const siguientes = new URLSearchParams(parametrosUrl)
+    siguientes.set('horario', nuevoHorario)
+    setParametrosUrl(siguientes)
   }
   function manejarSeleccion(resultado) {
     if (!estaAutenticado) { abrirInicioSesion(); return }
     navegar('/reservar', { state: { resultado, fecha: resultado.fechaSalida } })
   }
   function alternarServicio(servicio) {
-    setServiciosSeleccionados((anterior) => {
-      const copia = new Set(anterior)
-      if (servicio === null) return new Set()
-      if (copia.has(servicio)) copia.delete(servicio)
-      else copia.add(servicio)
-      return copia
-    })
+    const copia = new Set(serviciosSeleccionados)
+    if (servicio === null) copia.clear()
+    else if (copia.has(servicio)) copia.delete(servicio)
+    else copia.add(servicio)
+    const siguientes = new URLSearchParams(parametrosUrl)
+    siguientes.delete('tipoServicio')
+    copia.forEach((tipo) => siguientes.append('tipoServicio', tipo))
+    setParametrosUrl(siguientes)
   }
   function limpiarFiltros() {
-    setServiciosSeleccionados(new Set())
-    cambiarHorario('cualquiera')
+    setParametrosUrl({ origen, destino, fecha, horario: 'cualquiera' })
   }
 
-  const serviciosDisponibles = useMemo(
-    () => Array.from(new Set([...resultados.map((r) => r.tipoBus), ...serviciosSeleccionados])),
-    [resultados, serviciosSeleccionados],
-  )
-  const resultadosFiltrados = useMemo(
-    () => resultados.filter((r) => serviciosSeleccionados.size === 0 || serviciosSeleccionados.has(r.tipoBus)),
-    [resultados, serviciosSeleccionados],
-  )
+  const resultadosFiltrados = resultados
   const disponibles = resultadosFiltrados.filter((r) => r.estado !== 'agotado' && r.precio != null)
   const idMasEconomico = disponibles.length
     ? disponibles.reduce((menor, r) => r.precio < menor.precio ? r : menor).id : null
@@ -84,6 +89,7 @@ export function PaginaResultados() {
           </p>
         </div>
         <div className="pagina-resultados__grilla">
+          {errorTipos && <p role="alert">{errorTipos} Puedes seguir buscando por ruta, fecha y horario.</p>}
           <FiltrosResultados horario={horario} alCambiarHorario={cambiarHorario}
             serviciosDisponibles={serviciosDisponibles} serviciosSeleccionados={serviciosSeleccionados}
             alAlternarServicio={alternarServicio} hayFiltrosActivos={hayFiltrosActivos} alLimpiarFiltros={limpiarFiltros} />
@@ -94,7 +100,7 @@ export function PaginaResultados() {
           ) : error ? (
             <div className="resultados-busqueda__vacio" role="alert">
               <p className="resultados-busqueda__error">{error}</p>
-              <BotonSecundario onClick={() => ejecutarBusqueda({ origen, destino, fecha, horario })}>Reintentar</BotonSecundario>
+              <BotonSecundario onClick={() => ejecutarBusqueda({ origen, destino, fecha, horario, tiposServicio: JSON.parse(tiposUrl) })}>Reintentar</BotonSecundario>
             </div>
           ) : resultadosFiltrados.length === 0 ? (
             <div className="resultados-busqueda__vacio">

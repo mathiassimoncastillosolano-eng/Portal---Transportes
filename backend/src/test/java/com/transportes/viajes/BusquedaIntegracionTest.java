@@ -113,6 +113,43 @@ class BusquedaIntegracionTest {
         assertEquals("Por confirmar",datos.get(0).get("duracion").asText());
     }
 
+    @Test void combinaTiposConRutaFechaYHorario() throws Exception {
+        jdbc.update("INSERT INTO tipo_bus(id_tipo_bus,nombre_tipo) OVERRIDING SYSTEM VALUE VALUES(2,'Prime'),(3,'Semi Cama')");
+        jdbc.update("INSERT INTO bus VALUES(2,2,true)");
+        jdbc.update("UPDATE viaje SET id_bus=2 WHERE id_viaje IN (3,7)");
+        var uno=json.readTree(get(base+"&tipoServicio=prime&horario=manana").body());
+        assertEquals(1,uno.size()); assertEquals(3,uno.get(0).get("id").asInt());
+        var varios=get(base+"&tipoServicio=Prime&tipoServicio=Bus%20Cama&horario=manana");
+        assertEquals(200,varios.statusCode()); assertEquals(2,json.readTree(varios.body()).size());
+        assertEquals("[]",get(base+"&tipoServicio=Semi%20Cama").body());
+        assertEquals("[]",get(base.replace("2026-09-23","2026-09-24")+"&tipoServicio=Prime").body());
+        assertEquals("[]",get(base.replace("destino=Cusco","destino=Arequipa")+"&tipoServicio=Prime").body());
+        assertEquals(3,json.readTree(get("/api/viajes/tipos-bus").body()).size());
+    }
+
+    @Test void detalleActualizaDisponibilidadYRespetaElegibilidad() throws Exception {
+        jdbc.update("UPDATE ruta SET duracion_estimada_min=1275");
+        var r=get("/api/viajes/7"); assertEquals(200,r.statusCode(),r.body());
+        var detalle=json.readTree(r.body());
+        assertEquals("21 h 15 min",detalle.get("duracion").asText());
+        assertEquals("2026-09-24",detalle.get("fechaLlegada").asText());
+        assertEquals("16:15",detalle.get("horaLlegada").asText());
+        assertEquals(2,detalle.get("asientosDisponibles").asInt());
+        jdbc.update("UPDATE viaje_asiento SET estado_viaje_asiento='OCUPADO' WHERE id_viaje=7");
+        detalle=json.readTree(get("/api/viajes/7").body());
+        assertEquals(0,detalle.get("asientosDisponibles").asInt());
+        assertTrue(detalle.get("precio").isNull());
+        assertEquals("agotado",detalle.get("estado").asText());
+        jdbc.update("DELETE FROM viaje_asiento WHERE id_viaje=7");
+        assertEquals(0,json.readTree(get("/api/viajes/7").body()).get("asientosDisponibles").asInt());
+        jdbc.update("UPDATE viaje SET estado_viaje='CANCELADO' WHERE id_viaje=7");
+        assertEquals(404,get("/api/viajes/7").statusCode());
+        assertEquals(404,get("/api/viajes/9999").statusCode());
+        assertEquals(400,get("/api/viajes/0").statusCode());
+        jdbc.update("UPDATE bus SET activo=false");
+        assertEquals(404,get("/api/viajes/1").statusCode());
+    }
+
     @Test void corsPermiteElFrontend() throws Exception {
         var r=http.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+base))
             .header("Origin","http://localhost:5173").header("Access-Control-Request-Method","GET")
