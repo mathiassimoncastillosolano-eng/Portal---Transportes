@@ -17,6 +17,11 @@ public class ViajeService {
 
     @Transactional(readOnly = true)
     public List<ViajeResumenDto> buscar(String origen, String destino, LocalDate fecha, String horario) {
+        return buscar(origen, destino, fecha, horario, List.of());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ViajeResumenDto> buscar(String origen, String destino, LocalDate fecha, String horario, List<String> tipos) {
         if (origen == null || origen.isBlank() || destino == null || destino.isBlank() || fecha == null) {
             throw invalido("Origen, destino y fecha son obligatorios.");
         }
@@ -32,8 +37,20 @@ public class ViajeService {
             case "noche" -> new int[]{19, 24};
             default -> throw invalido("Horario no válido. Usa madrugada, mañana, tarde, noche o cualquiera.");
         };
-        return viajes.buscar(origen, destino, fecha, horas[0], horas[1]);
+        var normalizados = tipos == null ? List.<String>of() : tipos.stream()
+                .filter(t -> t != null && !t.isBlank()).map(t -> t.trim().toLowerCase(Locale.ROOT)).distinct().toList();
+        return viajes.buscar(origen, destino, fecha, horas[0], horas[1], normalizados);
     }
+
+    @Transactional(readOnly = true)
+    public ViajeResumenDto detalle(long id) {
+        if (id <= 0) throw invalido("Identificador de viaje no válido.");
+        return viajes.detalle(id).stream().findFirst().orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "El viaje no existe o ya no está disponible."));
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.transportes.viajes.dto.TipoServicioDto> tipos() { return viajes.tipos(); }
 
     private ResponseStatusException invalido(String mensaje) {
         return new ResponseStatusException(HttpStatus.BAD_REQUEST, mensaje);

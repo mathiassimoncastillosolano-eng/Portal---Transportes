@@ -1,8 +1,27 @@
 import { afterEach, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buscarViajes } from './viajesServicio.js'
+import { buscarViajes, obtenerTiposDeBus, obtenerDetalleViaje } from './viajesServicio.js'
 
 const fetchOriginal = globalThis.fetch
+
+test('combina varios tipos con fecha y horario y consulta detalle actual sin sesión', async () => {
+  globalThis.fetch = async (url, opciones) => {
+    const consulta = new URL(url)
+    assert.equal(opciones.headers.Authorization, undefined)
+    if (consulta.pathname.endsWith('/buscar')) {
+      assert.deepEqual(consulta.searchParams.getAll('tipoServicio'), ['Prime', 'Bus Cama'])
+      assert.equal(consulta.searchParams.get('fecha'), '2026-09-23')
+      assert.equal(consulta.searchParams.get('horario'), 'noche')
+      return new Response('[]')
+    }
+    if (consulta.pathname.endsWith('/tipos-bus')) return new Response('[{"idTipoBus":1,"nombreTipo":"Prime"}]')
+    assert.equal(consulta.pathname, '/api/viajes/42')
+    return new Response('{"id":42,"asientosDisponibles":0,"precio":null,"estado":"agotado"}')
+  }
+  await buscarViajes({origen:'Lima',destino:'Cusco',fecha:'2026-09-23',horario:'noche',tiposServicio:['Prime','Bus Cama']})
+  assert.equal((await obtenerTiposDeBus())[0].nombreTipo, 'Prime')
+  assert.equal((await obtenerDetalleViaje(42)).asientosDisponibles, 0)
+})
 afterEach(() => { globalThis.fetch = fetchOriginal })
 
 test('envía fecha y horario a la API pública conservando identificadores y valores reales', async () => {

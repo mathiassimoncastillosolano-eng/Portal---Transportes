@@ -8,14 +8,27 @@ function retrasoSimulado(ms = 620) {
   return new Promise((resolver) => setTimeout(resolver, ms))
 }
 
-export async function buscarViajes({ origen, destino, fecha, horario = 'cualquiera' }) {
+export async function buscarViajes({ origen, destino, fecha, horario = 'cualquiera', tiposServicio = [] }) {
   if (!origen?.trim() || !destino?.trim() || !fecha) {
     throw new Error('Origen, destino y fecha son obligatorios.')
   }
   const parametros = new URLSearchParams({ origen: origen.trim(), destino: destino.trim(), fecha, horario })
+  tiposServicio.forEach((tipo) => parametros.append('tipoServicio', tipo))
   const viajes = await solicitarApi(`/api/viajes/buscar?${parametros}`, { autenticar: false })
   if (!Array.isArray(viajes)) throw new Error('El servidor devolvió una respuesta de viajes no válida.')
   return viajes
+}
+
+export async function obtenerTiposDeBus() {
+  const tipos = await solicitarApi('/api/viajes/tipos-bus', { autenticar: false })
+  if (!Array.isArray(tipos)) throw new Error('No se pudo leer el catálogo de tipos de servicio.')
+  return tipos
+}
+
+export async function obtenerDetalleViaje(id) {
+  const viaje = await solicitarApi(`/api/viajes/${encodeURIComponent(id)}`, { autenticar: false })
+  if (!viaje?.id) throw new Error('No se pudo leer el detalle del viaje.')
+  return viaje
 }
 
 // ---------------------------------------------------------------------------
