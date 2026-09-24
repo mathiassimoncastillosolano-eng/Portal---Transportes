@@ -88,7 +88,6 @@ export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
           {cargando ? 'Ingresando…' : 'Iniciar sesión'}
         </BotonPrincipal>
 
-        
       </form>
 
       <p className="formulario-autenticacion__pie">
