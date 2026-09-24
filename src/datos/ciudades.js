@@ -3,12 +3,6 @@ export const ciudades = [
   'Cusco',
   'Arequipa',
   'Trujillo',
-  'Ica',
   'Piura',
   'Chiclayo',
-  'Huancayo',
-  'Puno',
-  'Tacna',
-  'Ayacucho',
-  'Cajamarca',
 ]
