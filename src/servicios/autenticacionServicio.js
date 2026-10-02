@@ -1,4 +1,4 @@
-import { eliminarToken, guardarToken, obtenerToken, solicitarApi } from './httpCliente'
+import { eliminarToken, guardarToken, obtenerToken, solicitarApi } from './httpCliente.js'
 
 // Servicio de autenticación real: habla con el backend de Spring Boot
 // (login con JWT, perfil del usuario autenticado y cierre de sesión).
@@ -31,6 +31,22 @@ export async function iniciarSesion(correo, contrasena) {
   // El login solo devuelve los datos mínimos del usuario; se pide el
   // perfil completo (incluye teléfono y estadísticas) inmediatamente
   // después para tener siempre una única fuente de verdad.
+  return obtenerUsuarioDeSesion()
+}
+
+/**
+ * Inicio de sesión (o alta, si la cuenta no existe) con Google. Recibe el ID
+ * token que entrega Google Identity Services; el backend lo valida y devuelve
+ * el mismo JWT propio del login tradicional.
+ */
+export async function iniciarSesionConGoogle(credencial) {
+  const datos = await solicitarApi('/api/auth/google', {
+    method: 'POST',
+    autenticar: false,
+    body: JSON.stringify({ credential: credencial }),
+  })
+
+  guardarToken(datos.token)
   return obtenerUsuarioDeSesion()
 }
 

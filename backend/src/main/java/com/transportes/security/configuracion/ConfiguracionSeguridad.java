@@ -76,8 +76,11 @@ public class ConfiguracionSeguridad {
                         // Crear una cuenta no requiere una sesion previa.
                         .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
+                        // Inicio de sesion/registro con Google: la identidad se
+                        // comprueba validando el ID token de Google en el servicio.
+                        .requestMatchers(HttpMethod.POST, "/api/auth/google").permitAll()
                         // Perfil y cierre de sesion: requieren JWT valido.
-                        .requestMatchers("/api/usuarios/**", "/api/auth/logout").authenticated()
+                        .requestMatchers("/api/usuarios/**", "/api/auth/logout", "/api/auth/google/vincular").authenticated()
                         // Cualquier otra ruta (dominios aun no implementados,
                         // como destinos/servicios/viajes) permanece publica por
                         // ahora, ya que estan fuera del alcance de esta tarea.

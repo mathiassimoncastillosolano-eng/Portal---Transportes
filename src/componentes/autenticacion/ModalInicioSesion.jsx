@@ -22,7 +22,7 @@ const ICONO_CANDADO = (
 )
 
 export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
-  const { iniciarSesion } = useAutenticacion()
+  const { iniciarSesion, iniciarSesionConGoogle } = useAutenticacion()
   const [correo, setCorreo] = useState('')
   const [contrasena, setContrasena] = useState('')
   const [cargando, setCargando] = useState(false)
@@ -44,6 +44,19 @@ export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
     }
   }
 
+  async function manejarGoogle(credencial) {
+    setError('')
+    setCargando(true)
+    try {
+      await iniciarSesionConGoogle(credencial)
+      alCerrar()
+    } catch (err) {
+      setError(err.message ?? 'No se pudo iniciar sesión con Google.')
+    } finally {
+      setCargando(false)
+    }
+  }
+
   function usarCuentaDemo() {
     setCorreo(usuarioDemo.correo)
     setContrasena(usuarioDemo.contrasena)
@@ -56,7 +69,7 @@ export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
       abierto={abierto}
       alCerrar={alCerrar}
     >
-      <BotonGoogle />
+      <BotonGoogle alCredencial={manejarGoogle} alError={setError} deshabilitado={cargando} />
 
       <div className="divisor-o formulario-autenticacion__divisor">o continúa con tu correo</div>
 
@@ -88,6 +101,9 @@ export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
           {cargando ? 'Ingresando…' : 'Iniciar sesión'}
         </BotonPrincipal>
 
+        <button type="button" className="formulario-autenticacion__demo" onClick={usarCuentaDemo}>
+          Usar cuenta de demostración
+        </button>
       </form>
 
       <p className="formulario-autenticacion__pie">

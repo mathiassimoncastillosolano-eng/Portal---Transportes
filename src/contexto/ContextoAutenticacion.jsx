@@ -3,6 +3,7 @@ import {
   actualizarPerfil as actualizarPerfilServicio,
   cerrarSesion as cerrarSesionServicio,
   iniciarSesion as iniciarSesionServicio,
+  iniciarSesionConGoogle as iniciarSesionConGoogleServicio,
   obtenerUsuarioDeSesion,
   registrarUsuario as registrarUsuarioServicio,
 } from '../servicios/autenticacionServicio'
@@ -34,6 +35,12 @@ export function ProveedorAutenticacion({ children }) {
     return usuarioAutenticado
   }, [])
 
+  const iniciarSesionConGoogle = useCallback(async (credencial) => {
+    const usuarioAutenticado = await iniciarSesionConGoogleServicio(credencial)
+    setUsuario(usuarioAutenticado)
+    return usuarioAutenticado
+  }, [])
+
   const registrarUsuario = useCallback(async (datos) => {
     return registrarUsuarioServicio(datos)
   }, [])
@@ -54,6 +61,7 @@ export function ProveedorAutenticacion({ children }) {
     estaAutenticado: Boolean(usuario),
     cargandoSesion,
     iniciarSesion,
+    iniciarSesionConGoogle,
     registrarUsuario,
     cerrarSesion,
     actualizarPerfil,

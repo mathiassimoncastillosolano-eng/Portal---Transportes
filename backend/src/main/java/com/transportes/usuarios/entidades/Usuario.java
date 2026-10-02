@@ -32,8 +32,13 @@ public class Usuario {
     @Column(name = "correo", nullable = false, unique = true, length = 150)
     private String correo;
 
-    @Column(name = "contrasena_hash", nullable = false, length = 255)
+    /** Nulo en cuentas creadas solo con Google (no tienen contrasena propia). */
+    @Column(name = "contrasena_hash", length = 255)
     private String contrasenaHash;
+
+    /** Identificador estable ("sub") de Google; nulo si la cuenta no usa Google. */
+    @Column(name = "google_id", length = 255, unique = true)
+    private String googleId;
 
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
