@@ -1,66 +1,91 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
-import { obtenerPasajesDeUsuario } from '../../servicios/viajesServicio'
-import { construirTicketDesdePasaje } from '../../datos/tickets'
+import { listarBoletosDelUsuario } from '../../servicios/boletosServicio'
+import { comprasVigentes } from '../../utilidades/pasajesVista'
 import { TarjetaPasaje } from '../../componentes/perfil/TarjetaPasaje'
 import { TarjetaTicket } from '../../componentes/perfil/TarjetaTicket'
 import './paginaMisPasajes.css'
 
 export function PaginaMisPasajes() {
   const { usuario } = useAutenticacion()
-  const [pasajes, setPasajes] = useState([])
-  const [vista, setVista] = useState('pasajes')
   const ubicacion = useLocation()
   const codigoReciente = ubicacion.state?.pasajeReciente
+  const [boletos, setBoletos] = useState([])
+  const [fuente, setFuente] = useState(null)
+  const [estado, setEstado] = useState('cargando')
+  const [error, setError] = useState('')
+  const [intentos, setIntentos] = useState(0)
+  const [compraSeleccionada, setCompraSeleccionada] = useState(null)
+  const [descargando, setDescargando] = useState(false)
+  const [errorPdf, setErrorPdf] = useState('')
 
   useEffect(() => {
-    setPasajes(obtenerPasajesDeUsuario(usuario.id))
-  }, [usuario.id])
+    let cancelado = false
+    setEstado('cargando')
+    setError('')
+    listarBoletosDelUsuario()
+      .then((respuesta) => {
+        if (cancelado) return
+        if (!Array.isArray(respuesta.boletos)) throw new Error('La respuesta de boletos no es válida.')
+        setBoletos(respuesta.boletos)
+        setFuente(respuesta.fuente)
+        setEstado('listo')
+      })
+      .catch((fallo) => {
+        if (cancelado) return
+        setError(fallo.message || 'No se pudieron cargar tus pasajes.')
+        setEstado('error')
+      })
+    return () => { cancelado = true }
+  }, [usuario?.id, intentos])
 
-  const pasajesVigentes = pasajes.filter((pasaje) => pasaje.estado !== 'completado')
-  const nombrePasajero = `${usuario.nombres} ${usuario.apellidos}`
+  const compras = comprasVigentes(boletos)
+  const seleccionada = compras.find((compra) => compra.id === compraSeleccionada)
+
+  async function descargarPdf() {
+    if (!seleccionada || fuente !== 'demostracion') return
+    setDescargando(true)
+    setErrorPdf('')
+    try {
+      const { descargarPdfCompraDemo } = await import('../../servicios/pdfCompraDemo')
+      await descargarPdfCompraDemo(seleccionada)
+    } catch {
+      setErrorPdf('No se pudo preparar el PDF. Inténtalo nuevamente.')
+    } finally {
+      setDescargando(false)
+    }
+  }
 
   return (
-    <div className="pagina-mis-pasajes">
-      {codigoReciente && (
-        <p className="pagina-mis-pasajes__confirmacion">
-          ¡Compra confirmada! Tu pasaje {codigoReciente} ya está disponible como ticket electrónico.
-        </p>
-      )}
-
-      <div className="pagina-mis-pasajes__conmutador">
-        <button
-          type="button"
-          className={`pagina-mis-pasajes__opcion ${vista === 'pasajes' ? 'pagina-mis-pasajes__opcion--activa' : ''}`}
-          onClick={() => setVista('pasajes')}
-        >
-          Mis pasajes
-        </button>
-        <button
-          type="button"
-          className={`pagina-mis-pasajes__opcion ${vista === 'tickets' ? 'pagina-mis-pasajes__opcion--activa' : ''}`}
-          onClick={() => setVista('tickets')}
-        >
-          Mis tickets
-        </button>
+    <section className="pagina-mis-pasajes">
+      <div className="pagina-mis-pasajes__intro">
+        <div><p className="pagina-mis-pasajes__eyebrow">TU PRÓXIMO VIAJE</p><h1>Mis pasajes</h1>
+          <p>Consulta tus compras y los asientos incluidos en cada una.</p></div>
+        {estado === 'listo' && compras.length > 0 && <span className="pagina-mis-pasajes__contador">{compras.length} {compras.length === 1 ? 'compra vigente' : 'compras vigentes'}</span>}
       </div>
-
-      {pasajesVigentes.length === 0 ? (
-        <p className="pagina-mis-pasajes__vacio">Todavía no tienes pasajes vigentes. Busca tu próximo viaje desde el inicio.</p>
-      ) : vista === 'pasajes' ? (
-        <div className="pagina-mis-pasajes__lista">
-          {pasajesVigentes.map((pasaje) => (
-            <TarjetaPasaje key={pasaje.codigo} pasaje={pasaje} />
-          ))}
+      {fuente === 'demostracion' && estado === 'listo' &&
+        <p className="pagina-mis-pasajes__aviso" role="status">Vista de demostración · Estos datos no provienen de la base de datos.</p>}
+      {codigoReciente && estado === 'listo' && compras.some((compra) => compra.boletos.some((b) => b.codigo === codigoReciente)) &&
+        <p className="pagina-mis-pasajes__confirmacion">Tu compra ya aparece entre los pasajes vigentes.</p>}
+      {estado === 'cargando' ? (
+        <p className="pagina-mis-pasajes__vacio" role="status">Cargando tus pasajes…</p>
+      ) : estado === 'error' ? (
+        <div className="pagina-mis-pasajes__vacio" role="alert"><p>{error}</p><button type="button" onClick={() => setIntentos((n) => n + 1)}>Reintentar</button></div>
+      ) : fuente === 'pendiente' ? (
+        <p className="pagina-mis-pasajes__vacio">La consulta de compras estará disponible cuando se integre el servicio del equipo backend.</p>
+      ) : compras.length === 0 ? (
+        <p className="pagina-mis-pasajes__vacio">No tienes pasajes vigentes. Aquí aparecerán tus próximas compras confirmadas.</p>
+      ) : seleccionada ? (
+        <div className="pagina-mis-pasajes__detalle">
+          <button type="button" className="pagina-mis-pasajes__volver" onClick={() => { setCompraSeleccionada(null); setErrorPdf('') }}>← Volver a mis pasajes</button>
+          <TarjetaTicket compra={seleccionada} onDescargar={descargarPdf} descargando={descargando} errorPdf={errorPdf} demostracion={fuente === 'demostracion'} />
         </div>
       ) : (
         <div className="pagina-mis-pasajes__lista">
-          {pasajesVigentes.map((pasaje) => (
-            <TarjetaTicket key={pasaje.codigo} ticket={construirTicketDesdePasaje(pasaje, nombrePasajero)} />
-          ))}
+          {compras.map((compra) => <TarjetaPasaje key={compra.id} compra={compra} onVerDetalle={() => setCompraSeleccionada(compra.id)} />)}
         </div>
       )}
-    </div>
+    </section>
   )
 }
