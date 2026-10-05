@@ -10,6 +10,8 @@ export function CampoTexto({
   error,
   autoComplete,
   icono,
+  modoEntrada,
+  ayuda,
 }) {
   return (
     <label className={`campo-texto ${icono ? 'campo-texto--con-icono' : ''}`}>
@@ -24,9 +26,14 @@ export function CampoTexto({
           placeholder={marcador}
           required={requerido}
           autoComplete={autoComplete}
+          inputMode={modoEntrada}
         />
       </span>
-      {error && <span className="campo-texto__error">{error}</span>}
+      {error ? (
+        <span className="campo-texto__error">{error}</span>
+      ) : (
+        ayuda && <span className="campo-texto__ayuda">{ayuda}</span>
+      )}
     </label>
   )
 }
