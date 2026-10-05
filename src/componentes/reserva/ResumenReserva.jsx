@@ -23,21 +23,26 @@ export function ResumenReserva({
   mostrarBoton = true,
 }) {
   const cantidad = asientosSeleccionados.length
+  // Solo presentación: el panel cambia de aspecto cuando el usuario puede avanzar.
+  const listo = mostrarBoton && cantidad > 0 && !deshabilitado && !cargando
 
   return (
-    <aside className="resumen-reserva superficie-cristal">
+    <aside className={`resumen-reserva superficie-cristal ${listo ? 'resumen-reserva--listo' : ''}`}>
       <h2 className="resumen-reserva__titulo">Resumen del viaje</h2>
 
       <div className="resumen-reserva__ruta">
         <span>{resultado.origen}</span>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <span>{resultado.destino}</span>
       </div>
 
       <p className="resumen-reserva__fecha">
-        {formatearFechaCorta(fecha)} · {resultado.horaSalida} → {resultado.horaLlegada}
+        <span className="resumen-reserva__fecha-dia">{formatearFechaCorta(fecha)}</span>
+        <span className="resumen-reserva__fecha-horas">
+          {resultado.horaSalida} → {resultado.horaLlegada}
+        </span>
       </p>
 
       {cantidad > 0 && (
@@ -59,7 +64,10 @@ export function ResumenReserva({
       {filasDetalle.length > 0 && (
         <dl className="resumen-reserva__lista">
           {filasDetalle.map((fila) => (
-            <div key={fila.etiqueta}>
+            <div
+              key={fila.etiqueta}
+              className={fila.etiqueta.startsWith('Precio') && typeof precioTotal !== 'number' ? 'resumen-reserva__fila-precio' : undefined}
+            >
               <dt>{fila.etiqueta}</dt>
               <dd>{fila.valor}</dd>
             </div>
@@ -74,14 +82,14 @@ export function ResumenReserva({
         </div>
       )}
 
+      {mensajeAyuda && (mostrarBoton ? deshabilitado && !cargando : true) && (
+        <p className="resumen-reserva__ayuda" role="status">{mensajeAyuda}</p>
+      )}
+
       {mostrarBoton && (
         <BotonPrincipal onClick={onContinuar} deshabilitado={deshabilitado || cargando} ancho="100%">
           {cargando ? 'Procesando…' : textoBoton}
         </BotonPrincipal>
-      )}
-
-      {mensajeAyuda && (mostrarBoton ? deshabilitado && !cargando : true) && (
-        <p className="resumen-reserva__ayuda" role="status">{mensajeAyuda}</p>
       )}
     </aside>
   )

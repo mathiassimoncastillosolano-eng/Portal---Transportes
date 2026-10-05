@@ -34,9 +34,21 @@ export function Contador({ expiraEn, pausado = false }) {
   if (!expiraEn) return null
 
   return (
-    <div className="contador-reserva" role="timer" aria-live="polite">
-      <span className="contador-reserva__etiqueta">Tiempo de expiración</span>
-      <span className="contador-reserva__tiempo">{formatearTiempo(restanteMs)}</span>
+    <div
+      className={`contador-reserva ${!pausado && restanteMs <= 120000 ? 'contador-reserva--urgente' : ''}`}
+      role="timer"
+      aria-live="polite"
+    >
+      <span className="contador-reserva__icono" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="13" r="7.5" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M12 9.5V13l2.4 1.6M9.5 3h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <span className="contador-reserva__texto">
+        <span className="contador-reserva__etiqueta">Tiempo de expiración</span>
+        <span className="contador-reserva__tiempo">{formatearTiempo(restanteMs)}</span>
+      </span>
     </div>
   )
 }

@@ -75,12 +75,16 @@ export function BarraNavegacion({ alAbrirInicioSesion }) {
               <button
                 type="button"
                 className="barra-navegacion__boton-perfil"
+                aria-expanded={menuPerfilAbierto}
                 onClick={() => setMenuPerfilAbierto((valor) => !valor)}
               >
                 <span className="barra-navegacion__avatar">
                   {iniciales(usuario.nombres, usuario.apellidos)}
                 </span>
                 <span className="barra-navegacion__nombre-perfil">Mi perfil</span>
+                <svg className="barra-navegacion__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="m3.5 5.5 3.5 3.5 3.5-3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
 
               {menuPerfilAbierto && (
