@@ -7,7 +7,17 @@ import { MapaAsientosBus } from '../../componentes/reserva/MapaAsientosBus'
 import { ResumenReserva } from '../../componentes/reserva/ResumenReserva'
 import { GestorPasajeros } from '../../componentes/reserva/GestorPasajeros'
 import { DATOS_PASAJERO_VACIOS, pasajeroEstaCompleto } from '../../componentes/reserva/FormularioPasajero'
-import { PasarelaPago, VALORES_PAGO_INICIALES, validarPago } from '../../componentes/reserva/PasarelaPago'
+import { PasarelaPago } from '../../componentes/reserva/PasarelaPago'
+import {
+  MENSAJES_ESTADO,
+  VALORES_TARJETA_INICIALES,
+  VALORES_YAPE_INICIALES,
+  construirSolicitudPago,
+  simularRespuestaPago,
+  soloDigitos,
+  validarPagoTarjeta,
+  validarPagoYape,
+} from '../../utilidades/pagoMercadoPago'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { useBusqueda } from '../../hooks/useBusqueda'
 import {
@@ -22,6 +32,10 @@ import {
 import { formatearPrecio } from '../../utilidades/formato'
 import './paginaReserva.css'
 import { Contador } from '../../componentes/reserva/Contador'
+
+const TOPE_MAXIMO_YAPE = 2000
+
+const VALIDADORES_PAGO = { tarjeta: validarPagoTarjeta, yape: validarPagoYape }
 
 const TITULOS_PASO = {
   asiento: 'Selecciona tus asientos',
@@ -95,12 +109,31 @@ export function PaginaReserva() {
   const [pasajeros, setPasajeros] = useState({})
   const [claveActivaPasajero, setClaveActivaPasajero] = useState(null)
 
-  const [datosPago, setDatosPago] = useState(VALORES_PAGO_INICIALES)
+  const [metodoPago, setMetodoPago] = useState('tarjeta')
+  const [datosPago, setDatosPago] = useState(() => ({
+    tarjeta: { ...VALORES_TARJETA_INICIALES },
+    yape: { ...VALORES_YAPE_INICIALES },
+  }))
   const [erroresPago, setErroresPago] = useState({})
   const [camposTocadosPago, setCamposTocadosPago] = useState({})
-  const [metodoPago, setMetodoPago] = useState('tarjeta')
   const [pagando, setPagando] = useState(false)
-  const [pagoCompletado, setPagoCompletado] = useState(false)
+  const [respuestaPago, setRespuestaPago] = useState(null)
+  const pagoCompletado = respuestaPago?.status === 'approved' || respuestaPago?.status === 'in_process'
+
+  // La sesión puede cargar después del primer render: completa el correo y el
+  // celular con los del usuario solo si el comprador aún no los escribió.
+  useEffect(() => {
+    if (!usuario) return
+    const celularUsuario = soloDigitos(usuario.telefono).slice(-9)
+    setDatosPago((anterior) => ({
+      tarjeta: { ...anterior.tarjeta, correo: anterior.tarjeta.correo || usuario.correo || '' },
+      yape: {
+        ...anterior.yape,
+        correo: anterior.yape.correo || usuario.correo || '',
+        celular: anterior.yape.celular || (/^9\d{8}$/.test(celularUsuario) ? celularUsuario : ''),
+      },
+    }))
+  }, [usuario])
 
   const [mapaAsientos, setMapaAsientos] = useState(null)
   const [cargandoMapa, setCargandoMapa] = useState(true)
@@ -424,6 +457,13 @@ export function PaginaReserva() {
     setPasoActual('asiento')
   }
 
+  function manejarCambiarMetodoPago(metodo) {
+    setMetodoPago(metodo)
+    setErroresPago({})
+    setCamposTocadosPago({})
+    setRespuestaPago(null)
+  }
+
   // Ya no se bloquea aquí: los asientos se bloquearon al hacer clic.
   function confirmarPasajerosYContinuar() {
     if (!pasajerosCompletos) return
@@ -432,29 +472,42 @@ export function PaginaReserva() {
   }
 
   function manejarCambiarCampoPago(campo, valor) {
-    setDatosPago((anterior) => ({ ...anterior, [campo]: valor }))
-    if (camposTocadosPago[campo]) {
-      setErroresPago(validarPago({ ...datosPago, [campo]: valor }))
-    }
+    const valoresMetodo = { ...datosPago[metodoPago], [campo]: valor }
+    setDatosPago((anterior) => ({ ...anterior, [metodoPago]: valoresMetodo }))
+    setErroresPago(VALIDADORES_PAGO[metodoPago](valoresMetodo))
   }
 
   function manejarTocarCampoPago(campo) {
     setCamposTocadosPago((anterior) => ({ ...anterior, [campo]: true }))
-    setErroresPago(validarPago(datosPago))
+    setErroresPago(VALIDADORES_PAGO[metodoPago](datosPago[metodoPago]))
   }
 
   function manejarPago() {
-    if (metodoPago === 'tarjeta') {
-      const errores = validarPago(datosPago)
-      setErroresPago(errores)
-      setCamposTocadosPago({ numeroTarjeta: true, vencimiento: true, cvv: true, titular: true })
-      if (Object.keys(errores).length > 0) return
-    }
+    const valores = datosPago[metodoPago]
+    const errores = VALIDADORES_PAGO[metodoPago](valores)
+    setErroresPago(errores)
+    setCamposTocadosPago(Object.fromEntries(Object.keys(valores).map((campo) => [campo, true])))
+    if (Object.keys(errores).length > 0) return
+    if (metodoPago === 'yape' && precioTotal > TOPE_MAXIMO_YAPE) return
 
+    // Este es el cuerpo que recibirá POST /api/pagos (T-33). En producción el
+    // token lo genera MercadoPago.js a partir de los datos de la tarjeta (o del
+    // celular + código de Yape); aquí usamos uno ficticio.
+    const solicitud = construirSolicitudPago({
+      metodo: metodoPago,
+      valores,
+      token: `demo_${Date.now()}`,
+      monto: precioTotal,
+      descripcion: `Pasaje ${resultado.origen} - ${resultado.destino} (${asientosSeleccionados.length})`,
+      referencia: `RL-${resultado.id ?? 'viaje'}-${fecha}`,
+    })
+    console.info('[Pago demo] Solicitud para POST /api/pagos:', solicitud)
+
+    setRespuestaPago(null)
     setPagando(true)
     setTimeout(() => {
       setPagando(false)
-      setPagoCompletado(true)
+      setRespuestaPago(simularRespuestaPago(metodoPago, valores))
     }, 1400)
   }
 
@@ -516,8 +569,16 @@ export function PaginaReserva() {
       { etiqueta: 'Servicio', valor: resultado.tipoBus },
       { etiqueta: 'Pasajeros', valor: resumenNombres || `${asientosSeleccionados.length}` },
     ]
-    textoBoton = pagoCompletado ? 'Pago simulado ✓' : `Pagar ${formatearPrecio(precioTotal)}`
-    deshabilitadoBoton = pagoCompletado
+    const excedeTopeYape = metodoPago === 'yape' && precioTotal > TOPE_MAXIMO_YAPE
+    filasDetalle.push({ etiqueta: 'Medio de pago', valor: metodoPago === 'yape' ? 'Yape' : 'Tarjeta' })
+    if (metodoPago === 'tarjeta' && datosPago.tarjeta.cuotas > 1) {
+      filasDetalle.push({ etiqueta: 'Cuotas', valor: `${datosPago.tarjeta.cuotas}` })
+    }
+    if (respuestaPago?.status === 'approved') textoBoton = 'Pago aprobado ✓'
+    else if (respuestaPago?.status === 'in_process') textoBoton = 'Pago en proceso'
+    else if (respuestaPago?.status === 'rejected') textoBoton = 'Reintentar pago'
+    else textoBoton = `Pagar ${formatearPrecio(precioTotal)}`
+    deshabilitadoBoton = pagoCompletado || excedeTopeYape
   }
 
   return (
@@ -576,23 +637,36 @@ export function PaginaReserva() {
 
           {pasoActual === 'pago' && (
             <>
-              {pagoCompletado && (
-                <div className="pagina-reserva__pago-exitoso" role="status">
+              {respuestaPago && (
+                <div
+                  className={`pagina-reserva__pago-estado pagina-reserva__pago-estado--${respuestaPago.status}`}
+                  role={respuestaPago.status === 'rejected' ? 'alert' : 'status'}
+                >
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                     <circle cx="9" cy="9" r="8.2" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="M5.2 9.3 7.7 11.8 12.8 6.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    {respuestaPago.status === 'rejected' ? (
+                      <path d="M6.2 6.2l5.6 5.6M11.8 6.2l-5.6 5.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                    ) : (
+                      <path d="M5.2 9.3 7.7 11.8 12.8 6.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    )}
                   </svg>
-                  Pago de demostración procesado. Esta pantalla no realiza cobros reales.
+                  <span>
+                    {MENSAJES_ESTADO[respuestaPago.status_detail]}
+                    <small> Pago de demostración, no se realizó ningún cobro.</small>
+                  </span>
                 </div>
               )}
               <PasarelaPago
-                valores={datosPago}
+                metodo={metodoPago}
+                alCambiarMetodo={manejarCambiarMetodoPago}
+                valoresTarjeta={datosPago.tarjeta}
+                valoresYape={datosPago.yape}
                 errores={erroresPago}
                 camposTocados={camposTocadosPago}
                 alCambiarCampo={manejarCambiarCampoPago}
                 alTocarCampo={manejarTocarCampoPago}
-                metodo={metodoPago}
-                alCambiarMetodo={setMetodoPago}
+                total={precioTotal}
+                bloqueado={pagando || pagoCompletado}
               />
             </>
           )}

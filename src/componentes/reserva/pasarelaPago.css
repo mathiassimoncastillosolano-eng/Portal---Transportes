@@ -81,33 +81,6 @@
   gap: var(--espacio-4);
 }
 
-.pasarela-pago__billetera {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: var(--espacio-4);
-  padding: var(--espacio-5) 0;
-}
-
-.pasarela-pago__qr {
-  border-radius: var(--radio-md);
-  overflow: hidden;
-  box-shadow: var(--sombra-suave);
-}
-
-.pasarela-pago__billetera-texto {
-  max-width: 32ch;
-  font-size: var(--tamano-sm);
-  color: var(--color-texto-secundario);
-}
-
-.pasarela-pago__billetera-demo {
-  font-size: var(--tamano-xs);
-  font-weight: 600;
-  color: var(--color-texto-terciario);
-}
-
 .pasarela-pago__seguridad {
   margin-top: var(--espacio-5);
   display: flex;
@@ -129,6 +102,113 @@
   }
 
   .pasarela-pago__fila {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Campos alineados con Checkout API de Mercado Pago --- */
+
+.pasarela-pago__campos {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.pasarela-pago__campos:disabled {
+  opacity: 0.6;
+}
+
+.pasarela-pago__metodo:disabled {
+  cursor: not-allowed;
+}
+
+.pasarela-pago__fila--documento {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.pasarela-pago__marcas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pasarela-pago__marca {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-borde);
+  font-size: var(--tamano-xs);
+  font-weight: 600;
+  color: var(--color-texto-terciario);
+  transition: border-color var(--transicion-rapida), color var(--transicion-rapida), background var(--transicion-rapida);
+}
+
+.pasarela-pago__marca--activa {
+  border-color: var(--color-borde-marca);
+  background: var(--color-superficie-marca);
+  color: var(--color-texto-marca);
+}
+
+.pasarela-pago__nota {
+  margin-top: calc(var(--espacio-5) * -0.6);
+  font-size: var(--tamano-xs);
+  color: var(--color-texto-terciario);
+}
+
+.pasarela-pago__aviso {
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso-texto);
+  border: 1px solid var(--color-aviso-borde);
+  border-radius: var(--radio-md);
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--tamano-sm);
+  font-weight: 600;
+}
+
+.pasarela-pago__pasos-yape {
+  margin: 0;
+  padding: var(--espacio-4) var(--espacio-4) var(--espacio-4) 2.4rem;
+  background: var(--color-superficie-marca);
+  border-radius: var(--radio-md);
+  font-size: var(--tamano-sm);
+  color: var(--color-texto-secundario);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pasarela-pago__prueba {
+  margin-top: var(--espacio-5);
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--tamano-xs);
+  color: var(--color-texto-secundario);
+}
+
+.pasarela-pago__prueba summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.pasarela-pago__prueba ul {
+  margin: var(--espacio-3) 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pasarela-pago__prueba code {
+  font-weight: 700;
+  color: var(--color-azul-800);
+}
+
+@media (max-width: 560px) {
+  .pasarela-pago__fila--documento {
     grid-template-columns: 1fr;
   }
 }

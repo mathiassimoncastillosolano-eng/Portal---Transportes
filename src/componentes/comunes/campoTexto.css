@@ -73,6 +73,25 @@
   font-weight: 500;
 }
 
+.campo-texto__entrada--seleccion {
+  appearance: none;
+  padding-right: 2.4rem;
+  cursor: pointer;
+}
+
+.campo-texto__chevron {
+  position: absolute;
+  right: 0.95rem;
+  display: flex;
+  color: var(--color-texto-secundario);
+  pointer-events: none;
+}
+
+.campo-texto__ayuda {
+  font-size: var(--tamano-xs);
+  color: var(--color-texto-terciario);
+}
+
 /* Estado éxito (validación correcta): borde semántico, sin relleno */
 .campo-texto__entrada--exito {
   border-color: var(--color-estado-disponible);

@@ -89,22 +89,46 @@
   min-width: 0;
 }
 
-.pagina-reserva__pago-exitoso {
+.pagina-reserva__pago-estado {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--espacio-3);
-  background: linear-gradient(135deg, var(--color-superficie-exito), var(--color-superficie-exito-2));
-  color: var(--color-texto-exito);
-  border: 1px solid rgba(16, 185, 129, 0.45);
   border-radius: var(--radio-md);
   padding: var(--espacio-4) var(--espacio-5);
   font-size: var(--tamano-sm);
   font-weight: 600;
+  border: 1px solid;
   box-shadow: var(--sombra-suave);
 }
 
-.pagina-reserva__pago-exitoso svg {
+.pagina-reserva__pago-estado svg {
   flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.pagina-reserva__pago-estado small {
+  display: block;
+  font-weight: 500;
+  font-size: var(--tamano-xs);
+  opacity: 0.85;
+}
+
+.pagina-reserva__pago-estado--approved {
+  background: linear-gradient(135deg, var(--color-superficie-exito), var(--color-superficie-exito-2));
+  color: var(--color-texto-exito);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+.pagina-reserva__pago-estado--in_process {
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso-texto);
+  border-color: var(--color-aviso-borde);
+}
+
+.pagina-reserva__pago-estado--rejected {
+  background: var(--color-error-fondo);
+  color: var(--color-error-texto);
+  border-color: var(--color-error-fondo-2);
 }
 
 .pagina-reserva__aviso-tope {
