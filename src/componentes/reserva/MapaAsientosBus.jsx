@@ -1,6 +1,10 @@
 import { useMemo } from 'react'
 import './mapaAsientosBus.css'
 
+// Constante estable: un `new Set()` por defecto crearía una referencia nueva
+// en cada render y rompería cualquier memoización aguas abajo.
+const EN_PROCESO_VACIO = new Set()
+
 const LEYENDA = [
   { estado: 'disponible', etiqueta: 'Disponible' },
   { estado: 'seleccionado', etiqueta: 'Seleccionado' },
@@ -34,7 +38,7 @@ function IconoAsiento({ estado }) {
   return null
 }
 
-function Asiento({ asiento, deshabilitadoPorTope, onSeleccionar }) {
+function Asiento({ asiento, deshabilitadoPorTope, enProceso, onSeleccionar }) {
   // esMio lo calcula el backend según la sesión: es la fuente de verdad.
   const seleccionado = Boolean(asiento.esMio)
   const ocupado = !seleccionado && asiento.estado === 'ocupado'
@@ -44,28 +48,39 @@ function Asiento({ asiento, deshabilitadoPorTope, onSeleccionar }) {
 
   const estadoVisual = ocupado ? 'ocupado' : tomadoPorOtro ? 'tomado' : seleccionado ? 'seleccionado' : 'disponible'
 
-  const descripcionEstado = ocupado
-    ? ', ocupado'
-    : tomadoPorOtro
-      ? ', bloqueado por otro cliente'
-      : seleccionado
-        ? ', seleccionado'
-        : porTope
-          ? ', límite de pasajeros alcanzado'
-          : ', disponible'
+  const descripcionEstado = enProceso
+    ? ', procesando'
+    : ocupado
+      ? ', ocupado'
+      : tomadoPorOtro
+        ? ', bloqueado por otro cliente'
+        : seleccionado
+          ? ', seleccionado'
+          : porTope
+            ? ', límite de pasajeros alcanzado'
+            : ', disponible'
 
   return (
     <button
       type="button"
-      className={`asiento asiento--${estadoVisual} ${porTope ? 'asiento--bloqueado' : ''}`}
-      disabled={noClicable}
+      className={`asiento asiento--${estadoVisual} ${porTope ? 'asiento--bloqueado' : ''} ${
+        enProceso ? 'asiento--en-proceso' : ''
+      }`}
+      // disabled mientras hay una petición en vuelo: es lo que impide que
+      // una ráfaga de clics encadene operaciones sobre el mismo asiento.
+      disabled={noClicable || enProceso}
       aria-pressed={seleccionado}
       aria-disabled={porTope || undefined}
+      aria-busy={enProceso || undefined}
       aria-label={`Asiento ${asiento.numero}${descripcionEstado}`}
       title={`Asiento ${asiento.numero}`}
-      onClick={() => !noClicable && !porTope && onSeleccionar(asiento)}
+      onClick={() => !noClicable && !porTope && !enProceso && onSeleccionar(asiento)}
     >
-      <IconoAsiento estado={estadoVisual} />
+      {enProceso ? (
+        <span className="asiento__cargando" aria-hidden="true" />
+      ) : (
+        <IconoAsiento estado={estadoVisual} />
+      )}
       <span className="asiento__numero">{asiento.numero}</span>
     </button>
   )
@@ -75,7 +90,13 @@ function Asiento({ asiento, deshabilitadoPorTope, onSeleccionar }) {
  * Mapa visual del piso activo. El estado de cada asiento (incluido si es mío)
  * viene en los datos; los clics se notifican hacia arriba.
  */
-export function MapaAsientosBus({ asientos, filas, limiteAlcanzado, onSeleccionar }) {
+export function MapaAsientosBus({
+  asientos,
+  filas,
+  limiteAlcanzado,
+  asientosEnProceso = EN_PROCESO_VACIO,
+  onSeleccionar,
+}) {
   const filasAgrupadas = useMemo(() => {
     const mapa = new Map()
     asientos.forEach((asiento) => {
@@ -127,13 +148,25 @@ export function MapaAsientosBus({ asientos, filas, limiteAlcanzado, onSelecciona
               </span>
               <div className="mapa-asientos__lado">
                 {fila?.izquierda.map((asiento) => (
-                  <Asiento key={asiento.numero} asiento={asiento} deshabilitadoPorTope={limiteAlcanzado} onSeleccionar={onSeleccionar} />
+                  <Asiento
+                    key={asiento.numero}
+                    asiento={asiento}
+                    deshabilitadoPorTope={limiteAlcanzado}
+                    enProceso={asientosEnProceso.has(asiento.idAsiento)}
+                    onSeleccionar={onSeleccionar}
+                  />
                 ))}
               </div>
               <div className="mapa-asientos__pasillo" aria-hidden="true" />
               <div className="mapa-asientos__lado">
                 {fila?.derecha.map((asiento) => (
-                  <Asiento key={asiento.numero} asiento={asiento} deshabilitadoPorTope={limiteAlcanzado} onSeleccionar={onSeleccionar} />
+                  <Asiento
+                    key={asiento.numero}
+                    asiento={asiento}
+                    deshabilitadoPorTope={limiteAlcanzado}
+                    enProceso={asientosEnProceso.has(asiento.idAsiento)}
+                    onSeleccionar={onSeleccionar}
+                  />
                 ))}
               </div>
             </div>

@@ -27,7 +27,7 @@
   font-family: var(--fuente-titulos);
   font-size: var(--tamano-2xl);
   font-weight: 600;
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
 }
 
 .pagina-perfil__etiqueta {
@@ -45,7 +45,7 @@
 .pagina-perfil__proximo {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(120deg, var(--color-verde-100) 0%, var(--color-verde-50) 100%);
+  background: linear-gradient(120deg, var(--color-superficie-exito) 0%, var(--color-superficie-exito-2) 100%);
   border: 1px solid rgba(16, 163, 74, 0.16);
   border-radius: var(--radio-lg);
   padding: var(--espacio-5) var(--espacio-6);
@@ -60,7 +60,7 @@
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--color-verde-800);
+  color: var(--color-texto-exito);
 }
 
 .pagina-perfil__proximo-ruta {

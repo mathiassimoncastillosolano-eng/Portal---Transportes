@@ -29,9 +29,9 @@
 }
 
 .pasarela-pago__metodo--activo {
-  border-color: var(--color-azul-700);
-  background: var(--color-azul-50);
-  color: var(--color-azul-800);
+  border-color: var(--color-borde-marca);
+  background: var(--color-superficie-marca);
+  color: var(--color-texto-marca);
 }
 
 .pasarela-pago__formulario {
@@ -119,7 +119,7 @@
 }
 
 .pasarela-pago__seguridad svg {
-  color: var(--color-verde-600);
+  color: var(--color-texto-acento);
   flex-shrink: 0;
 }
 

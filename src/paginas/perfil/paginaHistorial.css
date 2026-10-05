@@ -35,7 +35,7 @@
 }
 
 .pagina-historial__flecha {
-  color: var(--color-verde-600);
+  color: var(--color-texto-acento);
 }
 
 .pagina-historial__empresa,
@@ -47,7 +47,7 @@
 .pagina-historial__precio {
   font-family: var(--fuente-titulos);
   font-weight: 700;
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
 }
 
 .pagina-historial__vacio {

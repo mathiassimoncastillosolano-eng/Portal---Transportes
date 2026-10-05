@@ -24,7 +24,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--color-azul-700);
+  color: var(--color-texto-marca);
   font-weight: 700;
   font-size: var(--tamano-xs);
   padding: 0.3rem 0.2rem;
@@ -32,7 +32,7 @@
 }
 
 .filtros-resultados__limpiar:hover {
-  color: var(--color-verde-700);
+  color: var(--color-texto-acento);
   text-decoration: underline;
 }
 
@@ -118,7 +118,7 @@
 
 .filtros-resultados__franja--activa {
   background: var(--color-azul-800);
-  border-color: var(--color-azul-800);
+  border-color: var(--color-borde-marca);
   box-shadow: var(--sombra-foco-azul);
 }
 
@@ -170,7 +170,7 @@
 
 .filtros-resultados__chip--activo {
   background: var(--color-azul-800);
-  border-color: var(--color-azul-800);
+  border-color: var(--color-borde-marca);
   color: #fff;
 }
 

@@ -25,7 +25,7 @@
   flex-direction: column;
   gap: 0.5rem;
   padding: 0.7rem;
-  background: rgba(226, 238, 241, 0.55);
+  background: var(--color-celda-tenue);
   border: 1px solid rgba(15, 76, 92, 0.08);
   border-radius: var(--radio-md);
 }
@@ -38,7 +38,7 @@
   border-radius: var(--radio-sm);
   font-size: var(--tamano-xs);
   font-weight: 600;
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
 }
 
 .mapa-asientos__leyenda-muestra {
@@ -56,14 +56,14 @@
 
 .mapa-asientos__carroceria {
   position: relative;
-  background: linear-gradient(180deg, #F7FBFC 0%, #EBF3F6 100%);
+  background: var(--carroceria-fondo);
   border: 1.5px solid rgba(15, 76, 92, 0.16);
   border-radius: 56px 56px var(--radio-lg) var(--radio-lg);
   padding: var(--espacio-6) var(--espacio-5) var(--espacio-6);
   width: 100%;
   max-width: 388px;
   margin-inline: auto;
-  box-shadow: inset 0 2px 0 #fff, inset 0 -18px 28px -22px rgba(11, 53, 64, 0.22), 0 24px 40px -26px rgba(11, 53, 64, 0.42);
+  box-shadow: inset 0 2px 0 var(--brillo-superior), inset 0 -18px 28px -22px rgba(11, 53, 64, 0.22), 0 24px 40px -26px rgba(11, 53, 64, 0.42);
 }
 
 /* Faros / espejos: detalle de carrocería en los laterales */
@@ -75,7 +75,7 @@
   width: 7px;
   height: 22px;
   border-radius: 4px;
-  background: #CFDEE4;
+  background: var(--carroceria-asidero);
   border: 1px solid rgba(15, 76, 92, 0.18);
 }
 
@@ -92,7 +92,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.6rem;
-  color: var(--color-azul-700);
+  color: var(--color-texto-marca);
   font-size: var(--tamano-xs);
   font-weight: 600;
   padding-bottom: var(--espacio-4);
@@ -199,7 +199,7 @@
   right: 8px;
   height: 4px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--velo-superficie);
   transition: background var(--transicion-rapida);
 }
 
@@ -211,16 +211,16 @@
 
 /* Disponible: invita a la interacción */
 .asiento--disponible {
-  background: linear-gradient(180deg, #FFFFFF 0%, #E6F6F0 100%);
+  background: var(--asiento-disponible-fondo);
   border-color: rgba(16, 185, 129, 0.55);
-  color: var(--color-verde-800);
+  color: var(--color-texto-exito);
   box-shadow: 0 2px 0 rgba(16, 185, 129, 0.14), 0 6px 10px -8px rgba(11, 53, 64, 0.5);
 }
 
 .asiento--disponible:hover {
   transform: translateY(-3px);
-  background: linear-gradient(180deg, #FFFFFF 0%, #D2F2E6 100%);
-  border-color: var(--color-verde-600);
+  background: var(--asiento-disponible-hover);
+  border-color: var(--color-estado-disponible);
   box-shadow: 0 2px 0 rgba(16, 185, 129, 0.22), 0 14px 18px -10px rgba(14, 122, 60, 0.6);
 }
 
@@ -234,37 +234,37 @@
   border-color: #0B6A34;
   color: #fff;
   transform: translateY(-3px) scale(1.06);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.28), 0 0 0 5px rgba(255, 255, 255, 0.9), 0 14px 20px -8px rgba(14, 122, 60, 0.75);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.28), 0 0 0 5px var(--asiento-anillo), 0 14px 20px -8px rgba(14, 122, 60, 0.75);
 }
 
 .asiento--seleccionado::before {
-  background: rgba(255, 255, 255, 0.4);
+  background: var(--velo-superficie-tenue);
 }
 
 /* Bloqueado por otro cliente */
 .asiento--tomado {
-  background: repeating-linear-gradient(135deg, #DDE6EB 0 5px, #D3DEE4 5px 10px);
-  border-color: #AEBDC7;
-  color: #6A7C8A;
+  background: var(--asiento-tomado-fondo);
+  border-color: var(--asiento-tomado-borde);
+  color: var(--asiento-tomado-texto);
   cursor: not-allowed;
   box-shadow: none;
 }
 
 .asiento--tomado::before {
-  background: rgba(255, 255, 255, 0.4);
+  background: var(--velo-superficie-tenue);
 }
 
 /* Ocupado (pago confirmado) */
 .asiento--ocupado {
-  background: linear-gradient(180deg, #FCE9E9 0%, #F8D4D4 100%);
+  background: var(--asiento-ocupado-fondo);
   border-color: rgba(220, 70, 70, 0.55);
-  color: #B42323;
+  color: var(--asiento-ocupado-texto);
   cursor: not-allowed;
   box-shadow: none;
 }
 
 .asiento--ocupado::before {
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--velo-superficie-tenue);
 }
 
 /* Límite de pasajeros alcanzado: disponibles atenuados */
@@ -279,8 +279,44 @@
 }
 
 .asiento:focus-visible {
-  outline: 2.5px solid var(--color-azul-700);
+  outline: 2.5px solid var(--color-borde-marca);
   outline-offset: 3px;
+}
+
+/* ---------- Operación en curso sobre un asiento ----------
+   Mientras el servidor confirma el bloqueo o la liberación, el asiento se
+   muestra ocupado-en-curso y no acepta clics: es la señal visible de que la
+   acción se registró, y lo que evita que una ráfaga de clics encadene
+   peticiones. */
+.asiento--en-proceso {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+.asiento--en-proceso:hover {
+  transform: none;
+}
+
+.asiento__cargando {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.85;
+  animation: asiento-girar 650ms linear infinite;
+}
+
+@keyframes asiento-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asiento__cargando {
+    animation-duration: 2s;
+  }
 }
 
 /* Muestras de la leyenda: mismo lenguaje que el asiento real, sin interacción */

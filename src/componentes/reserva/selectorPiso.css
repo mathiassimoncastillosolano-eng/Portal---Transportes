@@ -7,9 +7,9 @@
   gap: 0.35rem;
   padding: 0.35rem;
   border-radius: calc(var(--radio-lg) + 4px);
-  background: linear-gradient(180deg, #D9E7EC 0%, #E3EEF2 100%);
+  background: var(--pista-fondo);
   border: 1px solid rgba(15, 76, 92, 0.1);
-  box-shadow: inset 0 2px 4px rgba(11, 53, 64, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 2px 4px rgba(11, 53, 64, 0.1), inset 0 0 0 1px var(--brillo-superior-suave);
 }
 
 .selector-piso__opcion {
@@ -57,13 +57,13 @@
 }
 
 .selector-piso__opcion:hover:not(.selector-piso__opcion--activa) {
-  background: rgba(255, 255, 255, 0.55);
-  border-color: rgba(255, 255, 255, 0.7);
+  background: var(--velo-superficie);
+  border-color: var(--color-borde-luz);
   transform: translateY(-1px);
 }
 
 .selector-piso__opcion:hover:not(.selector-piso__opcion--activa)::before {
-  border-color: var(--color-azul-600);
+  border-color: var(--color-borde-marca);
 }
 
 .selector-piso__opcion:active {
@@ -75,7 +75,7 @@
   font-family: var(--fuente-titulos);
   font-weight: 600;
   font-size: var(--tamano-base);
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
   line-height: 1.2;
   transition: color var(--transicion-base);
 }

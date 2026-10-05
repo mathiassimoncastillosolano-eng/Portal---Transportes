@@ -18,7 +18,7 @@
     var(--gradiente-tarjeta);
   border-radius: var(--radio-xl);
   border: 1px solid var(--color-borde-luz);
-  box-shadow: var(--sombra-marcada), inset 0 1px 0 #fff;
+  box-shadow: var(--sombra-marcada), inset 0 1px 0 var(--brillo-superior);
   padding: var(--espacio-6);
   transition: box-shadow var(--transicion-premium), border-color var(--transicion-base);
 }
@@ -35,7 +35,7 @@
 
 .resumen-reserva--listo {
   border-color: rgba(16, 185, 129, 0.4);
-  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.09), var(--sombra-flotante), inset 0 1px 0 #fff;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.09), var(--sombra-flotante), inset 0 1px 0 var(--brillo-superior);
 }
 
 .resumen-reserva--listo::before {
@@ -62,15 +62,15 @@
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.1;
-  color: var(--color-azul-950);
+  color: var(--color-texto-marca-fuerte);
 }
 
 .resumen-reserva__ruta svg {
   box-sizing: content-box;
   padding: 6px;
   border-radius: 50%;
-  color: var(--color-verde-800);
-  background: var(--color-verde-100);
+  color: var(--color-texto-exito);
+  background: var(--color-superficie-exito);
 }
 
 /* 2. Fecha y horario */
@@ -81,7 +81,7 @@
   gap: 0.4rem;
   font-size: var(--tamano-xs);
   font-weight: 600;
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
 }
 
 .resumen-reserva__fecha-dia,
@@ -108,7 +108,7 @@
 .resumen-reserva__asientos-titulo {
   font-size: var(--tamano-xs);
   font-weight: 700;
-  color: var(--color-verde-800);
+  color: var(--color-texto-exito);
 }
 
 .resumen-reserva__asientos-chips {
@@ -171,7 +171,7 @@
 
 .resumen-reserva__fila-precio dt {
   font-weight: 600;
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
 }
 
 .resumen-reserva__fila-precio dd {
@@ -179,7 +179,7 @@
   font-size: var(--tamano-lg);
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--color-azul-900);
+  color: var(--color-texto-marca-fuerte);
 }
 
 /* Total con selección */
@@ -187,14 +187,14 @@
   margin-top: var(--espacio-4);
   padding: var(--espacio-4) var(--espacio-4);
   border-radius: var(--radio-md);
-  background: linear-gradient(135deg, var(--color-verde-100), var(--color-verde-50));
+  background: linear-gradient(135deg, var(--color-superficie-exito), var(--color-superficie-exito-2));
   border: 1px solid rgba(16, 185, 129, 0.3);
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   font-size: var(--tamano-sm);
   font-weight: 600;
-  color: var(--color-verde-800);
+  color: var(--color-texto-exito);
 }
 
 .resumen-reserva__total-monto {
@@ -203,7 +203,7 @@
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
-  color: var(--color-azul-950);
+  color: var(--color-texto-marca-fuerte);
   font-variant-numeric: tabular-nums;
 }
 
@@ -223,7 +223,7 @@
   font-weight: 500;
   line-height: 1.4;
   color: var(--color-texto-secundario);
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--velo-superficie);
   border: 1px dashed var(--color-borde-fuerte);
   border-radius: var(--radio-md);
   padding: var(--espacio-3) var(--espacio-4);
@@ -267,7 +267,7 @@
 /* CTA sin acción posible: se lee como "falta algo", no como botón roto */
 .resumen-reserva .boton-principal:disabled {
   opacity: 1;
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
   background: rgba(15, 76, 92, 0.06);
   border: 1.5px dashed rgba(15, 76, 92, 0.3);
   box-shadow: none;
@@ -312,8 +312,8 @@
     border-radius: var(--radio-xl) var(--radio-xl) 0 0;
     border-bottom: none;
     padding: var(--espacio-4) var(--espacio-4) calc(var(--espacio-4) + env(safe-area-inset-bottom, 0px));
-    background: linear-gradient(180deg, rgba(250, 253, 254, 0.985), rgba(238, 246, 249, 0.99));
-    box-shadow: 0 -18px 40px -18px rgba(11, 53, 64, 0.45), inset 0 1px 0 #fff;
+    background: var(--panel-fijo-fondo);
+    box-shadow: 0 -18px 40px -18px rgba(11, 53, 64, 0.45), inset 0 1px 0 var(--brillo-superior);
   }
 
   .resumen-reserva--listo {

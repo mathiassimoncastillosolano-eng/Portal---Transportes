@@ -4,7 +4,7 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(239, 246, 248, 0.84);
+  background: var(--barra-fondo);
   backdrop-filter: blur(20px) saturate(170%);
   -webkit-backdrop-filter: blur(20px) saturate(170%);
   border-bottom: 1px solid rgba(15, 76, 92, 0.06);
@@ -12,7 +12,7 @@
 }
 
 .barra-navegacion--con-fondo {
-  background: rgba(241, 248, 250, 0.92);
+  background: var(--barra-fondo-scroll);
   border-color: rgba(15, 76, 92, 0.1);
   box-shadow: 0 14px 30px -24px rgba(11, 53, 64, 0.45);
 }
@@ -82,7 +82,7 @@
   font-family: var(--fuente-titulos);
   font-weight: 700;
   font-size: 1.32rem;
-  color: var(--color-azul-900);
+  color: var(--color-texto-marca-fuerte);
   letter-spacing: -0.02em;
 }
 
@@ -121,15 +121,15 @@
 }
 
 .barra-navegacion__enlace:hover {
-  color: var(--color-azul-900);
+  color: var(--color-texto-marca-fuerte);
   background: rgba(15, 76, 92, 0.07);
 }
 
 .barra-navegacion__enlace--activo {
-  color: var(--color-azul-900);
+  color: var(--color-texto-marca-fuerte);
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(11, 53, 64, 0.06), 0 6px 14px -8px rgba(11, 53, 64, 0.3);
+  background: var(--velo-superficie);
+  box-shadow: inset 0 1px 0 var(--brillo-superior), 0 1px 2px rgba(11, 53, 64, 0.06), 0 6px 14px -8px rgba(11, 53, 64, 0.3);
 }
 
 .barra-navegacion__enlace--activo::after {
@@ -172,23 +172,23 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 249, 250, 0.8));
+  background: var(--gradiente-panel-claro);
   border: 1px solid rgba(15, 76, 92, 0.14);
   padding: 0.3rem 0.5rem 0.3rem 0.3rem;
   border-radius: var(--radio-pastilla);
   cursor: pointer;
-  box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(11, 53, 64, 0.06), 0 8px 18px -12px rgba(11, 53, 64, 0.4);
+  box-shadow: inset 0 1px 0 var(--brillo-superior), 0 1px 2px rgba(11, 53, 64, 0.06), 0 8px 18px -12px rgba(11, 53, 64, 0.4);
   transition: border-color var(--transicion-rapida), box-shadow var(--transicion-rapida), transform var(--transicion-rapida);
 }
 
 .barra-navegacion__boton-perfil:hover {
   border-color: rgba(20, 127, 145, 0.5);
   transform: translateY(-1px);
-  box-shadow: inset 0 1px 0 #fff, 0 2px 4px rgba(11, 53, 64, 0.06), 0 14px 24px -12px rgba(11, 53, 64, 0.45);
+  box-shadow: inset 0 1px 0 var(--brillo-superior), 0 2px 4px rgba(11, 53, 64, 0.06), 0 14px 24px -12px rgba(11, 53, 64, 0.45);
 }
 
 .barra-navegacion__boton-perfil[aria-expanded='true'] {
-  border-color: var(--color-azul-700);
+  border-color: var(--color-borde-marca);
   box-shadow: var(--sombra-foco-azul);
 }
 
@@ -205,13 +205,13 @@
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px rgba(16, 185, 129, 0.55);
+  box-shadow: 0 0 0 2px var(--color-superficie), 0 0 0 3.5px rgba(16, 185, 129, 0.55);
 }
 
 .barra-navegacion__nombre-perfil {
   font-size: var(--tamano-sm);
   font-weight: 600;
-  color: var(--color-azul-900);
+  color: var(--color-texto-marca-fuerte);
 }
 
 .barra-navegacion__chevron {
@@ -221,32 +221,53 @@
 
 .barra-navegacion__boton-perfil[aria-expanded='true'] .barra-navegacion__chevron {
   transform: rotate(180deg);
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
 }
 
 .barra-navegacion__menu-perfil {
   position: absolute;
   top: calc(100% + 12px);
   right: 0;
-  width: 244px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F6FAFB 100%);
+  /* Ancho flexible: parte de 244px pero puede crecer con nombres o correos
+     largos, sin pasarse del borde de la ventana en pantallas estrechas. */
+  width: max-content;
+  min-width: 244px;
+  max-width: min(320px, calc(100vw - 2rem));
+  background: var(--gradiente-menu);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-md);
   box-shadow: var(--sombra-flotante);
   padding: var(--espacio-4);
   display: flex;
   flex-direction: column;
+  /* Sin esto, un hijo de texto largo puede ensanchar el contenedor flex
+     e ignorar el max-width: es la causa del correo desbordado. */
+  overflow: hidden;
 }
 
 .barra-navegacion__menu-nombre {
   font-weight: 600;
   font-size: var(--tamano-sm);
+  min-width: 0;
+  /* Un nombre muy largo se limita a dos líneas en vez de estirar el menú. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .barra-navegacion__menu-correo {
   color: var(--color-texto-secundario);
   font-size: var(--tamano-xs);
   margin-top: 0.15rem;
+  /* El correo es una sola palabra sin espacios: se recorta con puntos
+     suspensivos y el valor completo queda en el title. */
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .barra-navegacion__menu-separador {
@@ -270,7 +291,7 @@
 
 .barra-navegacion__menu-item:hover {
   background: var(--color-superficie-teal);
-  color: var(--color-azul-900);
+  color: var(--color-texto-marca-fuerte);
 }
 
 .barra-navegacion__menu-item--salir {
@@ -278,8 +299,8 @@
 }
 
 .barra-navegacion__menu-item--salir:hover {
-  background: #FBE9E9;
-  color: #B91C1C;
+  background: var(--color-error-fondo);
+  color: var(--color-error-texto);
 }
 
 /* ---------- Móvil ---------- */
@@ -292,22 +313,23 @@
   height: 40px;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(15, 76, 92, 0.14);
+  background: var(--velo-superficie);
+  border: 1px solid var(--color-borde);
   border-radius: var(--radio-sm);
   cursor: pointer;
   transition: border-color var(--transicion-rapida), background var(--transicion-rapida);
 }
 
 .barra-navegacion__hamburguesa:hover {
-  border-color: var(--color-azul-700);
-  background: #fff;
+  border-color: var(--color-borde-marca);
+  background: var(--color-superficie);
 }
 
 .barra-navegacion__hamburguesa span {
   width: 16px;
   height: 2px;
-  background: var(--color-azul-900);
+  /* Las barras siguen al color de texto: en oscuro deben aclararse. */
+  background: var(--color-texto-principal);
   border-radius: 2px;
 }
 
@@ -337,9 +359,17 @@
     display: flex;
     flex-direction: column;
     padding: var(--espacio-4) var(--espacio-4) var(--espacio-5);
-    background: rgba(248, 252, 253, 0.96);
+    background: var(--color-superficie-velada);
+    backdrop-filter: blur(10px);
     border-top: 1px solid var(--color-borde);
     gap: 0.2rem;
+  }
+
+  /* Con el interruptor de tema a la vista, el espacio entre acciones se
+     reduce para que no empuje al avatar fuera del borde en pantallas
+     estrechas. */
+  .barra-navegacion__acciones {
+    gap: var(--espacio-3);
   }
 
   .barra-navegacion__enlace-movil {
@@ -361,13 +391,44 @@
     border: none;
     text-align: left;
     cursor: pointer;
-    color: var(--color-azul-800);
+    color: var(--color-texto-marca);
     font-weight: 700;
+  }
+}
+
+/* Fila con el interruptor dentro del menú móvil */
+.barra-navegacion__fila-tema {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: 0.85rem 0.6rem;
+  font-size: var(--tamano-md);
+  font-weight: 500;
+  color: var(--color-texto-principal);
+  border-bottom: 1px solid var(--color-superficie-teal);
+}
+
+@media (max-width: 900px) {
+  .barra-navegacion__fila-tema {
+    display: flex;
+  }
+
+  /* En móvil el interruptor vive dentro del menú desplegable, así la
+     barra superior conserva espacio para la marca y el avatar. */
+  .barra-navegacion__tema {
+    display: none;
   }
 }
 
 @media (max-width: 480px) {
   .barra-navegacion__nombre {
     display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .barra-navegacion__acciones {
+    gap: var(--espacio-2);
   }
 }

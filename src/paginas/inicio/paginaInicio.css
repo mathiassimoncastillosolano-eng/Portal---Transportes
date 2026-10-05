@@ -148,7 +148,7 @@
   border-radius: 50%;
   border: 1.5px solid var(--color-borde);
   background: var(--color-superficie);
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -158,8 +158,8 @@
 }
 
 .seccion-destinos__flecha:hover:not(:disabled) {
-  background: var(--color-azul-50);
-  border-color: var(--color-azul-700);
+  background: var(--color-superficie-marca);
+  border-color: var(--color-borde-marca);
   transform: translateY(-2px);
 }
 
@@ -178,7 +178,7 @@
 /* ---------- Servicios ---------- */
 
 .seccion-servicios {
-  background: linear-gradient(180deg, var(--color-azul-50) 0%, var(--color-azul-100) 100%);
+  background: linear-gradient(180deg, var(--color-superficie-marca) 0%, var(--color-superficie-marca-2) 100%);
   border-top: 1px solid var(--color-borde);
 }
 
@@ -195,8 +195,8 @@
   margin-top: var(--espacio-6);
   font-weight: 600;
   font-size: var(--tamano-sm);
-  color: var(--color-azul-800);
-  border-bottom: 1.5px solid var(--color-azul-800);
+  color: var(--color-texto-marca);
+  border-bottom: 1.5px solid var(--color-borde-marca);
   padding-bottom: 2px;
   transition: color var(--transicion-rapida), border-color var(--transicion-rapida);
 }
@@ -206,7 +206,7 @@
 }
 
 .enlace-ver-todo:hover {
-  color: var(--color-verde-700);
+  color: var(--color-texto-acento);
   border-color: var(--color-verde-700);
 }
 

@@ -54,8 +54,8 @@
 }
 
 .boton-secundario--contorno:hover:not(:disabled) {
-  border-color: var(--color-azul-700);
-  background: var(--color-azul-50);
+  border-color: var(--color-borde-marca);
+  background: var(--color-superficie-marca);
   transform: translateY(-1px);
 }
 

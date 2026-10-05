@@ -164,7 +164,7 @@
 .pagina-autenticacion__error {
   color: var(--color-estado-agotado);
   font-size: var(--tamano-sm);
-  background: #FBE4E4;
+  background: var(--color-error-fondo);
   border-radius: var(--radio-sm);
   padding: 0.7rem 0.9rem;
   font-weight: 500;
@@ -183,7 +183,7 @@
 }
 
 .pagina-autenticacion__demo:hover {
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
 }
 
 .pagina-autenticacion__pie {
@@ -194,7 +194,7 @@
 }
 
 .pagina-autenticacion__enlace {
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
   font-weight: 600;
 }
 

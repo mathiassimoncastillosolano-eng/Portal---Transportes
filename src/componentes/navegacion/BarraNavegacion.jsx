@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { iniciales } from '../../utilidades/formato'
 import { useClicFuera } from '../../hooks/useClicFuera'
+import { BotonTema } from '../comunes/BotonTema'
 import './barraNavegacion.css'
 
 const ENLACES = [
@@ -70,6 +71,8 @@ export function BarraNavegacion({ alAbrirInicioSesion }) {
         </nav>
 
         <div className="barra-navegacion__acciones">
+          <BotonTema className="barra-navegacion__tema" />
+
           {estaAutenticado ? (
             <div className="barra-navegacion__perfil" ref={referenciaPerfil}>
               <button
@@ -89,10 +92,17 @@ export function BarraNavegacion({ alAbrirInicioSesion }) {
 
               {menuPerfilAbierto && (
                 <div className="barra-navegacion__menu-perfil animar-aparicion">
-                  <p className="barra-navegacion__menu-nombre">
+                  {/* title: al recortar un nombre o correo largo, el valor
+                      completo sigue disponible al pasar el cursor. */}
+                  <p
+                    className="barra-navegacion__menu-nombre"
+                    title={`${usuario.nombres} ${usuario.apellidos}`}
+                  >
                     {usuario.nombres} {usuario.apellidos}
                   </p>
-                  <p className="barra-navegacion__menu-correo">{usuario.correo}</p>
+                  <p className="barra-navegacion__menu-correo" title={usuario.correo}>
+                    {usuario.correo}
+                  </p>
                   <hr className="barra-navegacion__menu-separador" />
                   <NavLink to="/perfil" className="barra-navegacion__menu-item" onClick={() => setMenuPerfilAbierto(false)}>
                     Mi perfil
@@ -142,6 +152,11 @@ export function BarraNavegacion({ alAbrirInicioSesion }) {
               {enlace.etiqueta}
             </NavLink>
           ))}
+          <div className="barra-navegacion__fila-tema">
+            <span>Modo oscuro</span>
+            <BotonTema />
+          </div>
+
           {estaAutenticado ? (
             <>
               <NavLink to="/perfil" className="barra-navegacion__enlace-movil" onClick={() => setMenuMovilAbierto(false)}>

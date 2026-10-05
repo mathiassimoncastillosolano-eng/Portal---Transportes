@@ -150,23 +150,23 @@
 }
 
 .ticket-pasajero--completo .ticket-pasajero__pie {
-  color: var(--color-verde-800);
+  color: var(--color-texto-exito);
 }
 
 .ticket-pasajero--activo .ticket-pasajero__cuerpo {
-  border-color: var(--color-azul-800);
+  border-color: var(--color-borde-marca);
   box-shadow: var(--sombra-foco-azul);
-  background: var(--color-azul-50);
+  background: var(--color-superficie-marca);
 }
 
 .ticket-pasajero--activo .ticket-pasajero__marca,
 .ticket-pasajero--activo .ticket-pasajero__piso {
-  color: var(--color-azul-700);
+  color: var(--color-texto-marca);
 }
 
 .ticket-pasajero--activo::before,
 .ticket-pasajero--activo::after {
-  background: var(--color-azul-50);
+  background: var(--color-superficie-marca);
 }
 
 .ticket-pasajero__eliminar {
@@ -189,8 +189,8 @@
 }
 
 .ticket-pasajero__eliminar:hover {
-  background: var(--color-estado-agotado);
-  border-color: var(--color-estado-agotado);
+  background: var(--color-destructivo-fondo);
+  border-color: var(--color-destructivo-fondo);
   color: #fff;
   transform: scale(1.06);
 }

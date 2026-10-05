@@ -9,7 +9,7 @@
   max-width: 600px;
   margin: 0 auto;
   padding: 0.85rem 1.5rem 0.8rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42));
+  background: var(--gradiente-panel-claro);
   border: 1px solid var(--color-borde-luz);
   border-radius: var(--radio-pastilla);
   box-shadow: var(--sombra-tarjeta);
@@ -40,7 +40,7 @@
   border: 1.5px solid var(--color-borde-fuerte);
   background: var(--color-superficie-1);
   color: var(--color-texto-terciario);
-  box-shadow: inset 0 1px 0 #fff;
+  box-shadow: inset 0 1px 0 var(--brillo-superior);
   transition: background var(--transicion-base), border-color var(--transicion-base), color var(--transicion-base), box-shadow var(--transicion-base), transform var(--transicion-base);
   z-index: 1;
 }
@@ -90,7 +90,7 @@
 }
 
 .indicador-progreso__paso--completado .indicador-progreso__etiqueta {
-  color: var(--color-verde-800);
+  color: var(--color-texto-exito);
 }
 
 /* Activo: lleno, con halo de luz */
@@ -107,7 +107,7 @@
 }
 
 .indicador-progreso__paso--activo .indicador-progreso__etiqueta {
-  color: var(--color-azul-900);
+  color: var(--color-texto-marca-fuerte);
   font-weight: 700;
 }
 

@@ -147,7 +147,7 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  color: var(--color-verde-700);
+  color: var(--color-texto-acento);
   font-weight: 700;
   font-size: var(--tamano-xs);
   letter-spacing: 0.06em;
@@ -192,8 +192,8 @@ p {
   letter-spacing: 0.02em;
   padding: 0.4rem 0.85rem;
   border-radius: var(--radio-pastilla);
-  background: var(--color-verde-100);
-  color: var(--color-verde-800);
+  background: var(--color-superficie-exito);
+  color: var(--color-texto-exito);
 }
 
 /* ---------- Superficie de cristal (glass) reutilizable ---------- */

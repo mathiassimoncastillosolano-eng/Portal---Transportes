@@ -49,14 +49,14 @@
 
 .campo-texto__entrada:focus {
   outline: none;
-  border-color: var(--color-azul-700);
+  border-color: var(--color-borde-marca);
   background: var(--color-superficie);
   box-shadow: var(--sombra-foco-azul);
 }
 
 .campo-texto__entrada:focus + .campo-texto__icono,
 .campo-texto__envoltura:focus-within .campo-texto__icono {
-  color: var(--color-azul-700);
+  color: var(--color-texto-marca);
 }
 
 .campo-texto__entrada--error {

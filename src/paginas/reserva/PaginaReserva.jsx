@@ -110,7 +110,22 @@ export function PaginaReserva() {
   // Sesión de reserva: { tokenSesion, expiraEn (ms, timestamp) }.
   const [sesion, setSesion] = useState(null)
   const sesionRef = useRef(null)
-  const operandoRef = useRef(new Set()) // idAsiento -> promesa de la última operación
+
+  // Asientos con una operación en vuelo. Se mantienen DOS copias a propósito:
+  //  - operandoRef: lectura/escritura síncrona. setState es asíncrono, así que
+  //    dos clics en el mismo tick leerían el estado viejo y dispararían dos
+  //    peticiones; el ref cierra esa ventana.
+  //  - asientosEnProceso: la copia que provoca repintado, para que el asiento
+  //    se vea ocupado-en-curso y quede deshabilitado mientras responde el
+  //    servidor (antes era solo un ref y la interfaz no reaccionaba al clic).
+  const operandoRef = useRef(new Set())
+  const [asientosEnProceso, setAsientosEnProceso] = useState(() => new Set())
+
+  function marcarEnProceso(idAsiento, enProceso) {
+    if (enProceso) operandoRef.current.add(idAsiento)
+    else operandoRef.current.delete(idAsiento)
+    setAsientosEnProceso(new Set(operandoRef.current))
+  }
 
   // La selección SIEMPRE se deriva del mapa: asientos con esMio = true.
   const asientosSeleccionados = useMemo(() => {
@@ -280,21 +295,42 @@ export function PaginaReserva() {
     })
   }
 
-    // Clic en un asiento: la pantalla cambia al instante y el servidor confirma después.
+  // Clic en un asiento. El asiento queda deshabilitado y marcado "en curso"
+  // mientras el servidor responde; el mapa solo cambia cuando el backend
+  // confirma, de modo que la pantalla nunca muestra un asiento como mío si
+  // la operación falló.
   async function manejarSeleccionAsiento(asientoDelMapa) {
     const token = sesionRef.current?.tokenSesion
     const { idAsiento } = asientoDelMapa
+    // Guardia síncrona: evita que una ráfaga de clics sobre el mismo asiento
+    // dispare varias peticiones antes del primer repintado.
     if (!token || operandoRef.current.has(idAsiento)) return
 
-    operandoRef.current.add(idAsiento)
+    const estoyLiberando = Boolean(asientoDelMapa.esMio)
+
+    if (!estoyLiberando) {
+      // El tope debe contar también los bloqueos en vuelo: si solo mirase
+      // asientosSeleccionados, varios clics simultáneos pasarían todos la
+      // comprobación y acabaríamos pidiendo más asientos que el máximo.
+      const enVueloBloqueando = Array.from(operandoRef.current).filter(
+        (id) => !asientosSeleccionados.some((asiento) => asiento.idAsiento === id),
+      ).length
+      if (asientosSeleccionados.length + enVueloBloqueando >= MAXIMO_PASAJEROS_POR_COMPRA) {
+        setErrorBloqueo(
+          `Alcanzaste el máximo de ${MAXIMO_PASAJEROS_POR_COMPRA} pasajeros por compra. Quita un asiento para elegir otro.`,
+        )
+        return
+      }
+    }
+
+    marcarEnProceso(idAsiento, true)
     setErrorBloqueo(null)
     try {
-      if (asientoDelMapa.esMio) {
+      if (estoyLiberando) {
         await liberarAsiento(idViaje, idAsiento, token)
         actualizarAsientoLocal(idAsiento, { estado: 'disponible', esMio: false })
         quitarDatosPasajero(`${asientoDelMapa.piso}-${asientoDelMapa.numero}`)
       } else {
-        if (limiteAlcanzado) return
         await bloquearAsiento(idViaje, idAsiento, token)
         actualizarAsientoLocal(idAsiento, { estado: 'bloqueado', esMio: true })
       }
@@ -303,17 +339,22 @@ export function PaginaReserva() {
         manejarSesionVencida()
       } else if (error.status === 409) {
         setErrorBloqueo(
-          limiteAlcanzado
-            ? `Alcanzaste el máximo de ${MAXIMO_PASAJEROS_POR_COMPRA} pasajeros por compra.`
+          estoyLiberando
+            ? 'Ese asiento ya no está reservado a tu nombre.'
             : 'Ese asiento ya fue tomado por otro cliente. Elige otro.',
         )
         cargarMapaAsientos(true)
       } else {
+        // Cualquier otro fallo (red caída, 500...) se muestra y se
+        // resincroniza el mapa. La interfaz sigue utilizable: el asiento se
+        // vuelve a habilitar en el finally.
         setErrorBloqueo(error.message)
         cargarMapaAsientos(true)
       }
     } finally {
-      operandoRef.current.delete(idAsiento)
+      // Pase lo que pase —incluido un error del backend— el asiento deja de
+      // estar en curso: nunca debe quedarse bloqueado para siempre.
+      marcarEnProceso(idAsiento, false)
     }
   }
 
@@ -345,10 +386,15 @@ export function PaginaReserva() {
 
   async function manejarEliminarTicket(clave) {
     const asiento = asientosSeleccionados.find((a) => a.clave === clave)
+    // Misma guardia que en el mapa: si ya hay una liberación en vuelo para
+    // este asiento, un segundo clic en "eliminar" no debe repetirla.
+    if (asiento && operandoRef.current.has(asiento.idAsiento)) return
+
     const restantes = asientosSeleccionados.filter((a) => a.clave !== clave)
     quitarDatosPasajero(clave)
 
     if (asiento && sesionRef.current) {
+      marcarEnProceso(asiento.idAsiento, true)
       try {
         await liberarAsiento(idViaje, asiento.idAsiento, sesionRef.current.tokenSesion)
         actualizarAsientoLocal(asiento.idAsiento, { estado: 'disponible', esMio: false })
@@ -357,7 +403,10 @@ export function PaginaReserva() {
           manejarSesionVencida()
           return
         }
+        setErrorBloqueo(error.message)
         cargarMapaAsientos(true)
+      } finally {
+        marcarEnProceso(asiento.idAsiento, false)
       }
     }
 
@@ -506,6 +555,7 @@ export function PaginaReserva() {
                 asientos={pisoInfo.asientos}
                 filas={pisoInfo.filas}
                 limiteAlcanzado={limiteAlcanzado}
+                asientosEnProceso={asientosEnProceso}
                 onSeleccionar={manejarSeleccionAsiento}
               />
             </>
