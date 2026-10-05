@@ -9,7 +9,8 @@ public record AsientoDisponibilidadDTO(
         String letra,
         String lado,
         short piso,
-        String estado,
-        BigDecimal precio
+        String estado,   // "disponible" | "bloqueado" | "ocupado"
+        BigDecimal precio,
+        boolean esMio    // true solo si está bloqueado por la sesión indicada
 ) {
 }

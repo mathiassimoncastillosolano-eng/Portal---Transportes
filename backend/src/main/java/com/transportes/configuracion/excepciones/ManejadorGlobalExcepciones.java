@@ -19,6 +19,7 @@ import com.transportes.usuarios.excepciones.CorreoYaRegistradoException;
 import com.transportes.usuarios.excepciones.UsuarioNoEncontradoException;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Manejador global de excepciones para toda la API.
@@ -28,6 +29,7 @@ import jakarta.servlet.http.HttpServletRequest;
  * excepciones internas, detalles de la base de datos, stacktraces) hacia el
  * frontend.
  */
+@Slf4j
 @RestControllerAdvice
 public class ManejadorGlobalExcepciones {
 
@@ -111,9 +113,28 @@ public class ManejadorGlobalExcepciones {
                 "Revisa origen, destino y fecha (AAAA-MM-DD).", request, null);
     }
 
+    @ExceptionHandler(com.transportes.viajes.excepciones.SesionExpiradaException.class)
+    public ResponseEntity<RespuestaError> manejarSesionExpirada(
+            com.transportes.viajes.excepciones.SesionExpiradaException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.GONE, excepcion.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.transportes.viajes.excepciones.SesionInvalidaException.class)
+    public ResponseEntity<RespuestaError> manejarSesionInvalida(
+            com.transportes.viajes.excepciones.SesionInvalidaException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.UNAUTHORIZED, excepcion.getMessage(), request, null);
+    }
+
+    @ExceptionHandler({org.springframework.web.context.request.async.AsyncRequestNotUsableException.class,
+            java.io.IOException.class})
+    public void manejarIoDeStream(Exception excepcion) {
+        log.debug("Conexión de streaming cerrada: {}", excepcion.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<RespuestaError> manejarErrorGeneral(
-            Exception excepcion, HttpServletRequest request) {
+        public ResponseEntity<RespuestaError> manejarErrorGeneral(
+                Exception excepcion, HttpServletRequest request) {
+        log.error("Error inesperado en {} {}", request.getMethod(), request.getRequestURI(), excepcion);
         return construirRespuesta(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Ocurrio un error inesperado. Intente nuevamente mas tarde.", request, null);
     }

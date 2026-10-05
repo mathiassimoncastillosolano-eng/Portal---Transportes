@@ -1,5 +1,5 @@
 import { generarPasajesDemo } from '../datos/pasajes.js'
-import { solicitarApi } from './httpCliente.js'
+import { solicitarApi, URL_BASE_API } from './httpCliente.js'
 
 // La búsqueda consulta la base real. Las funciones de asientos y compra
 // que siguen pertenecen a los módulos de demostración pendientes de integrar.
@@ -210,28 +210,72 @@ export async function comprarPasaje(usuarioId, resultadoViaje, fecha) {
   return nuevoPasaje
 }
 
-  export const ID_VIAJE_PRUEBA = 2
+// ---------------------------------------------------------------------------
+// Asientos reales (backend): sesión, bloqueo al clic y tiempo real (SSE)
+// ---------------------------------------------------------------------------
 
-function generarTokenBloqueo() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID()
+// El EventSource no pasa por solicitarApi: necesita la URL absoluta.
+// Si httpCliente.js usa otra URL base, pon aquí la misma.
+const PREFIJO_SESION = 'rutalibre:sesion-asientos:'
+
+function leerSesionGuardada(idViaje) {
+  try {
+    const crudo = sessionStorage.getItem(`${PREFIJO_SESION}${idViaje}`)
+    if (!crudo) return null
+    const sesion = JSON.parse(crudo)
+    return sesion?.tokenSesion && sesion.expiraEn > Date.now() ? sesion : null
+  } catch {
+    return null
   }
-  return `token-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+export function borrarSesionAsientos(idViaje) {
+  try {
+    sessionStorage.removeItem(`${PREFIJO_SESION}${idViaje}`)
+  } catch {
+    // sin sessionStorage no hay nada que borrar
+  }
 }
 
 /**
- * Trae el mapa de asientos real de un viaje y lo adapta a la misma forma
- * que generarMapaAsientos() (mock), para no tener que tocar los
- * componentes de UI (SelectorPiso, MapaAsientosBus, etc).
- *
- * ⚠️ Los nombres de campo exactos del JSON que devuelve el backend
- * (MapaAsientosViajeDTO / PisoMapaDTO / AsientoDisponibilidadDTO) son una
- * suposición razonable basada en los nombres de las clases y en cómo se
- * describió el contrato — hay que confirmarlos contra una respuesta real
- * y ajustar `adaptarMapaAsientosBackend` si difieren.
+ * Reutiliza la sesión guardada del viaje (sobrevive a recargas) o crea una
+ * nueva. `expiraEn` es un timestamp en ms calculado con segundosRestantes
+ * del servidor + Date.now() al recibirlo (no depende del reloj del PC).
+ * @returns {Promise<{ tokenSesion: string, expiraEn: number }>}
  */
-export async function obtenerMapaAsientosViaje(idViaje) {
-  const respuesta = await solicitarApi(`/api/viajes/${idViaje}/asientos`)
+const sesionesEnCurso = new Map() // idViaje -> promesa
+
+export function obtenerOCrearSesion(idViaje) {
+  const guardada = leerSesionGuardada(idViaje)
+  if (guardada) return Promise.resolve(guardada)
+
+  if (sesionesEnCurso.has(idViaje)) return sesionesEnCurso.get(idViaje)
+
+  const promesa = solicitarApi(`/api/viajes/${idViaje}/sesiones`, {
+    method: 'POST',
+    autenticar: false,
+  })
+    .then((respuesta) => {
+      const sesion = {
+        tokenSesion: respuesta.tokenSesion,
+        expiraEn: Date.now() + respuesta.segundosRestantes * 1000,
+      }
+      try {
+        sessionStorage.setItem(`${PREFIJO_SESION}${idViaje}`, JSON.stringify(sesion))
+      } catch {
+        // no bloqueante
+      }
+      return sesion
+    })
+    .finally(() => sesionesEnCurso.delete(idViaje))
+
+  sesionesEnCurso.set(idViaje, promesa)
+  return promesa
+}
+
+export async function obtenerMapaAsientosViaje(idViaje, tokenSesion) {
+  const consulta = tokenSesion ? `?tokenSesion=${encodeURIComponent(tokenSesion)}` : ''
+  const respuesta = await solicitarApi(`/api/viajes/${idViaje}/asientos${consulta}`, { autenticar: false })
   return adaptarMapaAsientosBackend(respuesta)
 }
 
@@ -252,8 +296,9 @@ function adaptarMapaAsientosBackend(respuesta) {
         letra: asiento.letra,
         lado: asiento.lado,
         piso: piso.piso,
-        estado: asiento.estado, // 'disponible' | 'ocupado' (el backend no distingue 'bloqueado')
-        precio: asiento.precio, // precio absoluto de este asiento, no un recargo
+        estado: asiento.estado, // 'disponible' | 'bloqueado' | 'ocupado'
+        esMio: Boolean(asiento.esMio),
+        precio: asiento.precio,
       })),
     }
   })
@@ -261,44 +306,45 @@ function adaptarMapaAsientosBackend(respuesta) {
   return { pisos: respuesta.pisos ?? listaPisos.length, mapaPorPiso }
 }
 
-/**
- * Bloquea temporalmente un asiento y registra al pasajero en un solo
- * paso, usando POST /bloquear (ya validado). Devuelve el tokenBloqueo
- * generado para poder liberarlo después si hace falta.
- */
-export async function bloquearAsiento(idViaje, idAsiento, datosPasajero) {
-  const tokenBloqueo = generarTokenBloqueo()
-
-  const respuesta = await solicitarApi(`/api/viajes/${idViaje}/asientos/${idAsiento}/bloquear`, {
+/** Bloquea un asiento para esta sesión (al hacer clic). 409 = tomado o tope de 6; 410/401 = sesión vencida. */
+export async function bloquearAsiento(idViaje, idAsiento, tokenSesion) {
+  return solicitarApi(`/api/viajes/${idViaje}/asientos/${idAsiento}/bloquear`, {
     method: 'POST',
-    body: JSON.stringify({
-      tokenBloqueo,
-      tipoDocumento: datosPasajero.tipoDocumento,
-      numeroDocumento: datosPasajero.numeroDocumento,
-      nombres: datosPasajero.nombres,
-      apellidos: datosPasajero.apellidos,
-      fechaNacimiento: datosPasajero.fechaNacimiento,
-    }),
+    autenticar: false,
+    body: JSON.stringify({ tokenSesion }),
   })
-
-  return { ...respuesta, tokenBloqueo }
 }
 
-/**
- * Libera un asiento previamente bloqueado por este cliente (mismo
- * tokenBloqueo), usando POST /liberar (ya validado). Silencioso ante
- * errores: si ya expiró o ya se liberó, no debe romper la UI.
- */
-export async function liberarAsiento(idViaje, idAsiento, tokenBloqueo) {
-  if (!tokenBloqueo) return
+/** Libera un asiento de esta sesión (204 sin cuerpo). */
+export async function liberarAsiento(idViaje, idAsiento, tokenSesion) {
   try {
     await solicitarApi(`/api/viajes/${idViaje}/asientos/${idAsiento}/liberar`, {
       method: 'POST',
-      body: JSON.stringify({ tokenBloqueo }),
+      autenticar: false,
+      body: JSON.stringify({ tokenSesion }),
     })
-  } catch {
-    // No bloqueante: si el token ya expiró o el asiento ya se liberó,
-    // no hay nada que el usuario deba ver.
+  } catch (error) {
+    // Errores HTTP reales (409/410/401...) se propagan. Un fallo sin status
+    // suele ser solo el parseo de la respuesta 204 vacía: se ignora.
+    if (error?.status) throw error
   }
-
 }
+
+/**
+ * Abre el canal SSE del viaje. Devuelve la función para cerrarlo.
+ * alAbrir se llama al conectar y en CADA reconexión (recargar el mapa completo).
+ * alAsiento recibe { idAsiento, estado }.
+ */
+export function abrirEventosAsientos(idViaje, { alAbrir, alAsiento }) {
+  const fuente = new EventSource(`${URL_BASE_API}/api/viajes/${idViaje}/asientos/eventos`)
+  fuente.onopen = () => alAbrir?.()
+  fuente.addEventListener('asiento', (evento) => {
+    try {
+      alAsiento?.(JSON.parse(evento.data))
+    } catch {
+      // evento mal formado: se ignora
+    }
+  })
+  return () => fuente.close()
+}
+

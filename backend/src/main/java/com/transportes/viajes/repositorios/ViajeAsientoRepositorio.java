@@ -17,27 +17,31 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
 
     Optional<ViajeAsiento> findByIdViajeAndIdAsiento(Integer idViaje, Integer idAsiento);
 
-    @Modifying
-    @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'DISPONIBLE', "
-         + "va.fechaExpiracionBloqueo = null, va.tokenBloqueo = null, va.idPasajero = null "
-         + "WHERE va.idViaje = :idViaje AND va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' "
-         + "AND va.fechaExpiracionBloqueo < CURRENT_TIMESTAMP")
-    int liberarBloqueosVencidos(@Param("idViaje") Integer idViaje);
+    List<ViajeAsiento> findByIdViajeAndTokenBloqueoAndEstadoViajeAsiento(
+            Integer idViaje, String tokenBloqueo, String estadoViajeAsiento);
 
-    @Modifying
+    @Query("SELECT va FROM ViajeAsiento va WHERE va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' "
+         + "AND va.fechaExpiracionBloqueo < :ahora")
+    List<ViajeAsiento> buscarBloqueosVencidos(@Param("ahora") LocalDateTime ahora);
+
+    @Query("SELECT va FROM ViajeAsiento va WHERE va.idViaje = :idViaje "
+         + "AND va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' AND va.fechaExpiracionBloqueo < :ahora")
+    List<ViajeAsiento> buscarBloqueosVencidosDeViaje(@Param("idViaje") Integer idViaje,
+                                                      @Param("ahora") LocalDateTime ahora);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'DISPONIBLE', "
          + "va.fechaExpiracionBloqueo = null, va.tokenBloqueo = null, va.idPasajero = null "
-         + "WHERE va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' "
-         + "AND va.fechaExpiracionBloqueo < CURRENT_TIMESTAMP")
-    int liberarTodosBloqueosVencidos();
+         + "WHERE va.idViajeAsiento IN :ids AND va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' "
+         + "AND va.fechaExpiracionBloqueo < :ahora")
+    int liberarPorIds(@Param("ids") List<Integer> ids, @Param("ahora") LocalDateTime ahora);
 
     @Modifying
     @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL', "
-         + "va.fechaExpiracionBloqueo = :expiracion, va.tokenBloqueo = :token, va.idPasajero = :idPasajero "
+         + "va.fechaExpiracionBloqueo = :expiracion, va.tokenBloqueo = :token "
          + "WHERE va.idViaje = :idViaje AND va.idAsiento = :idAsiento AND va.estadoViajeAsiento = 'DISPONIBLE'")
     int bloquearAsientoSiDisponible(@Param("idViaje") Integer idViaje, @Param("idAsiento") Integer idAsiento,
-                                     @Param("expiracion") LocalDateTime expiracion, @Param("token") String token,
-                                     @Param("idPasajero") Integer idPasajero);
+                                     @Param("expiracion") LocalDateTime expiracion, @Param("token") String token);
 
     @Modifying
     @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'DISPONIBLE', "
@@ -46,4 +50,22 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
          + "AND va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' AND va.tokenBloqueo = :token")
     int liberarAsientoSiPropio(@Param("idViaje") Integer idViaje, @Param("idAsiento") Integer idAsiento,
                                 @Param("token") String token);
+
+    /** Pasa a OCUPADO solo si sigue bloqueado por esa sesión Y vigente (un pago tardío no roba asientos). */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'OCUPADO', "
+         + "va.fechaExpiracionBloqueo = null, va.idPasajero = :idPasajero "
+         + "WHERE va.idViaje = :idViaje AND va.idAsiento = :idAsiento "
+         + "AND va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' AND va.tokenBloqueo = :token "
+         + "AND va.fechaExpiracionBloqueo >= :ahora")
+    int confirmarAsientoSiVigente(@Param("idViaje") Integer idViaje, @Param("idAsiento") Integer idAsiento,
+                                   @Param("token") String token, @Param("idPasajero") Integer idPasajero,
+                                   @Param("ahora") LocalDateTime ahora);
+
+    @Query("SELECT COUNT(va) FROM ViajeAsiento va WHERE va.idViaje = :idViaje "
+         + "AND va.tokenBloqueo = :token AND va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL'")
+    long contarBloqueadosPorSesion(@Param("idViaje") Integer idViaje, @Param("token") String token);
+
+    @Query(value = "SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(:clave))) t", nativeQuery = true)
+    Integer bloquearSesion(@Param("clave") String clave);
 }

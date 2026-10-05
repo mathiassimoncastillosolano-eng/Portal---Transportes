@@ -1,0 +1,40 @@
+.contador-reserva {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin-left: auto;
+  padding: var(--espacio-2) var(--espacio-4);
+  background: var(--color-fondo-alterno);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-pastilla);
+  font-family: var(--fuente-texto);
+  line-height: 1;
+}
+
+.contador-reserva__etiqueta {
+  font-size: var(--tamano-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-texto-secundario);
+}
+
+.contador-reserva__tiempo {
+  font-size: var(--tamano-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-texto-principal);
+}
+
+@media (max-width: 640px) {
+  .pagina-reserva__encabezado {
+    flex-wrap: wrap;
+  }
+
+  .contador-reserva {
+    margin-left: 0;
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+}
