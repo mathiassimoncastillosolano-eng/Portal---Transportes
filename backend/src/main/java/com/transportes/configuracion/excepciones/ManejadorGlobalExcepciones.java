@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.transportes.auth.excepciones.CredencialesInvalidasException;
+import com.transportes.auth.excepciones.CuentaExistenteException;
+import com.transportes.auth.excepciones.GoogleServicioNoDisponibleException;
+import com.transportes.auth.excepciones.GoogleTokenInvalidoException;
 import com.transportes.usuarios.excepciones.CorreoYaRegistradoException;
 import com.transportes.usuarios.excepciones.UsuarioNoEncontradoException;
 
@@ -74,6 +77,24 @@ public class ManejadorGlobalExcepciones {
     public ResponseEntity<RespuestaError> manejarCredencialesInvalidas(
             CredencialesInvalidasException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.UNAUTHORIZED, excepcion.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(GoogleTokenInvalidoException.class)
+    public ResponseEntity<RespuestaError> manejarGoogleTokenInvalido(
+            GoogleTokenInvalidoException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.UNAUTHORIZED, excepcion.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(CuentaExistenteException.class)
+    public ResponseEntity<RespuestaError> manejarCuentaExistente(
+            CuentaExistenteException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(GoogleServicioNoDisponibleException.class)
+    public ResponseEntity<RespuestaError> manejarGoogleNoDisponible(
+            GoogleServicioNoDisponibleException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.SERVICE_UNAVAILABLE, excepcion.getMessage(), request, null);
     }
 
     @ExceptionHandler({AuthenticationException.class})

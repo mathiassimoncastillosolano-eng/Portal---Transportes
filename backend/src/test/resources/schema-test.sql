@@ -3,12 +3,14 @@ CREATE TABLE IF NOT EXISTS usuario (
  nombres varchar(100) NOT NULL,
  apellidos varchar(100) NOT NULL,
  correo varchar(150) NOT NULL,
- contrasena_hash varchar(255) NOT NULL,
+ contrasena_hash varchar(255),
  nro_telefono varchar(20),
+ google_id varchar(255),
  activo boolean NOT NULL DEFAULT true,
  fecha_creacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
  fecha_actualizacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
- CONSTRAINT uq_usuario_correo UNIQUE (correo)
+ CONSTRAINT uq_usuario_correo UNIQUE (correo),
+ CONSTRAINT uq_usuario_google_id UNIQUE (google_id)
 );
 CREATE TABLE IF NOT EXISTS ubicacion (
  id_ubicacion bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

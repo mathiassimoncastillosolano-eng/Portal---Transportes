@@ -75,7 +75,7 @@
   cursor: not-allowed;
 }
 
-/* ---------- Botón "Continuar con Google" (solo frontend, sin autenticación real) ---------- */
+/* ---------- Botón "Continuar con Google" (Google Identity Services) ---------- */
 
 .boton-google {
   display: inline-flex;
@@ -112,4 +112,25 @@
 .boton-google__icono {
   flex-shrink: 0;
   display: flex;
+}
+
+/* Contenedor donde Google dibuja su botón oficial. */
+.boton-google-contenedor {
+  width: 100%;
+}
+
+.boton-google-contenedor__gis {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.boton-google-contenedor__gis--bloqueado {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.boton-google:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }

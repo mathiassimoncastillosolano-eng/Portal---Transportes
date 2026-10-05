@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { CampoTexto } from '../../componentes/comunes/CampoTexto'
 import { BotonPrincipal } from '../../componentes/comunes/BotonPrincipal'
+import { BotonGoogle } from '../../componentes/comunes/BotonGoogle'
 import { validarRegistro } from '../../utilidades/validarRegistro'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import './autenticacionPagina.css'
@@ -36,7 +37,7 @@ const ICONO_CANDADO = (
 )
 
 export function PaginaCrearCuenta() {
-  const { registrarUsuario } = useAutenticacion()
+  const { registrarUsuario, iniciarSesionConGoogle } = useAutenticacion()
   const navegar = useNavigate()
   const [valores, setValores] = useState(VALORES_INICIALES)
   const [errores, setErrores] = useState({})
@@ -67,6 +68,19 @@ export function PaginaCrearCuenta() {
       })
     } catch (err) {
       setErrorGeneral(err.detalles?.length ? err.detalles.join(' ') : (err.message ?? 'No se pudo crear la cuenta.'))
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  async function manejarGoogle(credencial) {
+    setErrorGeneral('')
+    setCargando(true)
+    try {
+      await iniciarSesionConGoogle(credencial)
+      navegar('/perfil')
+    } catch (err) {
+      setErrorGeneral(err.message ?? 'No se pudo continuar con Google.')
     } finally {
       setCargando(false)
     }
@@ -116,6 +130,12 @@ export function PaginaCrearCuenta() {
           <p className="pagina-autenticacion__subtitulo">
             Regístrate para comprar pasajes y guardar tus tickets electrónicos.
           </p>
+
+          <div className="pagina-autenticacion__social">
+            <BotonGoogle alCredencial={manejarGoogle} alError={setErrorGeneral} deshabilitado={cargando} />
+          </div>
+
+          <div className="divisor-o pagina-autenticacion__divisor">o regístrate con tu correo</div>
 
           <form className="pagina-autenticacion__formulario" onSubmit={manejarEnvio}>
             <div className="pagina-autenticacion__fila">

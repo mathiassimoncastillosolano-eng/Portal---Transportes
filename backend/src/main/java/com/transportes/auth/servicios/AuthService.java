@@ -48,6 +48,12 @@ public class AuthService {
             throw new CredencialesInvalidasException("El usuario se encuentra inactivo.");
         }
 
+        // Cuenta creada solo con Google: no tiene contrasena, no se puede
+        // entrar por esta via (mismo mensaje generico que una clave erronea).
+        if (usuario.getContrasenaHash() == null) {
+            throw new CredencialesInvalidasException(MENSAJE_CREDENCIALES_INVALIDAS);
+        }
+
         // Nunca se compara la contrasena en texto plano: passwordEncoder.matches
         // aplica el mismo algoritmo BCrypt utilizado para generar el hash
         // almacenado y compara de forma segura.

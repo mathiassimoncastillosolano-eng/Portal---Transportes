@@ -1,84 +1,12 @@
-.tarjeta-pasaje {
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-lg);
-  padding: var(--espacio-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-4);
-  transition: box-shadow var(--transicion-base), transform var(--transicion-base), border-color var(--transicion-base);
-}
-
-.tarjeta-pasaje:hover {
-  box-shadow: var(--sombra-flotante);
-  border-color: transparent;
-  transform: translateY(-2px);
-}
-
-.tarjeta-pasaje__ruta {
-  display: flex;
-  align-items: center;
-  gap: var(--espacio-4);
-}
-
-.tarjeta-pasaje__flecha {
-  color: var(--color-verde-600);
-  font-size: 1.1rem;
-}
-
-.tarjeta-pasaje__ciudad {
-  font-family: var(--fuente-titulos);
-  font-weight: 600;
-  font-size: var(--tamano-md);
-}
-
-.tarjeta-pasaje__etiqueta {
-  font-size: var(--tamano-xs);
-  color: var(--color-texto-secundario);
-  margin-top: 0.1rem;
-}
-
-.tarjeta-pasaje__info {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--espacio-4);
-  padding: var(--espacio-4) 0;
-  border-top: 1px solid var(--color-borde);
-  border-bottom: 1px solid var(--color-borde);
-}
-
-.tarjeta-pasaje__valor {
-  font-size: var(--tamano-sm);
-  font-weight: 600;
-  margin-top: 0.15rem;
-}
-
-.tarjeta-pasaje__pie {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--espacio-3);
-}
-
-.tarjeta-pasaje__codigo {
-  font-size: var(--tamano-xs);
-  color: var(--color-texto-secundario);
-  font-family: monospace;
-}
-
-.tarjeta-pasaje__precio {
-  font-family: var(--fuente-titulos);
-  font-weight: 700;
-  color: var(--color-azul-800);
-}
-
-@media (max-width: 560px) {
-  .tarjeta-pasaje__info {
-    grid-template-columns: 1fr;
-    gap: var(--espacio-2);
-  }
-
-  .tarjeta-pasaje__pie {
-    flex-wrap: wrap;
-  }
-}
+.tarjeta-pasaje{background:#fff;border:1px solid var(--color-borde);border-radius:20px;padding:1.5rem;display:grid;gap:1.2rem;box-shadow:0 8px 26px rgba(18,49,59,.06)}
+.tarjeta-pasaje__cabecera{display:flex;align-items:center;justify-content:space-between;gap:.7rem}
+.tarjeta-pasaje__codigo{color:var(--color-texto-secundario);font-size:.75rem;font-weight:700;letter-spacing:.04em}
+.tarjeta-pasaje__ruta{display:flex;align-items:center;gap:.7rem;color:var(--color-azul-800);font-family:var(--fuente-titulos);font-size:1.4rem;font-weight:800}
+.tarjeta-pasaje__ruta span:nth-child(2){color:var(--color-verde-600);font-size:1.1rem}
+.tarjeta-pasaje__fecha{color:var(--color-texto-secundario);font-size:.9rem;margin-top:-1rem}
+.tarjeta-pasaje__resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;border-block:1px solid var(--color-borde);padding:1rem 0}
+.tarjeta-pasaje__resumen div{display:grid;gap:.2rem}.tarjeta-pasaje__resumen small{color:var(--color-texto-secundario)}
+.tarjeta-pasaje__resumen strong{font-size:.9rem;color:var(--color-azul-800)}
+.tarjeta-pasaje__ver-boleto{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;border-radius:10px;padding:.85rem 1rem;background:#167a74;color:#fff;color:#fff;font-weight:700;cursor:pointer}
+.tarjeta-pasaje__ver-boleto:hover{filter:brightness(1.12)}
+@media(max-width:520px){.tarjeta-pasaje__resumen{grid-template-columns:repeat(2,1fr)}}

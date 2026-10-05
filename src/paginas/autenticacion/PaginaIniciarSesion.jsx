@@ -22,7 +22,7 @@ const ICONO_CANDADO = (
 )
 
 export function PaginaIniciarSesion() {
-  const { iniciarSesion } = useAutenticacion()
+  const { iniciarSesion, iniciarSesionConGoogle } = useAutenticacion()
   const navegar = useNavigate()
   const ubicacion = useLocation()
   const [correo, setCorreo] = useState(ubicacion.state?.correoRegistro ?? '')
@@ -39,6 +39,19 @@ export function PaginaIniciarSesion() {
       navegar('/perfil')
     } catch (err) {
       setError(err.message ?? 'No se pudo iniciar sesión.')
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  async function manejarGoogle(credencial) {
+    setError('')
+    setCargando(true)
+    try {
+      await iniciarSesionConGoogle(credencial)
+      navegar('/perfil')
+    } catch (err) {
+      setError(err.message ?? 'No se pudo iniciar sesión con Google.')
     } finally {
       setCargando(false)
     }
@@ -93,7 +106,7 @@ export function PaginaIniciarSesion() {
           </p>
 
           <div className="pagina-autenticacion__social">
-            <BotonGoogle />
+            <BotonGoogle alCredencial={manejarGoogle} alError={setError} deshabilitado={cargando} />
           </div>
 
           <div className="divisor-o pagina-autenticacion__divisor">o continúa con tu correo</div>

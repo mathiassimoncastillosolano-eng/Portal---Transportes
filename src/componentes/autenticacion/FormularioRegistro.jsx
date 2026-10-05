@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ModalBase } from '../comunes/ModalBase'
 import { CampoTexto } from '../comunes/CampoTexto'
 import { BotonPrincipal } from '../comunes/BotonPrincipal'
+import { BotonGoogle } from '../comunes/BotonGoogle'
 import { validarRegistro } from '../../utilidades/validarRegistro'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import './autenticacion.css'
@@ -16,7 +17,7 @@ const VALORES_INICIALES = {
 }
 
 export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
-  const { registrarUsuario } = useAutenticacion()
+  const { registrarUsuario, iniciarSesionConGoogle } = useAutenticacion()
   const [valores, setValores] = useState(VALORES_INICIALES)
   const [errores, setErrores] = useState({})
   const [cargando, setCargando] = useState(false)
@@ -54,6 +55,19 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
     }
   }
 
+  async function manejarGoogle(credencial) {
+    setErrorGeneral('')
+    setCargando(true)
+    try {
+      await iniciarSesionConGoogle(credencial)
+      alCerrar()
+    } catch (err) {
+      setErrorGeneral(err.message ?? 'No se pudo continuar con Google.')
+    } finally {
+      setCargando(false)
+    }
+  }
+
   if (cuentaCreada) {
     return (
       <ModalBase titulo="Cuenta creada" abierto={abierto} alCerrar={alCerrar}>
@@ -70,6 +84,10 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
       abierto={abierto}
       alCerrar={alCerrar}
     >
+      <BotonGoogle alCredencial={manejarGoogle} alError={setErrorGeneral} deshabilitado={cargando} />
+
+      <div className="divisor-o formulario-autenticacion__divisor">o regístrate con tu correo</div>
+
       <form className="formulario-autenticacion" onSubmit={manejarEnvio}>
         <div className="formulario-autenticacion__fila">
           <CampoTexto
