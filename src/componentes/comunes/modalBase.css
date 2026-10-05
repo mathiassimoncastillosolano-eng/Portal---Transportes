@@ -17,7 +17,7 @@
   max-height: 90vh;
   overflow-y: auto;
   background: var(--gradiente-superficie);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--color-borde-luz);
   border-radius: var(--radio-lg);
   box-shadow: var(--sombra-flotante);
   padding: var(--espacio-7) var(--espacio-6) var(--espacio-6);

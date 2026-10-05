@@ -47,7 +47,7 @@ export function GestorPasajeros({
         )}
       </div>
 
-      {total > 1 && (
+      {total >= 1 && (
         <div className="gestor-pasajeros__tickets">
           {asientos.map((asiento) => (
             <TicketPasajero

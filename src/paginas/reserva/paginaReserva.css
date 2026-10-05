@@ -2,41 +2,82 @@
   padding-top: var(--espacio-7);
 }
 
+/* ---------- Encabezado: volver · título · temporizador ---------- */
+
 .pagina-reserva__encabezado {
   margin: var(--espacio-7) 0 var(--espacio-6);
   display: flex;
   align-items: center;
   gap: var(--espacio-4);
+  padding-bottom: var(--espacio-5);
+  border-bottom: 1px solid rgba(15, 76, 92, 0.1);
+  position: relative;
+}
+
+/* Hilo de luz que une el título con el temporizador */
+.pagina-reserva__encabezado::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 140px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-verde-600), transparent);
 }
 
 .pagina-reserva__volver {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  border: none;
-  background: none;
+  gap: 0.5rem;
+  border: 1px solid rgba(15, 76, 92, 0.14);
+  background: var(--gradiente-panel-claro);
   cursor: pointer;
   font-weight: 600;
   font-size: var(--tamano-sm);
-  color: var(--color-texto-secundario);
-  padding: 0.5rem 0.7rem 0.5rem 0.4rem;
+  color: var(--color-texto-marca);
+  padding: 0.4rem 1rem 0.4rem 0.4rem;
   border-radius: var(--radio-pastilla);
-  transition: background var(--transicion-rapida), color var(--transicion-rapida);
+  box-shadow: inset 0 1px 0 var(--brillo-superior), 0 1px 2px rgba(11, 53, 64, 0.05);
+  transition: background var(--transicion-rapida), color var(--transicion-rapida), transform var(--transicion-rapida), box-shadow var(--transicion-rapida);
+}
+
+.pagina-reserva__volver svg {
+  box-sizing: content-box;
+  padding: 7px;
+  border-radius: 50%;
+  background: var(--color-superficie-teal);
+  transition: transform var(--transicion-base), background var(--transicion-rapida);
 }
 
 .pagina-reserva__volver:hover {
-  background: var(--color-fondo-alterno);
-  color: var(--color-texto-principal);
+  color: var(--color-texto-marca-fuerte);
+  background: var(--color-superficie);
+  box-shadow: inset 0 1px 0 var(--brillo-superior), 0 10px 18px -12px rgba(11, 53, 64, 0.5);
+}
+
+.pagina-reserva__volver:hover svg {
+  transform: translateX(-2px);
+  background: var(--color-superficie-exito);
+}
+
+.pagina-reserva__volver:active {
+  transform: translateY(1px);
 }
 
 .pagina-reserva__titulo {
-  font-size: var(--tamano-xl);
-  font-weight: 600;
+  font-size: clamp(1.6rem, 1.2rem + 1.5vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  line-height: 1.05;
+  color: var(--color-texto-marca-fuerte);
 }
+
+/* ---------- Cuerpo ---------- */
 
 .pagina-reserva__cuerpo {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: minmax(0, 1fr) 380px;
   align-items: start;
   gap: var(--espacio-6);
 }
@@ -57,6 +98,7 @@
   font-size: var(--tamano-sm);
   font-weight: 600;
   border: 1px solid;
+  box-shadow: var(--sombra-suave);
 }
 
 .pagina-reserva__pago-estado svg {
@@ -72,31 +114,38 @@
 }
 
 .pagina-reserva__pago-estado--approved {
-  background: var(--color-verde-50);
-  color: var(--color-verde-800);
-  border-color: var(--color-verde-500);
+  background: linear-gradient(135deg, var(--color-superficie-exito), var(--color-superficie-exito-2));
+  color: var(--color-texto-exito);
+  border-color: rgba(16, 185, 129, 0.45);
 }
 
 .pagina-reserva__pago-estado--in_process {
-  background: #FDF0DA;
-  color: #92580A;
-  border-color: #F2CE94;
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso-texto);
+  border-color: var(--color-aviso-borde);
 }
 
 .pagina-reserva__pago-estado--rejected {
-  background: #FDECEC;
-  color: #B42318;
-  border-color: #F5B5B0;
+  background: var(--color-error-fondo);
+  color: var(--color-error-texto);
+  border-color: var(--color-error-fondo-2);
 }
 
 .pagina-reserva__aviso-tope {
-  background: #FDF0DA;
-  color: #92580A;
-  border: 1px solid #F2CE94;
+  background: linear-gradient(135deg, var(--color-aviso-fondo), var(--color-aviso-fondo-2));
+  color: var(--color-aviso-texto);
+  border: 1px solid var(--color-aviso-borde);
   border-radius: var(--radio-md);
   padding: var(--espacio-3) var(--espacio-5);
   font-size: var(--tamano-sm);
   font-weight: 600;
+}
+
+@media (max-width: 1080px) {
+  .pagina-reserva__cuerpo {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: var(--espacio-5);
+  }
 }
 
 @media (max-width: 900px) {
@@ -107,6 +156,18 @@
 
 @media (max-width: 640px) {
   .pagina-reserva__encabezado {
-    margin-top: var(--espacio-6);
+    margin: var(--espacio-6) 0 var(--espacio-5);
+    gap: var(--espacio-3);
+    padding-bottom: var(--espacio-4);
+  }
+
+  .pagina-reserva__titulo {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* El resumen pasa a barra inferior fija: se reserva su espacio */
+  .pagina-reserva {
+    padding-bottom: 11.5rem;
   }
 }

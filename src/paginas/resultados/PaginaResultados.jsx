@@ -7,6 +7,7 @@ import { BotonSecundario } from '../../componentes/comunes/BotonSecundario'
 import { useBusqueda } from '../../hooks/useBusqueda'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { useModalesAutenticacion } from '../../layouts/LayoutPrincipal'
+import { ModalExpiracionReserva } from '../../componentes/reserva/ModalExpiracionReserva'
 import './paginaResultados.css'
 
 export function PaginaResultados() {
@@ -72,6 +73,7 @@ export function PaginaResultados() {
 
   return (
     <section className="seccion contenedor pagina-resultados">
+      <ModalExpiracionReserva />
       <div className="pagina-resultados__filtro">
         <BuscadorViajes key={`${origen}-${destino}-${fecha}`} alBuscar={manejarBuscar}
           buscando={buscando} valoresIniciales={{ origen, destino, fecha }} />

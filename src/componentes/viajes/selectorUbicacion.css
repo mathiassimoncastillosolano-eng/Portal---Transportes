@@ -31,12 +31,12 @@
 }
 
 .selector-ubicacion__control:hover {
-  color: var(--color-azul-700);
+  color: var(--color-texto-marca);
 }
 
 .selector-ubicacion__icono {
   flex-shrink: 0;
-  color: var(--color-verde-600);
+  color: var(--color-texto-acento);
 }
 
 .selector-ubicacion__lista {
@@ -71,7 +71,7 @@
 }
 
 .selector-ubicacion__opcion--activa {
-  background: var(--color-verde-100);
-  color: var(--color-verde-700);
+  background: var(--color-superficie-exito);
+  color: var(--color-texto-acento);
   font-weight: 600;
 }

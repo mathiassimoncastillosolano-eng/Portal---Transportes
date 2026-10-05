@@ -1,4 +1,5 @@
 @import "./tokens.css";
+@import "./oscuro.css";
 
 *,
 *::before,
@@ -77,10 +78,36 @@ p {
 }
 
 .diseno-principal {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--color-fondo);
+  background:
+    radial-gradient(1100px 620px at 8% -8%, rgba(20, 127, 145, 0.17), transparent 62%),
+    radial-gradient(900px 640px at 104% 14%, rgba(15, 76, 92, 0.13), transparent 60%),
+    radial-gradient(820px 520px at 46% 108%, rgba(16, 185, 129, 0.075), transparent 62%),
+    linear-gradient(180deg, #EDF4F7 0%, #E5EEF2 100%);
+  background-attachment: fixed, fixed, fixed, scroll;
+}
+
+/* Trama de fondo: círculos concéntricos (curvas de ruta) y retícula de puntos,
+   ambos con opacidad mínima. Puramente decorativa. */
+.diseno-principal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='760' height='760' viewBox='0 0 760 760' fill='none' stroke='%230F4C5C' stroke-width='1.2'%3E%3Ccircle cx='380' cy='380' r='120' opacity='.55'/%3E%3Ccircle cx='380' cy='380' r='190' opacity='.42'/%3E%3Ccircle cx='380' cy='380' r='260' opacity='.32'/%3E%3Ccircle cx='380' cy='380' r='330' opacity='.22'/%3E%3Ccircle cx='380' cy='380' r='370' opacity='.14'/%3E%3C/svg%3E"),
+    radial-gradient(circle, rgba(15, 76, 92, 0.16) 1px, transparent 1.4px);
+  background-repeat: no-repeat, repeat;
+  background-position: calc(100% + 220px) 70px, 0 0;
+  background-size: 760px 760px, 26px 26px;
+  opacity: 0.075;
+  -webkit-mask-image: radial-gradient(120% 70% at 50% 0%, #000 0%, rgba(0, 0, 0, 0.55) 55%, transparent 100%);
+  mask-image: radial-gradient(120% 70% at 50% 0%, #000 0%, rgba(0, 0, 0, 0.55) 55%, transparent 100%);
 }
 
 .diseno-principal main {
@@ -121,7 +148,7 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  color: var(--color-verde-700);
+  color: var(--color-texto-acento);
   font-weight: 700;
   font-size: var(--tamano-xs);
   letter-spacing: 0.06em;
@@ -166,17 +193,17 @@ p {
   letter-spacing: 0.02em;
   padding: 0.4rem 0.85rem;
   border-radius: var(--radio-pastilla);
-  background: var(--color-verde-100);
-  color: var(--color-verde-800);
+  background: var(--color-superficie-exito);
+  color: var(--color-texto-exito);
 }
 
 /* ---------- Superficie de cristal (glass) reutilizable ---------- */
 
 .superficie-cristal {
   background: var(--color-superficie-velada);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid var(--color-borde-luz);
 }
 
 /* ---------- Divisor "o" reutilizable (formularios) ---------- */

@@ -1,50 +1,205 @@
+/* Tarjeta de viaje: la superficie más profunda de la pantalla. La ruta es la
+   protagonista; fecha, horarios y servicio quedan subordinados. */
+
 .info-viaje-compacta {
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-lg);
-  padding: var(--espacio-5);
+  --columnas-ruta: minmax(0, 1fr) minmax(110px, 1.1fr) minmax(0, 1fr);
+
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: #F3FAFB;
+  background:
+    radial-gradient(520px 260px at 100% 0%, rgba(45, 212, 168, 0.22), transparent 65%),
+    radial-gradient(420px 260px at 0% 100%, rgba(20, 127, 145, 0.4), transparent 70%),
+    var(--gradiente-marca-profunda);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radio-xl);
+  padding: var(--espacio-6) var(--espacio-6) var(--espacio-5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), var(--sombra-marcada);
 }
 
-.info-viaje-compacta__ruta {
+/* Trama de curvas de ruta, apenas perceptible */
+.info-viaje-compacta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='320' viewBox='0 0 560 320' fill='none' stroke='white' stroke-width='1.2'%3E%3Cpath d='M-20 260C120 240 180 120 320 140S500 60 580 20' opacity='.5'/%3E%3Cpath d='M-20 300C140 280 220 170 340 190S520 110 580 80' opacity='.32'/%3E%3Cpath d='M-20 220C100 200 150 70 300 90S480 10 580 -30' opacity='.28'/%3E%3C/svg%3E");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.1;
+}
+
+.info-viaje-compacta__cabecera {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  font-family: var(--fuente-titulos);
-  font-size: var(--tamano-lg);
-  font-weight: 600;
-  color: var(--color-texto-principal);
-}
-
-.info-viaje-compacta__ruta svg {
-  color: var(--color-verde-600);
-  flex-shrink: 0;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  margin-bottom: var(--espacio-5);
 }
 
 .info-viaje-compacta__fecha {
-  margin-top: 0.35rem;
   font-size: var(--tamano-sm);
-  color: var(--color-texto-secundario);
-  text-transform: capitalize;
+  font-weight: 500;
+  color: rgba(226, 242, 246, 0.82);
 }
 
-.info-viaje-compacta__detalles {
-  margin: var(--espacio-4) 0 0;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--espacio-3) var(--espacio-4);
-  padding-top: var(--espacio-4);
-  border-top: 1px dashed var(--color-borde);
+.info-viaje-compacta__fecha::first-letter {
+  text-transform: uppercase;
 }
 
-.info-viaje-compacta__detalles dt {
+.info-viaje-compacta__servicio {
+  margin: 0;
+}
+
+.info-viaje-compacta__servicio > div {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.38rem 0.9rem;
+  border-radius: var(--radio-pastilla);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.info-viaje-compacta__servicio dt {
   font-size: var(--tamano-xs);
-  color: var(--color-texto-terciario);
-  font-weight: 600;
+  color: rgba(226, 242, 246, 0.7);
+  font-weight: 500;
 }
 
-.info-viaje-compacta__detalles dd {
-  margin: 0.15rem 0 0;
+.info-viaje-compacta__servicio dd {
+  margin: 0;
   font-size: var(--tamano-sm);
   font-weight: 600;
-  color: var(--color-texto-principal);
+  color: #fff;
+}
+
+/* ---------- Ruta ---------- */
+
+.info-viaje-compacta__ruta {
+  display: grid;
+  grid-template-columns: var(--columnas-ruta);
+  align-items: center;
+  column-gap: var(--espacio-4);
+}
+
+.info-viaje-compacta__ciudad {
+  font-family: var(--fuente-titulos);
+  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.info-viaje-compacta__ciudad--destino {
+  text-align: right;
+}
+
+.info-viaje-compacta__trayecto {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-verde-500);
+}
+
+.info-viaje-compacta__linea {
+  flex: 1;
+  height: 0;
+  border-top: 2px dashed rgba(190, 232, 226, 0.5);
+}
+
+.info-viaje-compacta__bus {
+  flex-shrink: 0;
+  padding: 6px;
+  border-radius: 50%;
+  background: rgba(45, 212, 168, 0.16);
+  border: 1px solid rgba(45, 212, 168, 0.4);
+  box-sizing: content-box;
+  box-shadow: 0 0 22px rgba(45, 212, 168, 0.35);
+}
+
+.info-viaje-compacta__punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--color-verde-500);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.info-viaje-compacta__punto--destino {
+  background: var(--color-verde-500);
+  box-shadow: 0 0 0 4px rgba(45, 212, 168, 0.2);
+}
+
+/* ---------- Horarios ---------- */
+
+.info-viaje-compacta__horarios {
+  margin: var(--espacio-5) 0 0;
+  padding-top: var(--espacio-4);
+  display: grid;
+  grid-template-columns: var(--columnas-ruta);
+  column-gap: var(--espacio-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.info-viaje-compacta__horario dt {
+  font-size: var(--tamano-xs);
+  font-weight: 500;
+  color: rgba(204, 230, 236, 0.7);
+}
+
+.info-viaje-compacta__horario dd {
+  margin: 0.15rem 0 0;
+  font-family: var(--fuente-titulos);
+  font-size: var(--tamano-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+
+.info-viaje-compacta__horario--duracion {
+  text-align: center;
+}
+
+.info-viaje-compacta__horario--duracion dd {
+  color: var(--color-verde-500);
+}
+
+.info-viaje-compacta__horario--llegada {
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .info-viaje-compacta {
+    --columnas-ruta: minmax(0, 1fr) minmax(64px, 0.7fr) minmax(0, 1fr);
+    padding: var(--espacio-5) var(--espacio-5) var(--espacio-4);
+    border-radius: var(--radio-lg);
+  }
+
+  .info-viaje-compacta__cabecera {
+    flex-wrap: wrap;
+    gap: var(--espacio-2);
+    margin-bottom: var(--espacio-4);
+  }
+
+  .info-viaje-compacta__bus {
+    display: none;
+  }
+
+  .info-viaje-compacta__punto {
+    display: none;
+  }
+
+  .info-viaje-compacta__linea {
+    border-top-style: solid;
+    border-top-width: 2px;
+    border-color: rgba(45, 212, 168, 0.5);
+  }
 }

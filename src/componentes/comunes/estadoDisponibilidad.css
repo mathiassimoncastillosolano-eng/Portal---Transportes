@@ -19,20 +19,20 @@
 
 .estado-disponibilidad--disponible {
   color: var(--color-estado-disponible);
-  background: var(--color-verde-100);
+  background: var(--color-superficie-exito);
 }
 
 .estado-disponibilidad--pocos {
-  color: #92580A;
-  background: #FDF0DA;
+  color: var(--color-aviso-texto);
+  background: var(--color-aviso-fondo-2);
 }
 
 .estado-disponibilidad--agotado {
   color: var(--color-estado-agotado);
-  background: #FBE4E4;
+  background: var(--color-error-fondo);
 }
 
 .estado-disponibilidad--completado {
   color: var(--color-texto-secundario);
-  background: #EEF1F4;
+  background: var(--color-superficie-neutra);
 }

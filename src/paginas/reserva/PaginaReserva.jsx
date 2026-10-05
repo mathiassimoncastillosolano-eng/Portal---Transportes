@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { IndicadorProgreso } from '../../componentes/reserva/IndicadorProgreso'
 import { InfoViajeCompacta } from '../../componentes/reserva/InfoViajeCompacta'
@@ -20,9 +20,18 @@ import {
 } from '../../utilidades/pagoMercadoPago'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { useBusqueda } from '../../hooks/useBusqueda'
-import { generarMapaAsientos, MAXIMO_PASAJEROS_POR_COMPRA } from '../../servicios/viajesServicio'
+import {
+  MAXIMO_PASAJEROS_POR_COMPRA,
+  obtenerMapaAsientosViaje,
+  obtenerOCrearSesion,
+  borrarSesionAsientos,
+  bloquearAsiento,
+  liberarAsiento,
+  abrirEventosAsientos,
+} from '../../servicios/viajesServicio'
 import { formatearPrecio } from '../../utilidades/formato'
 import './paginaReserva.css'
+import { Contador } from '../../componentes/reserva/Contador'
 
 const TOPE_MAXIMO_YAPE = 2000
 
@@ -32,6 +41,33 @@ const TITULOS_PASO = {
   asiento: 'Selecciona tus asientos',
   pasajero: 'Datos de los pasajeros',
   pago: 'Pasarela de pago',
+}
+
+const CLAVE_CONTEXTO = 'rutalibre:reserva-contexto'
+
+function leerContextoGuardado() {
+  try {
+    const crudo = sessionStorage.getItem(CLAVE_CONTEXTO)
+    return crudo ? JSON.parse(crudo) : null
+  } catch {
+    return null
+  }
+}
+
+function guardarContexto(contexto) {
+  try {
+    sessionStorage.setItem(CLAVE_CONTEXTO, JSON.stringify(contexto))
+  } catch {
+    // no bloqueante
+  }
+}
+
+function borrarContexto() {
+  try {
+    sessionStorage.removeItem(CLAVE_CONTEXTO)
+  } catch {
+    // no bloqueante
+  }
 }
 
 function claveAsiento(asiento) {
@@ -51,10 +87,25 @@ export function PaginaReserva() {
   const navegar = useNavigate()
   const { usuario } = useAutenticacion()
   const { criterios } = useBusqueda()
+    const contexto = useMemo(() => {
+    const guardado = leerContextoGuardado()
+    if (state?.resultado && state?.fecha) {
+      return {
+        resultado: state.resultado,
+        fecha: state.fecha,
+        criterios: criterios ?? guardado?.criterios ?? null,
+      }
+    }
+    return guardado
+  }, [state, criterios])
 
+  const idViaje = contexto?.resultado?.id
+
+  useEffect(() => {
+    if (contexto) guardarContexto(contexto)
+  }, [contexto])
   const [pasoActual, setPasoActual] = useState('asiento')
   const [pisoActivo, setPisoActivo] = useState(1)
-  const [asientosSeleccionados, setAsientosSeleccionados] = useState([])
   const [pasajeros, setPasajeros] = useState({})
   const [claveActivaPasajero, setClaveActivaPasajero] = useState(null)
 
@@ -84,58 +135,262 @@ export function PaginaReserva() {
     }))
   }, [usuario])
 
-  const mapaAsientos = useMemo(
-    () => (state?.resultado ? generarMapaAsientos(state.resultado) : null),
-    [state?.resultado],
-  )
+  const [mapaAsientos, setMapaAsientos] = useState(null)
+  const [cargandoMapa, setCargandoMapa] = useState(true)
+  const [errorMapa, setErrorMapa] = useState(null)
+  const [errorBloqueo, setErrorBloqueo] = useState(null)
 
-  if (!state?.resultado || !state?.fecha) {
+  // Sesión de reserva: { tokenSesion, expiraEn (ms, timestamp) }.
+  const [sesion, setSesion] = useState(null)
+  const sesionRef = useRef(null)
+
+  // Asientos con una operación en vuelo. Se mantienen DOS copias a propósito:
+  //  - operandoRef: lectura/escritura síncrona. setState es asíncrono, así que
+  //    dos clics en el mismo tick leerían el estado viejo y dispararían dos
+  //    peticiones; el ref cierra esa ventana.
+  //  - asientosEnProceso: la copia que provoca repintado, para que el asiento
+  //    se vea ocupado-en-curso y quede deshabilitado mientras responde el
+  //    servidor (antes era solo un ref y la interfaz no reaccionaba al clic).
+  const operandoRef = useRef(new Set())
+  const [asientosEnProceso, setAsientosEnProceso] = useState(() => new Set())
+
+  function marcarEnProceso(idAsiento, enProceso) {
+    if (enProceso) operandoRef.current.add(idAsiento)
+    else operandoRef.current.delete(idAsiento)
+    setAsientosEnProceso(new Set(operandoRef.current))
+  }
+
+  // La selección SIEMPRE se deriva del mapa: asientos con esMio = true.
+  const asientosSeleccionados = useMemo(() => {
+    if (!mapaAsientos) return []
+    const lista = []
+    Object.values(mapaAsientos.mapaPorPiso).forEach((info) => {
+      info.asientos.forEach((asiento) => {
+        if (asiento.esMio) {
+          lista.push({
+            clave: claveAsiento(asiento),
+            numero: asiento.numero,
+            idAsiento: asiento.idAsiento,
+            piso: asiento.piso,
+            precio: asiento.precio,
+          })
+        }
+      })
+    })
+    return lista
+  }, [mapaAsientos])
+
+  function irAResultados(estado) {
+    const criteriosEfectivos = criterios ?? contexto?.criterios
+    if (criteriosEfectivos) {
+      const consulta = new URLSearchParams(criteriosEfectivos).toString()
+      navegar(`/resultados?${consulta}`, { state: estado })
+    } else {
+      navegar('/resultados', { state: estado })
+    }
+  }
+
+  async function manejarSesionVencida() {
+    borrarSesionAsientos(idViaje)
+    borrarContexto()
+    try {
+      // Fuerza al backend a liberar los bloqueos vencidos de este viaje.
+      await obtenerMapaAsientosViaje(idViaje)
+    } catch {
+      // no bloqueante: igual se redirige
+    }
+    irAResultados({ sesionExpirada: true })
+  }
+
+  async function cargarMapaAsientos(silencioso = false) {
+    const token = sesionRef.current?.tokenSesion
+    if (!silencioso) setCargandoMapa(true)
+    if (!silencioso) setErrorMapa(null)
+    try {
+      const mapa = await obtenerMapaAsientosViaje(idViaje, token)
+      setMapaAsientos(mapa)
+    } catch (error) {
+      if (!silencioso) setErrorMapa(error.message)
+    } finally {
+      setCargandoMapa(false)
+    }
+  }
+
+  // Actualiza un asiento del mapa local (respuesta propia o evento SSE).
+  function actualizarAsientoLocal(idAsiento, cambiosOFuncion) {
+    setMapaAsientos((anterior) => {
+      if (!anterior) return anterior
+      const mapaPorPiso = {}
+      Object.entries(anterior.mapaPorPiso).forEach(([piso, info]) => {
+        mapaPorPiso[piso] = {
+          ...info,
+          asientos: info.asientos.map((asiento) => {
+            if (asiento.idAsiento !== idAsiento) return asiento
+            const cambios = typeof cambiosOFuncion === 'function' ? cambiosOFuncion(asiento) : cambiosOFuncion
+            return { ...asiento, ...cambios }
+          }),
+        }
+      })
+      return { ...anterior, mapaPorPiso }
+    })
+  }
+
+  function aplicarEventoAsiento({ idAsiento, estado }) {
+    // El evento no dice de quién es el bloqueo: si se libera, ya no es mío;
+    // en los demás casos conservo lo que ya sabía.
+    actualizarAsientoLocal(idAsiento, (asiento) => ({
+      estado,
+      esMio: estado === 'disponible' ? false : asiento.esMio,
+    }))
+  }
+
+  // Sesión + mapa + tiempo real
+  useEffect(() => {
+    if (!idViaje) return undefined
+    let cancelado = false
+    let cerrarEventos = () => {}
+
+    async function iniciar() {
+      try {
+        const nuevaSesion = await obtenerOCrearSesion(idViaje)
+        if (cancelado) return
+        sesionRef.current = nuevaSesion
+        setSesion(nuevaSesion)
+        await cargarMapaAsientos()
+        if (cancelado) return
+        cerrarEventos = abrirEventosAsientos(idViaje, {
+          alAbrir: () => cargarMapaAsientos(true), // al abrir y en cada reconexión
+          alAsiento: aplicarEventoAsiento,
+        })
+      } catch (error) {
+        if (cancelado) return
+        setErrorMapa(error.message)
+        setCargandoMapa(false)
+      }
+    }
+
+    iniciar()
+    return () => {
+      cancelado = true
+      cerrarEventos()
+    }
+  }, [idViaje])
+
+  // Al vencer la sesión: liberar (lo hace el backend) y redirigir a resultados.
+  // Si el pago ya se completó no se agenda (o se cancela) el vencimiento.
+  useEffect(() => {
+    if (!sesion || pagoCompletado) return undefined
+    const restante = Math.max(sesion.expiraEn - Date.now(), 0)
+    const temporizador = setTimeout(manejarSesionVencida, restante)
+    return () => clearTimeout(temporizador)
+  }, [sesion, pagoCompletado])
+
+  // Si pierdo todos los asientos (p. ej. expiraron) estando en otro paso, vuelvo a elegir.
+  useEffect(() => {
+    if (mapaAsientos && pasoActual !== 'asiento' && asientosSeleccionados.length === 0) {
+      setPasoActual('asiento')
+      setClaveActivaPasajero(null)
+    }
+  }, [mapaAsientos, pasoActual, asientosSeleccionados.length])
+
+    if (!contexto) {
     return <Navigate to="/" replace />
   }
 
-  const { resultado, fecha } = state
+  if (cargandoMapa) {
+    return <p className="pagina-reserva__estado">Cargando disponibilidad de asientos…</p>
+  }
+
+  if (errorMapa) {
+    return <p className="pagina-reserva__estado pagina-reserva__estado--error">{errorMapa}</p>
+  }
+
+  const { resultado, fecha } = contexto
   const mostrarPiso = mapaAsientos.pisos > 1
   const pisoInfo = mapaAsientos.mapaPorPiso[pisoActivo]
 
-  const numerosSeleccionadosPisoActivo = new Set(
-    asientosSeleccionados.filter((asiento) => asiento.piso === pisoActivo).map((asiento) => asiento.numero),
-  )
-  const limiteAlcanzado = asientosSeleccionados.length >= MAXIMO_PASAJEROS_POR_COMPRA
+  if (!pisoInfo) {
+    return <p className="pagina-reserva__estado pagina-reserva__estado--error">Este viaje no tiene asientos configurados.</p>
+  }
 
-  const recargoTotal = asientosSeleccionados.reduce((total, asiento) => total + (asiento.precioAdicional ?? 0), 0)
-  const precioTotal = resultado.precio * asientosSeleccionados.length + recargoTotal
+  const limiteAlcanzado = asientosSeleccionados.length >= MAXIMO_PASAJEROS_POR_COMPRA
+  const precioTotal = asientosSeleccionados.reduce((total, asiento) => total + (asiento.precio ?? 0), 0)
 
   const pasajerosCompletos =
     asientosSeleccionados.length > 0 &&
-    asientosSeleccionados.every((asiento) => pasajeroEstaCompleto(pasajeros[claveAsiento(asiento)]))
+    asientosSeleccionados.every((asiento) => pasajeroEstaCompleto(pasajeros[asiento.clave]))
 
-  function manejarSeleccionAsiento(asientoDelMapa) {
-    const clave = `${pisoActivo}-${asientoDelMapa.numero}`
-    const yaSeleccionado = asientosSeleccionados.some((asiento) => asiento.clave === clave)
+  function quitarDatosPasajero(clave) {
+    setPasajeros((anterior) => {
+      const copia = { ...anterior }
+      delete copia[clave]
+      return copia
+    })
+  }
 
-    if (yaSeleccionado) {
-      setAsientosSeleccionados((anterior) => anterior.filter((asiento) => asiento.clave !== clave))
-      setPasajeros((anterior) => {
-        const copia = { ...anterior }
-        delete copia[clave]
-        return copia
-      })
-      return
+  // Clic en un asiento. El asiento queda deshabilitado y marcado "en curso"
+  // mientras el servidor responde; el mapa solo cambia cuando el backend
+  // confirma, de modo que la pantalla nunca muestra un asiento como mío si
+  // la operación falló.
+  async function manejarSeleccionAsiento(asientoDelMapa) {
+    const token = sesionRef.current?.tokenSesion
+    const { idAsiento } = asientoDelMapa
+    // Guardia síncrona: evita que una ráfaga de clics sobre el mismo asiento
+    // dispare varias peticiones antes del primer repintado.
+    if (!token || operandoRef.current.has(idAsiento)) return
+
+    const estoyLiberando = Boolean(asientoDelMapa.esMio)
+
+    if (!estoyLiberando) {
+      // El tope debe contar también los bloqueos en vuelo: si solo mirase
+      // asientosSeleccionados, varios clics simultáneos pasarían todos la
+      // comprobación y acabaríamos pidiendo más asientos que el máximo.
+      const enVueloBloqueando = Array.from(operandoRef.current).filter(
+        (id) => !asientosSeleccionados.some((asiento) => asiento.idAsiento === id),
+      ).length
+      if (asientosSeleccionados.length + enVueloBloqueando >= MAXIMO_PASAJEROS_POR_COMPRA) {
+        setErrorBloqueo(
+          `Alcanzaste el máximo de ${MAXIMO_PASAJEROS_POR_COMPRA} pasajeros por compra. Quita un asiento para elegir otro.`,
+        )
+        return
+      }
     }
 
-    if (limiteAlcanzado) return
-
-    setAsientosSeleccionados((anterior) => [
-      ...anterior,
-      {
-        clave,
-        numero: asientoDelMapa.numero,
-        piso: pisoActivo,
-        tipo: asientoDelMapa.tipo,
-        precioAdicional: asientoDelMapa.precioAdicional,
-      },
-    ])
+    marcarEnProceso(idAsiento, true)
+    setErrorBloqueo(null)
+    try {
+      if (estoyLiberando) {
+        await liberarAsiento(idViaje, idAsiento, token)
+        actualizarAsientoLocal(idAsiento, { estado: 'disponible', esMio: false })
+        quitarDatosPasajero(`${asientoDelMapa.piso}-${asientoDelMapa.numero}`)
+      } else {
+        await bloquearAsiento(idViaje, idAsiento, token)
+        actualizarAsientoLocal(idAsiento, { estado: 'bloqueado', esMio: true })
+      }
+    } catch (error) {
+      if (error.status === 410 || error.status === 401) {
+        manejarSesionVencida()
+      } else if (error.status === 409) {
+        setErrorBloqueo(
+          estoyLiberando
+            ? 'Ese asiento ya no está reservado a tu nombre.'
+            : 'Ese asiento ya fue tomado por otro cliente. Elige otro.',
+        )
+        cargarMapaAsientos(true)
+      } else {
+        // Cualquier otro fallo (red caída, 500...) se muestra y se
+        // resincroniza el mapa. La interfaz sigue utilizable: el asiento se
+        // vuelve a habilitar en el finally.
+        setErrorBloqueo(error.message)
+        cargarMapaAsientos(true)
+      }
+    } finally {
+      // Pase lo que pase —incluido un error del backend— el asiento deja de
+      // estar en curso: nunca debe quedarse bloqueado para siempre.
+      marcarEnProceso(idAsiento, false)
+    }
   }
+
 
   function irAPasajeros() {
     if (asientosSeleccionados.length === 0) return
@@ -162,21 +417,37 @@ export function PaginaReserva() {
     }))
   }
 
-  function manejarEliminarTicket(clave) {
-    const restantes = asientosSeleccionados.filter((asiento) => asiento.clave !== clave)
-    setAsientosSeleccionados(restantes)
-    setPasajeros((anterior) => {
-      const copia = { ...anterior }
-      delete copia[clave]
-      return copia
-    })
+  async function manejarEliminarTicket(clave) {
+    const asiento = asientosSeleccionados.find((a) => a.clave === clave)
+    // Misma guardia que en el mapa: si ya hay una liberación en vuelo para
+    // este asiento, un segundo clic en "eliminar" no debe repetirla.
+    if (asiento && operandoRef.current.has(asiento.idAsiento)) return
+
+    const restantes = asientosSeleccionados.filter((a) => a.clave !== clave)
+    quitarDatosPasajero(clave)
+
+    if (asiento && sesionRef.current) {
+      marcarEnProceso(asiento.idAsiento, true)
+      try {
+        await liberarAsiento(idViaje, asiento.idAsiento, sesionRef.current.tokenSesion)
+        actualizarAsientoLocal(asiento.idAsiento, { estado: 'disponible', esMio: false })
+      } catch (error) {
+        if (error.status === 410 || error.status === 401) {
+          manejarSesionVencida()
+          return
+        }
+        setErrorBloqueo(error.message)
+        cargarMapaAsientos(true)
+      } finally {
+        marcarEnProceso(asiento.idAsiento, false)
+      }
+    }
 
     if (restantes.length === 0) {
       setPasoActual('asiento')
       setClaveActivaPasajero(null)
       return
     }
-
     if (claveActivaPasajero === clave) {
       setClaveActivaPasajero(restantes[0].clave)
     }
@@ -191,6 +462,13 @@ export function PaginaReserva() {
     setErroresPago({})
     setCamposTocadosPago({})
     setRespuestaPago(null)
+  }
+
+  // Ya no se bloquea aquí: los asientos se bloquearon al hacer clic.
+  function confirmarPasajerosYContinuar() {
+    if (!pasajerosCompletos) return
+    setErrorBloqueo(null)
+    setPasoActual('pago')
   }
 
   function manejarCambiarCampoPago(campo, valor) {
@@ -233,14 +511,21 @@ export function PaginaReserva() {
     }, 1400)
   }
 
-  function volverAlPasoAnterior() {
+  async function volverAlPasoAnterior() {
     if (pasoActual === 'pasajero') setPasoActual('asiento')
     else if (pasoActual === 'pago') setPasoActual('pasajero')
-    else if (criterios) {
-      const consulta = new URLSearchParams(criterios).toString()
-      navegar(`/resultados?${consulta}`)
-    } else {
-      navegar('/resultados')
+    else {
+      const token = sesionRef.current?.tokenSesion
+      if (token) {
+        await Promise.all(
+          asientosSeleccionados.map((asiento) =>
+            liberarAsiento(idViaje, asiento.idAsiento, token).catch(() => {}),
+          ),
+        )
+      }
+      borrarSesionAsientos(idViaje)
+      borrarContexto()
+      irAResultados()
     }
   }
 
@@ -255,8 +540,8 @@ export function PaginaReserva() {
     filasDetalle =
       cantidad > 0
         ? [
-            { etiqueta: 'Precio', valor: `${formatearPrecio(resultado.precio)} × ${cantidad}` },
-            ...(recargoTotal > 0 ? [{ etiqueta: 'Asientos preferenciales', valor: `+${formatearPrecio(recargoTotal)}` }] : []),
+            { etiqueta: 'Asientos seleccionados', valor: `${cantidad}` },
+            { etiqueta: 'Precio total', valor: formatearPrecio(precioTotal) },
           ]
         : [{ etiqueta: 'Servicio', valor: resultado.tipoBus }, { etiqueta: 'Precio base', valor: formatearPrecio(resultado.precio) }]
     textoBoton = cantidad > 0 ? `Continuar con ${cantidad} pasajero${cantidad === 1 ? '' : 's'} →` : 'Selecciona un asiento'
@@ -269,7 +554,7 @@ export function PaginaReserva() {
       { etiqueta: 'Servicio', valor: resultado.tipoBus },
       ...(mostrarPiso && asientoActivo ? [{ etiqueta: 'Piso', valor: `Piso ${asientoActivo.piso}` }] : []),
       ...(asientoActivo
-        ? [{ etiqueta: 'Precio de este asiento', valor: formatearPrecio(resultado.precio + (asientoActivo.precioAdicional ?? 0)) }]
+        ? [{ etiqueta: 'Precio de este asiento', valor: formatearPrecio(asientoActivo.precio) }]
         : []),
     ]
     textoBoton = pasajerosCompletos ? 'Continuar al pago →' : 'Completa los datos de todos los pasajeros'
@@ -308,6 +593,7 @@ export function PaginaReserva() {
           Volver
         </button>
         <h1 className="pagina-reserva__titulo">{TITULOS_PASO[pasoActual]}</h1>
+        <Contador expiraEn={sesion?.expiraEn} pausado={pagoCompletado} />
       </div>
 
       <div className="pagina-reserva__cuerpo">
@@ -329,8 +615,8 @@ export function PaginaReserva() {
               <MapaAsientosBus
                 asientos={pisoInfo.asientos}
                 filas={pisoInfo.filas}
-                numerosSeleccionados={numerosSeleccionadosPisoActivo}
                 limiteAlcanzado={limiteAlcanzado}
+                asientosEnProceso={asientosEnProceso}
                 onSeleccionar={manejarSeleccionAsiento}
               />
             </>
@@ -384,6 +670,12 @@ export function PaginaReserva() {
               />
             </>
           )}
+
+          {errorBloqueo && (
+            <p className="pagina-reserva__aviso-tope" role="alert">
+              {errorBloqueo}
+            </p>
+          )}
         </div>
 
         <ResumenReserva
@@ -394,9 +686,15 @@ export function PaginaReserva() {
           filasDetalle={filasDetalle}
           precioTotal={asientosSeleccionados.length > 0 ? precioTotal : undefined}
           textoBoton={textoBoton}
-          onContinuar={pasoActual === 'asiento' ? irAPasajeros : pasoActual === 'pasajero' ? () => pasajerosCompletos && setPasoActual('pago') : manejarPago}
+          onContinuar={
+            pasoActual === 'asiento'
+              ? irAPasajeros
+              : pasoActual === 'pasajero'
+                ? confirmarPasajerosYContinuar
+                : manejarPago
+          }
           deshabilitado={deshabilitadoBoton}
-          cargando={pagando}
+          cargando={pasoActual === 'pago' ? pagando : false}
           mensajeAyuda={mensajeAyuda}
         />
       </div>

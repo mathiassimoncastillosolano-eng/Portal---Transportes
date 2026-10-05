@@ -1,10 +1,20 @@
+/* Stepper: pista de cristal con progreso continuo. Los estados salen de las
+   clases --completado / --activo / --pendiente que ya emite el componente. */
+
 .indicador-progreso {
   display: flex;
   align-items: flex-start;
   justify-content: center;
   gap: 0;
-  max-width: 560px;
+  max-width: 600px;
   margin: 0 auto;
+  padding: 0.85rem 1.5rem 0.8rem;
+  background: var(--gradiente-panel-claro);
+  border: 1px solid var(--color-borde-luz);
+  border-radius: var(--radio-pastilla);
+  box-shadow: var(--sombra-tarjeta);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
 }
 
 .indicador-progreso__paso {
@@ -13,83 +23,112 @@
   flex-direction: column;
   align-items: center;
   flex: 1;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .indicador-progreso__marcador {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
+  font-family: var(--fuente-titulos);
   font-size: var(--tamano-xs);
   font-weight: 700;
   border: 1.5px solid var(--color-borde-fuerte);
-  background: var(--color-superficie);
+  background: var(--color-superficie-1);
   color: var(--color-texto-terciario);
-  transition: background var(--transicion-base), border-color var(--transicion-base), color var(--transicion-base), box-shadow var(--transicion-base);
+  box-shadow: inset 0 1px 0 var(--brillo-superior);
+  transition: background var(--transicion-base), border-color var(--transicion-base), color var(--transicion-base), box-shadow var(--transicion-base), transform var(--transicion-base);
   z-index: 1;
 }
 
 .indicador-progreso__etiqueta {
   font-size: var(--tamano-xs);
   font-weight: 600;
+  letter-spacing: 0.01em;
   color: var(--color-texto-terciario);
   transition: color var(--transicion-base);
 }
 
+/* Línea: pista + relleno que crece cuando el paso está completado */
 .indicador-progreso__linea {
   position: absolute;
-  top: 15px;
-  left: calc(50% + 21px);
-  right: calc(-50% + 21px);
-  height: 2px;
+  top: 16px;
+  left: calc(50% + 24px);
+  right: calc(-50% + 24px);
+  height: 3px;
+  border-radius: 3px;
   background: var(--color-borde);
+  overflow: hidden;
   z-index: 0;
 }
 
+.indicador-progreso__linea::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-verde-600), var(--color-verde-500));
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--transicion-premium);
+}
+
+.indicador-progreso__paso--completado .indicador-progreso__linea::after {
+  transform: scaleX(1);
+}
+
+/* Completado */
 .indicador-progreso__paso--completado .indicador-progreso__marcador {
-  background: var(--gradiente-acento);
+  background: linear-gradient(145deg, var(--color-verde-500), var(--color-verde-700));
   border-color: transparent;
-  color: #06281B;
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 6px 12px -6px rgba(14, 122, 60, 0.7);
 }
 
 .indicador-progreso__paso--completado .indicador-progreso__etiqueta {
-  color: var(--color-texto-principal);
+  color: var(--color-texto-exito);
 }
 
-.indicador-progreso__paso--completado .indicador-progreso__linea {
-  background: var(--color-verde-600);
-}
-
+/* Activo: lleno, con halo de luz */
 .indicador-progreso__paso--activo .indicador-progreso__marcador {
-  background: var(--color-azul-800);
-  border-color: var(--color-azul-800);
+  background: var(--gradiente-marca-profunda);
+  border-color: transparent;
   color: #fff;
-  box-shadow: var(--sombra-foco-azul);
+  transform: scale(1.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 0 0 4px rgba(20, 127, 145, 0.16),
+    0 0 18px 2px rgba(45, 212, 168, 0.35),
+    0 8px 14px -6px rgba(11, 53, 64, 0.7);
 }
 
 .indicador-progreso__paso--activo .indicador-progreso__etiqueta {
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca-fuerte);
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {
+  .indicador-progreso {
+    max-width: 320px;
+    padding: 0.7rem 1rem;
+  }
+
   .indicador-progreso__etiqueta {
     display: none;
   }
 
-  .indicador-progreso {
-    max-width: 240px;
+  .indicador-progreso__marcador {
+    width: 30px;
+    height: 30px;
   }
 
   .indicador-progreso__linea {
-    left: calc(50% + 17px);
-    right: calc(-50% + 17px);
-  }
-
-  .indicador-progreso__marcador {
-    width: 26px;
-    height: 26px;
+    top: 14px;
+    left: calc(50% + 21px);
+    right: calc(-50% + 21px);
   }
 }

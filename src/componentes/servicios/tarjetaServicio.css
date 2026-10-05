@@ -100,7 +100,7 @@
   border-top: 1px dashed var(--color-borde);
   font-size: var(--tamano-xs);
   font-weight: 600;
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

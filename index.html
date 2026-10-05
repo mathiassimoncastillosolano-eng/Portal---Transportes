@@ -12,6 +12,25 @@
       rel="stylesheet"
     />
     <title>RutaLibre — Tu próximo destino comienza aquí</title>
+    <script>
+      // Anti-parpadeo: fija el tema antes de que pinte el primer frame, para
+      // que una recarga en modo oscuro no muestre un destello blanco.
+      // Debe mantener la misma prioridad que leerTemaInicial() en ContextoTema.
+      (function () {
+        try {
+          var guardado = localStorage.getItem('rutalibre:tema')
+          var tema =
+            guardado === 'light' || guardado === 'dark'
+              ? guardado
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+          document.documentElement.setAttribute('data-theme', tema)
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light')
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="raiz"></div>

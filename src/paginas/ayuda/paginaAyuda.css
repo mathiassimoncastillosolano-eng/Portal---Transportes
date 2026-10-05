@@ -146,14 +146,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-azul-50);
-  color: var(--color-azul-800);
+  background: var(--color-superficie-marca);
+  color: var(--color-texto-marca);
   transition: background var(--transicion-rapida), color var(--transicion-rapida);
 }
 
 .ayuda-categoria--activa {
   background: var(--color-azul-800);
-  border-color: var(--color-azul-800);
+  border-color: var(--color-borde-marca);
   color: #fff;
   box-shadow: var(--sombra-foco-azul);
 }
@@ -216,8 +216,8 @@
   width: 32px;
   height: 32px;
   border-radius: var(--radio-sm);
-  background: var(--color-verde-100);
-  color: var(--color-verde-800);
+  background: var(--color-superficie-exito);
+  color: var(--color-texto-exito);
 }
 
 /* ---------- Lista de preguntas (acordeón) ---------- */
@@ -263,7 +263,7 @@
   height: 28px;
   border-radius: 50%;
   background: var(--color-fondo);
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
   display: flex;
   align-items: center;
   justify-content: center;

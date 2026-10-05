@@ -29,8 +29,8 @@
   position: absolute;
   top: var(--espacio-4);
   right: calc(200px + var(--espacio-4));
-  background: var(--color-verde-100);
-  color: var(--color-verde-800);
+  background: var(--color-superficie-exito);
+  color: var(--color-texto-exito);
   font-size: var(--tamano-xs);
   font-weight: 700;
   padding: 0.25rem 0.7rem;
@@ -212,7 +212,7 @@
   font-family: var(--fuente-titulos);
   font-size: var(--tamano-xl);
   font-weight: 700;
-  color: var(--color-azul-800);
+  color: var(--color-texto-marca);
 }
 
 @media (max-width: 760px) {

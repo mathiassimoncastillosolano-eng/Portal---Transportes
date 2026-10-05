@@ -1,3 +1,6 @@
+/* Resumen: "checkout summary". Jerarquía: ruta → fecha/horario → servicio →
+   precio → estado de selección → CTA. Cambia de aspecto cuando se puede avanzar. */
+
 .resumen-reserva {
   /* 76px es la altura fija de la barra de navegación (también sticky,
      con z-index superior): sin este colchón, el resumen quedaba
@@ -5,53 +8,107 @@
   position: sticky;
   top: calc(76px + var(--espacio-5));
   max-height: calc(100vh - 76px - var(--espacio-6) * 2);
+  overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: thin;
-  background: var(--gradiente-superficie);
-  border-radius: var(--radio-lg);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: var(--sombra-suave);
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(300px 160px at 100% 0%, rgba(20, 127, 145, 0.14), transparent 70%),
+    var(--gradiente-tarjeta);
+  border-radius: var(--radio-xl);
+  border: 1px solid var(--color-borde-luz);
+  box-shadow: var(--sombra-marcada), inset 0 1px 0 var(--brillo-superior);
   padding: var(--espacio-6);
+  transition: box-shadow var(--transicion-premium), border-color var(--transicion-base);
+}
+
+/* Filo superior: teal en espera, verde cuando se puede avanzar */
+.resumen-reserva::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-azul-800), var(--color-azul-600));
+  transition: background var(--transicion-premium);
+}
+
+.resumen-reserva--listo {
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.09), var(--sombra-flotante), inset 0 1px 0 var(--brillo-superior);
+}
+
+.resumen-reserva--listo::before {
+  background: linear-gradient(90deg, var(--color-verde-600), var(--color-verde-500));
 }
 
 .resumen-reserva__titulo {
-  font-size: var(--tamano-md);
+  font-family: var(--fuente-texto);
+  font-size: var(--tamano-xs);
   font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--color-texto-secundario);
 }
 
+/* 1. Ruta */
 .resumen-reserva__ruta {
-  margin-top: var(--espacio-4);
+  margin-top: var(--espacio-3);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.55rem;
   font-family: var(--fuente-titulos);
-  font-size: var(--tamano-lg);
-  font-weight: 600;
+  font-size: var(--tamano-xl);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--color-texto-marca-fuerte);
 }
 
 .resumen-reserva__ruta svg {
-  color: var(--color-verde-600);
+  box-sizing: content-box;
+  padding: 6px;
+  border-radius: 50%;
+  color: var(--color-texto-exito);
+  background: var(--color-superficie-exito);
 }
 
+/* 2. Fecha y horario */
 .resumen-reserva__fecha {
-  margin-top: 0.3rem;
-  font-size: var(--tamano-sm);
-  color: var(--color-texto-secundario);
-  text-transform: capitalize;
+  margin-top: var(--espacio-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: var(--tamano-xs);
+  font-weight: 600;
+  color: var(--color-texto-marca);
 }
 
+.resumen-reserva__fecha-dia,
+.resumen-reserva__fecha-horas {
+  padding: 0.32rem 0.7rem;
+  border-radius: var(--radio-pastilla);
+  background: var(--color-superficie-teal);
+  text-transform: capitalize;
+  font-variant-numeric: tabular-nums;
+}
+
+.resumen-reserva__fecha-horas {
+  text-transform: none;
+  background: rgba(15, 76, 92, 0.08);
+}
+
+/* Asientos elegidos */
 .resumen-reserva__asientos {
   margin-top: var(--espacio-5);
   padding-top: var(--espacio-5);
-  border-top: 1px dashed var(--color-borde);
+  border-top: 1px solid var(--color-borde);
 }
 
 .resumen-reserva__asientos-titulo {
   font-size: var(--tamano-xs);
   font-weight: 700;
-  color: var(--color-texto-secundario);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  color: var(--color-texto-exito);
 }
 
 .resumen-reserva__asientos-chips {
@@ -67,16 +124,18 @@
   font-family: var(--fuente-titulos);
   font-size: var(--tamano-xs);
   font-weight: 700;
-  color: var(--color-azul-800);
-  background: var(--color-azul-100);
-  padding: 0.3rem 0.65rem;
+  color: #fff;
+  background: linear-gradient(145deg, #1FC796, #0E7A3C);
+  padding: 0.32rem 0.75rem;
   border-radius: var(--radio-pastilla);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 6px 10px -6px rgba(14, 122, 60, 0.7);
 }
 
+/* 3. Servicio · 4. Precio */
 .resumen-reserva__lista {
   margin: var(--espacio-5) 0 0;
   padding-top: var(--espacio-5);
-  border-top: 1px dashed var(--color-borde);
+  border-top: 1px solid var(--color-borde);
   display: flex;
   flex-direction: column;
   gap: var(--espacio-3);
@@ -86,6 +145,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--espacio-3);
   font-size: var(--tamano-sm);
 }
 
@@ -97,41 +157,231 @@
   margin: 0;
   font-weight: 600;
   color: var(--color-texto-principal);
+  text-align: right;
 }
 
+/* Precio sin selección todavía (precio base): protagonista */
+.resumen-reserva__lista > .resumen-reserva__fila-precio {
+  margin-top: var(--espacio-2);
+  padding: var(--espacio-3) var(--espacio-4);
+  border-radius: var(--radio-md);
+  background: var(--color-superficie-teal);
+  border: 1px solid rgba(15, 76, 92, 0.1);
+}
+
+.resumen-reserva__fila-precio dt {
+  font-weight: 600;
+  color: var(--color-texto-marca);
+}
+
+.resumen-reserva__fila-precio dd {
+  font-family: var(--fuente-titulos);
+  font-size: var(--tamano-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-texto-marca-fuerte);
+}
+
+/* Total con selección */
 .resumen-reserva__total {
-  margin-top: var(--espacio-5);
-  padding-top: var(--espacio-5);
-  border-top: 1px solid var(--color-borde);
+  margin-top: var(--espacio-4);
+  padding: var(--espacio-4) var(--espacio-4);
+  border-radius: var(--radio-md);
+  background: linear-gradient(135deg, var(--color-superficie-exito), var(--color-superficie-exito-2));
+  border: 1px solid rgba(16, 185, 129, 0.3);
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
+  font-size: var(--tamano-sm);
+  font-weight: 600;
+  color: var(--color-texto-exito);
 }
 
 .resumen-reserva__total-monto {
   font-family: var(--fuente-titulos);
-  font-size: var(--tamano-xl);
+  font-size: var(--tamano-2xl);
   font-weight: 700;
-  color: var(--color-azul-800);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--color-texto-marca-fuerte);
+  font-variant-numeric: tabular-nums;
 }
 
-.resumen-reserva__lista + .resumen-reserva__total,
-.resumen-reserva__total {
-  margin-bottom: var(--espacio-5);
-}
-
-.resumen-reserva__ayuda {
+/* Si ya hay total, la fila de precio de la lista no se repite visualmente destacada */
+.resumen-reserva__lista + .resumen-reserva__total {
   margin-top: var(--espacio-3);
-  text-align: center;
-  font-size: var(--tamano-xs);
-  color: var(--color-texto-secundario);
-  background: var(--color-fondo-alterno);
-  border-radius: var(--radio-sm);
-  padding: var(--espacio-3);
 }
+
+/* 5. Estado de selección */
+.resumen-reserva__ayuda {
+  order: 1;
+  margin-top: var(--espacio-5);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--tamano-xs);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-texto-secundario);
+  background: var(--velo-superficie);
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  padding: var(--espacio-3) var(--espacio-4);
+}
+
+.resumen-reserva__ayuda::before {
+  content: '';
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-estado-pocos);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18);
+}
+
+/* 6. CTA */
+.resumen-reserva .boton-principal {
+  order: 2;
+  margin-top: var(--espacio-4);
+  min-height: 58px;
+  border-radius: var(--radio-md);
+  font-family: var(--fuente-titulos);
+  font-size: var(--tamano-md);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: #fff;
+  background: linear-gradient(135deg, #0E8F5F 0%, #0E7A3C 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 18px 28px -14px rgba(14, 122, 60, 0.75);
+}
+
+.resumen-reserva .boton-principal:hover:not(:disabled) {
+  filter: brightness(1.07);
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 24px 34px -14px rgba(14, 122, 60, 0.8);
+}
+
+.resumen-reserva .boton-principal:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* CTA sin acción posible: se lee como "falta algo", no como botón roto */
+.resumen-reserva .boton-principal:disabled {
+  opacity: 1;
+  color: var(--color-texto-marca);
+  background: rgba(15, 76, 92, 0.06);
+  border: 1.5px dashed rgba(15, 76, 92, 0.3);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.resumen-reserva--listo .boton-principal {
+  animation: resumen-listo 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes resumen-listo {
+  from { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  to { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 0 0 14px rgba(16, 185, 129, 0), 0 18px 28px -14px rgba(14, 122, 60, 0.75); }
+}
+
+/* ---------- Tablet / móvil ---------- */
 
 @media (max-width: 900px) {
   .resumen-reserva {
     position: static;
+    max-height: none;
+  }
+}
+
+/* Móvil: el resumen se vuelve una barra inferior fija con lo esencial
+   (ruta, precio y CTA), siempre al alcance del pulgar. */
+@media (max-width: 640px) {
+  .resumen-reserva {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 40;
+    max-height: none;
+    overflow: visible;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'ruta precio'
+      'ayuda ayuda'
+      'cta cta';
+    align-items: center;
+    column-gap: var(--espacio-4);
+    border-radius: var(--radio-xl) var(--radio-xl) 0 0;
+    border-bottom: none;
+    padding: var(--espacio-4) var(--espacio-4) calc(var(--espacio-4) + env(safe-area-inset-bottom, 0px));
+    background: var(--panel-fijo-fondo);
+    box-shadow: 0 -18px 40px -18px rgba(11, 53, 64, 0.45), inset 0 1px 0 var(--brillo-superior);
+  }
+
+  .resumen-reserva--listo {
+    box-shadow: 0 -18px 40px -18px rgba(11, 53, 64, 0.45), inset 0 2px 0 rgba(16, 185, 129, 0.6);
+  }
+
+  .resumen-reserva__titulo,
+  .resumen-reserva__fecha,
+  .resumen-reserva__asientos,
+  .resumen-reserva__lista > div:not(.resumen-reserva__fila-precio) {
+    display: none;
+  }
+
+  .resumen-reserva__ruta {
+    grid-area: ruta;
+    margin: 0;
+    font-size: var(--tamano-md);
+    gap: 0.4rem;
+  }
+
+  .resumen-reserva__ruta svg {
+    padding: 4px;
+  }
+
+  .resumen-reserva__lista,
+  .resumen-reserva__total {
+    grid-area: precio;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+  }
+
+  .resumen-reserva__lista > .resumen-reserva__fila-precio {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    gap: 0.5rem;
+  }
+
+  .resumen-reserva__fila-precio dt {
+    display: none;
+  }
+
+  .resumen-reserva__fila-precio dd,
+  .resumen-reserva__total-monto {
+    font-size: var(--tamano-lg);
+  }
+
+  .resumen-reserva__total > span:first-child {
+    display: none;
+  }
+
+  /* Con total visible, la fila de precio de la lista no se repite */
+  .resumen-reserva:has(.resumen-reserva__total) .resumen-reserva__lista {
+    display: none;
+  }
+
+  .resumen-reserva__ayuda {
+    grid-area: ayuda;
+    margin-top: var(--espacio-2);
+    padding: var(--espacio-2) var(--espacio-3);
+  }
+
+  .resumen-reserva .boton-principal {
+    grid-area: cta;
+    margin-top: var(--espacio-3);
+    min-height: 54px;
   }
 }

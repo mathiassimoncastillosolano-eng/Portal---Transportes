@@ -1,59 +1,110 @@
+/* Mapa de asientos: pieza visual principal. Leyenda lateral (desktop) y
+   carrocería del bus sobre un panel con luz propia. */
+
 .mapa-asientos {
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-lg);
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 188px minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--espacio-6);
+  background:
+    radial-gradient(520px 380px at 66% 38%, rgba(20, 127, 145, 0.13), transparent 70%),
+    radial-gradient(360px 260px at 0% 0%, rgba(16, 185, 129, 0.08), transparent 70%),
+    var(--gradiente-tarjeta);
+  border: 1px solid var(--color-borde-luz);
+  border-radius: var(--radio-xl);
+  box-shadow: var(--sombra-tarjeta);
   padding: var(--espacio-6);
 }
 
+/* ---------- Leyenda ---------- */
+
 .mapa-asientos__leyenda {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--espacio-5);
-  padding-bottom: var(--espacio-5);
-  margin-bottom: var(--espacio-6);
-  border-bottom: 1px dashed var(--color-borde);
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  background: var(--color-celda-tenue);
+  border: 1px solid rgba(15, 76, 92, 0.08);
+  border-radius: var(--radio-md);
 }
 
 .mapa-asientos__leyenda-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.7rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radio-sm);
   font-size: var(--tamano-xs);
   font-weight: 600;
-  color: var(--color-texto-secundario);
+  color: var(--color-texto-marca);
 }
 
 .mapa-asientos__leyenda-muestra {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px 6px 4px 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px 8px 5px 5px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border: 1.5px solid transparent;
 }
 
+/* ---------- Carrocería ---------- */
+
 .mapa-asientos__carroceria {
-  background: var(--color-fondo);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-xl) var(--radio-xl) var(--radio-md) var(--radio-md);
-  padding: var(--espacio-6) var(--espacio-5) var(--espacio-7);
-  max-width: 380px;
-  margin-inline: auto;
   position: relative;
+  background: var(--carroceria-fondo);
+  border: 1.5px solid rgba(15, 76, 92, 0.16);
+  border-radius: 56px 56px var(--radio-lg) var(--radio-lg);
+  padding: var(--espacio-6) var(--espacio-5) var(--espacio-6);
+  width: 100%;
+  max-width: 388px;
+  margin-inline: auto;
+  box-shadow: inset 0 2px 0 var(--brillo-superior), inset 0 -18px 28px -22px rgba(11, 53, 64, 0.22), 0 24px 40px -26px rgba(11, 53, 64, 0.42);
+}
+
+/* Faros / espejos: detalle de carrocería en los laterales */
+.mapa-asientos__carroceria::before,
+.mapa-asientos__carroceria::after {
+  content: '';
+  position: absolute;
+  top: 74px;
+  width: 7px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--carroceria-asidero);
+  border: 1px solid rgba(15, 76, 92, 0.18);
+}
+
+.mapa-asientos__carroceria::before {
+  left: -8px;
+}
+
+.mapa-asientos__carroceria::after {
+  right: -8px;
 }
 
 .mapa-asientos__frente {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
-  color: var(--color-texto-terciario);
+  justify-content: center;
+  gap: 0.6rem;
+  color: var(--color-texto-marca);
   font-size: var(--tamano-xs);
   font-weight: 600;
-  padding-bottom: var(--espacio-5);
-  margin-bottom: var(--espacio-5);
-  border-bottom: 2px solid var(--color-borde);
+  padding-bottom: var(--espacio-4);
+  margin-bottom: var(--espacio-4);
+  border-bottom: 1.5px dashed rgba(15, 76, 92, 0.2);
+}
+
+.mapa-asientos__frente svg {
+  box-sizing: content-box;
+  padding: 7px;
+  border-radius: 50%;
+  background: rgba(15, 76, 92, 0.08);
 }
 
 .mapa-asientos__entrada {
@@ -61,11 +112,11 @@
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  color: var(--color-texto-terciario);
+  color: var(--color-texto-secundario);
   font-size: var(--tamano-xs);
   font-weight: 600;
   padding-bottom: var(--espacio-4);
-  margin-bottom: var(--espacio-4);
+  margin-bottom: var(--espacio-3);
 }
 
 .mapa-asientos__entrada-separador {
@@ -78,7 +129,7 @@
 .mapa-asientos__posterior {
   margin-top: var(--espacio-5);
   padding-top: var(--espacio-4);
-  border-top: 2px solid var(--color-borde);
+  border-top: 1.5px dashed rgba(15, 76, 92, 0.2);
   text-align: center;
   font-size: var(--tamano-xs);
   font-weight: 600;
@@ -88,7 +139,7 @@
 .mapa-asientos__filas {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-3);
+  gap: 0.7rem;
 }
 
 .mapa-asientos__fila {
@@ -99,7 +150,7 @@
 }
 
 .mapa-asientos__numero-fila {
-  font-size: var(--tamano-xs);
+  font-size: 0.6875rem;
   font-weight: 700;
   color: var(--color-texto-terciario);
   text-align: center;
@@ -114,17 +165,20 @@
 .mapa-asientos__pasillo {
   width: 22px;
   align-self: stretch;
-  background-image: linear-gradient(var(--color-borde) 1.5px, transparent 1.5px), linear-gradient(var(--color-borde) 1.5px, transparent 1.5px);
+  background-image: linear-gradient(rgba(15, 76, 92, 0.2) 1.5px, transparent 1.5px), linear-gradient(rgba(15, 76, 92, 0.2) 1.5px, transparent 1.5px);
   background-position: left center, right center;
   background-repeat: repeat-y, repeat-y;
   background-size: 1.5px 6px;
 }
 
+/* ---------- Asiento ---------- */
+
 .asiento {
   position: relative;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px 10px 6px 6px;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px 12px 7px 7px;
+  padding-top: 5px;
   border: 1.5px solid transparent;
   display: flex;
   flex-direction: column;
@@ -133,83 +187,90 @@
   gap: 1px;
   cursor: pointer;
   font-family: var(--fuente-texto);
-  transition: transform var(--transicion-rapida), box-shadow var(--transicion-rapida), background var(--transicion-rapida), border-color var(--transicion-rapida);
+  transition: transform var(--transicion-rapida), box-shadow var(--transicion-rapida), background var(--transicion-rapida), border-color var(--transicion-rapida), color var(--transicion-rapida);
 }
 
+/* Cabecero del asiento */
 .asiento::before {
   content: '';
   position: absolute;
   top: 3px;
-  left: 5px;
-  right: 5px;
-  height: 5px;
+  left: 8px;
+  right: 8px;
+  height: 4px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--velo-superficie);
+  transition: background var(--transicion-rapida);
 }
 
 .asiento__numero {
-  font-size: 0.65rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   line-height: 1;
-  margin-top: 2px;
 }
 
+/* Disponible: invita a la interacción */
 .asiento--disponible {
-  background: var(--color-verde-50);
-  border-color: var(--color-verde-500);
-  color: var(--color-verde-800);
+  background: var(--asiento-disponible-fondo);
+  border-color: rgba(16, 185, 129, 0.55);
+  color: var(--color-texto-exito);
+  box-shadow: 0 2px 0 rgba(16, 185, 129, 0.14), 0 6px 10px -8px rgba(11, 53, 64, 0.5);
 }
 
 .asiento--disponible:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--sombra-suave);
-  background: var(--color-verde-100);
+  transform: translateY(-3px);
+  background: var(--asiento-disponible-hover);
+  border-color: var(--color-estado-disponible);
+  box-shadow: 0 2px 0 rgba(16, 185, 129, 0.22), 0 14px 18px -10px rgba(14, 122, 60, 0.6);
 }
 
-.asiento--preferencial {
-  background: var(--color-azul-50);
-  border-color: var(--color-azul-600);
-  color: var(--color-azul-800);
+.asiento--disponible:active {
+  transform: translateY(-1px);
 }
 
-.asiento--preferencial::after {
-  content: '★';
-  position: absolute;
-  top: -6px;
-  right: -4px;
-  font-size: 0.6rem;
-  color: var(--color-azul-700);
-}
-
-.asiento--preferencial:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--sombra-suave);
-  background: var(--color-azul-100);
-}
-
+/* Seleccionado: estado inequívoco */
 .asiento--seleccionado {
-  background: var(--gradiente-acento);
-  border-color: transparent;
-  color: #06281B;
-  box-shadow: var(--sombra-foco-verde), var(--sombra-suave);
-  transform: translateY(-2px) scale(1.04);
+  background: linear-gradient(160deg, #1FC796 0%, #0E7A3C 100%);
+  border-color: #0B6A34;
+  color: #fff;
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.28), 0 0 0 5px var(--asiento-anillo), 0 14px 20px -8px rgba(14, 122, 60, 0.75);
 }
 
-.asiento--ocupado {
-  background: var(--color-fondo-alterno);
-  border-color: var(--color-borde);
-  color: var(--color-texto-terciario);
+.asiento--seleccionado::before {
+  background: var(--velo-superficie-tenue);
+}
+
+/* Bloqueado por otro cliente */
+.asiento--tomado {
+  background: var(--asiento-tomado-fondo);
+  border-color: var(--asiento-tomado-borde);
+  color: var(--asiento-tomado-texto);
   cursor: not-allowed;
-  opacity: 0.75;
+  box-shadow: none;
+}
+
+.asiento--tomado::before {
+  background: var(--velo-superficie-tenue);
+}
+
+/* Ocupado (pago confirmado) */
+.asiento--ocupado {
+  background: var(--asiento-ocupado-fondo);
+  border-color: rgba(220, 70, 70, 0.55);
+  color: var(--asiento-ocupado-texto);
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .asiento--ocupado::before {
-  background: rgba(148, 163, 184, 0.3);
+  background: var(--velo-superficie-tenue);
 }
 
+/* Límite de pasajeros alcanzado: disponibles atenuados */
 .asiento--bloqueado {
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: 0.42;
 }
 
 .asiento--bloqueado:hover {
@@ -218,15 +279,56 @@
 }
 
 .asiento:focus-visible {
-  outline: 2.5px solid var(--color-azul-700);
-  outline-offset: 2px;
+  outline: 2.5px solid var(--color-borde-marca);
+  outline-offset: 3px;
 }
 
+/* ---------- Operación en curso sobre un asiento ----------
+   Mientras el servidor confirma el bloqueo o la liberación, el asiento se
+   muestra ocupado-en-curso y no acepta clics: es la señal visible de que la
+   acción se registró, y lo que evita que una ráfaga de clics encadene
+   peticiones. */
+.asiento--en-proceso {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+.asiento--en-proceso:hover {
+  transform: none;
+}
+
+.asiento__cargando {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.85;
+  animation: asiento-girar 650ms linear infinite;
+}
+
+@keyframes asiento-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asiento__cargando {
+    animation-duration: 2s;
+  }
+}
+
+/* Muestras de la leyenda: mismo lenguaje que el asiento real, sin interacción */
 .mapa-asientos__leyenda-muestra.asiento--seleccionado,
 .mapa-asientos__leyenda-muestra.asiento--disponible,
-.mapa-asientos__leyenda-muestra.asiento--preferencial,
+.mapa-asientos__leyenda-muestra.asiento--tomado,
 .mapa-asientos__leyenda-muestra.asiento--ocupado {
   transform: none;
+}
+
+.mapa-asientos__leyenda-muestra.asiento--seleccionado {
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.28), 0 6px 10px -6px rgba(14, 122, 60, 0.7);
 }
 
 .mapa-asientos__nota {
@@ -236,30 +338,60 @@
   color: var(--color-texto-terciario);
 }
 
+/* ---------- Responsive: la leyenda pasa arriba, en fila ---------- */
+
+@media (max-width: 1080px) {
+  .mapa-asientos {
+    grid-template-columns: 1fr;
+    row-gap: var(--espacio-5);
+  }
+
+  .mapa-asientos__leyenda {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem 0.6rem;
+  }
+}
+
 @media (max-width: 480px) {
   .mapa-asientos {
     padding: var(--espacio-4);
+    border-radius: var(--radio-lg);
+  }
+
+  .mapa-asientos__leyenda {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.2rem;
   }
 
   .mapa-asientos__carroceria {
-    padding: var(--espacio-5) var(--espacio-3) var(--espacio-6);
+    padding: var(--espacio-5) var(--espacio-3) var(--espacio-5);
+    border-radius: 44px 44px var(--radio-md) var(--radio-md);
+  }
+
+  .mapa-asientos__carroceria::before,
+  .mapa-asientos__carroceria::after {
+    display: none;
   }
 
   .asiento {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px 8px 5px 5px;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px 10px 6px 6px;
+  }
+
+  .asiento::before {
+    left: 6px;
+    right: 6px;
   }
 
   .mapa-asientos__pasillo {
-    width: 16px;
+    width: 14px;
   }
 
   .mapa-asientos__lado {
     gap: var(--espacio-1);
-  }
-
-  .mapa-asientos__leyenda {
-    gap: var(--espacio-4);
   }
 }

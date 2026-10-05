@@ -49,14 +49,14 @@
 
 .campo-texto__entrada:focus {
   outline: none;
-  border-color: var(--color-azul-700);
+  border-color: var(--color-borde-marca);
   background: var(--color-superficie);
   box-shadow: var(--sombra-foco-azul);
 }
 
 .campo-texto__entrada:focus + .campo-texto__icono,
 .campo-texto__envoltura:focus-within .campo-texto__icono {
-  color: var(--color-azul-700);
+  color: var(--color-texto-marca);
 }
 
 .campo-texto__entrada--error {
@@ -90,4 +90,13 @@
 .campo-texto__ayuda {
   font-size: var(--tamano-xs);
   color: var(--color-texto-terciario);
+}
+
+/* Estado éxito (validación correcta): borde semántico, sin relleno */
+.campo-texto__entrada--exito {
+  border-color: var(--color-estado-disponible);
+}
+
+.campo-texto__entrada--exito:focus {
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.14);
 }
