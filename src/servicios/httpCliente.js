@@ -3,7 +3,7 @@
 // encabezado Authorization y el manejo uniforme de errores devueltos por
 // la API (ver RespuestaError en el backend).
 
-const URL_BASE_API = (import.meta.env?.VITE_API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
+export const URL_BASE_API = (import.meta.env?.VITE_API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
 const CLAVE_TOKEN = 'rutalibre:token'
 

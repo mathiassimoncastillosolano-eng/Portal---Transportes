@@ -1,25 +1,28 @@
 package com.transportes.configuracion.excepciones;
 
-import com.transportes.auth.excepciones.CredencialesInvalidasException;
-import com.transportes.auth.excepciones.CuentaExistenteException;
-import com.transportes.auth.excepciones.GoogleServicioNoDisponibleException;
-import com.transportes.auth.excepciones.GoogleTokenInvalidoException;
-import com.transportes.usuarios.excepciones.UsuarioNoEncontradoException;
-import com.transportes.usuarios.excepciones.CorreoYaRegistradoException;
-import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
+import com.transportes.auth.excepciones.CredencialesInvalidasException;
+import com.transportes.auth.excepciones.CuentaExistenteException;
+import com.transportes.auth.excepciones.GoogleServicioNoDisponibleException;
+import com.transportes.auth.excepciones.GoogleTokenInvalidoException;
+import com.transportes.usuarios.excepciones.CorreoYaRegistradoException;
+import com.transportes.usuarios.excepciones.UsuarioNoEncontradoException;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Manejador global de excepciones para toda la API.
@@ -29,6 +32,7 @@ import java.util.List;
  * excepciones internas, detalles de la base de datos, stacktraces) hacia el
  * frontend.
  */
+@Slf4j
 @RestControllerAdvice
 public class ManejadorGlobalExcepciones {
 
@@ -130,11 +134,28 @@ public class ManejadorGlobalExcepciones {
                 "Revisa origen, destino y fecha (AAAA-MM-DD).", request, null);
     }
 
+    @ExceptionHandler(com.transportes.viajes.excepciones.SesionExpiradaException.class)
+    public ResponseEntity<RespuestaError> manejarSesionExpirada(
+            com.transportes.viajes.excepciones.SesionExpiradaException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.GONE, excepcion.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.transportes.viajes.excepciones.SesionInvalidaException.class)
+    public ResponseEntity<RespuestaError> manejarSesionInvalida(
+            com.transportes.viajes.excepciones.SesionInvalidaException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.UNAUTHORIZED, excepcion.getMessage(), request, null);
+    }
+
+    @ExceptionHandler({org.springframework.web.context.request.async.AsyncRequestNotUsableException.class,
+            java.io.IOException.class})
+    public void manejarIoDeStream(Exception excepcion) {
+        log.debug("Conexión de streaming cerrada: {}", excepcion.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<RespuestaError> manejarErrorGeneral(
-            Exception excepcion, HttpServletRequest request) {
-        // No se expone excepcion.getMessage() al cliente: puede contener
-        // detalles internos (por ejemplo, de la base de datos).
+        public ResponseEntity<RespuestaError> manejarErrorGeneral(
+                Exception excepcion, HttpServletRequest request) {
+        log.error("Error inesperado en {} {}", request.getMethod(), request.getRequestURI(), excepcion);
         return construirRespuesta(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Ocurrio un error inesperado. Intente nuevamente mas tarde.", request, null);
     }
@@ -144,5 +165,17 @@ public class ManejadorGlobalExcepciones {
         RespuestaError cuerpo = new RespuestaError(
                 status.value(), status.getReasonPhrase(), mensaje, request.getRequestURI(), detalles);
         return ResponseEntity.status(status).body(cuerpo);
+    }
+
+    @ExceptionHandler(com.transportes.viajes.excepciones.ViajeNoEncontradoException.class)
+    public ResponseEntity<RespuestaError> manejarViajeNoEncontrado(
+            com.transportes.viajes.excepciones.ViajeNoEncontradoException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.NOT_FOUND, excepcion.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.transportes.viajes.excepciones.AsientoNoDisponibleException.class)
+    public ResponseEntity<RespuestaError> manejarAsientoNoDisponible(
+            com.transportes.viajes.excepciones.AsientoNoDisponibleException excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request, null);
     }
 }
