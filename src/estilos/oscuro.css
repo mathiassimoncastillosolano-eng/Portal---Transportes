@@ -1,0 +1,1163 @@
+/* ===================================================================
+   RUTALIBRE — DARK DESIGN SYSTEM · refinamientos por componente
+   -------------------------------------------------------------------
+   tokens.css define la escala (superficies, texto, bordes, acento,
+   sombras, movimiento). Este archivo cubre lo que los tokens no pueden:
+   componentes cuyo CSS base trae colores fijos pensados para claro
+   (azules de marca, verdes sólidos, brillos blancos).
+
+   Reglas del archivo:
+   · Todo va bajo [data-theme='dark']: el modo claro no se toca.
+   · Solo se usan tokens (sin colores arbitrarios), salvo los tintes
+     blancos/negros translúcidos que no tienen token.
+   · Jerarquía: lienzo → superficie → elevada → fuerte → interactiva →
+     seleccionada. Una tarjeta solo existe si agrupa, jerarquiza o
+     permite interactuar.
+   · El acento (--acento) se reserva para: acción primaria, selección,
+     foco y confirmación. Nunca para pintar superficies completas.
+   · No se depende solo del color: seleccionado = color + check,
+     ocupado = color + X, bloqueado = gris + candado (iconos ya
+     presentes en MapaAsientosBus.jsx).
+   =================================================================== */
+
+/* ---------- 1. Fundamentos ---------- */
+
+[data-theme='dark'] ::selection {
+  background: var(--acento-tinte-borde);
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] :focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 3px;
+}
+
+[data-theme='dark'] {
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+/* Atmósfera: dos luces ambientales casi imperceptibles sobre el lienzo.
+   Sin retícula ni círculos concéntricos: el contenido manda. */
+[data-theme='dark'] .diseno-principal {
+  background:
+    radial-gradient(1000px 560px at 6% -10%, rgba(44, 150, 165, 0.075), transparent 62%),
+    radial-gradient(860px 520px at 106% 8%, rgba(60, 205, 163, 0.035), transparent 60%),
+    linear-gradient(180deg, #081217 0%, var(--color-fondo) 46%);
+  background-attachment: fixed, fixed, scroll;
+}
+
+[data-theme='dark'] .diseno-principal::before {
+  opacity: 0;
+}
+
+/* Etiquetas de sección: la raya decorativa baja a un trazo discreto */
+[data-theme='dark'] .encabezado-seccion__etiqueta::before {
+  width: 14px;
+  height: 2px;
+  background: var(--acento);
+  opacity: 0.8;
+}
+
+[data-theme='dark'] .encabezado-seccion__titulo {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+[data-theme='dark'] .insignia {
+  background: var(--acento-tinte);
+  box-shadow: inset 0 0 0 1px var(--acento-tinte-borde);
+  color: var(--acento-texto);
+}
+
+[data-theme='dark'] .superficie-cristal {
+  background: var(--superficie-overlay);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  border: 1px solid var(--borde-defecto);
+}
+
+/* ---------- 2. Navegación: ligera, estable, premium ---------- */
+
+[data-theme='dark'] .barra-navegacion {
+  background: var(--barra-fondo);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  border-bottom: 1px solid var(--borde-sutil);
+}
+
+[data-theme='dark'] .barra-navegacion--con-fondo {
+  background: var(--barra-fondo-scroll);
+  border-color: var(--borde-defecto);
+  box-shadow: 0 12px 28px -22px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme='dark'] .barra-navegacion__isotipo {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 14px -8px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme='dark'] .barra-navegacion__isotipo::after {
+  box-shadow: none;
+}
+
+[data-theme='dark'] .barra-navegacion__marca:hover .barra-navegacion__isotipo {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 16px -8px rgba(0, 0, 0, 0.75);
+}
+
+[data-theme='dark'] .barra-navegacion__enlace {
+  color: var(--color-texto-secundario);
+}
+
+[data-theme='dark'] .barra-navegacion__enlace:hover {
+  color: var(--color-texto-principal);
+  background: var(--velo-superficie);
+}
+
+/* Estado activo: píldora neutra + trazo de acento (elegante, no luminoso) */
+[data-theme='dark'] .barra-navegacion__enlace--activo {
+  color: var(--color-texto-principal);
+  background: var(--velo-superficie);
+  box-shadow: inset 0 0 0 1px var(--borde-sutil);
+}
+
+[data-theme='dark'] .barra-navegacion__enlace::after {
+  background: var(--acento);
+}
+
+/* Ingresar: acción importante pero no dominante → tonal de acento */
+[data-theme='dark'] .barra-navegacion__boton-ingreso {
+  background: var(--acento-tinte);
+  color: var(--acento-texto);
+  box-shadow: inset 0 0 0 1px var(--acento-tinte-borde);
+  filter: none;
+}
+
+[data-theme='dark'] .barra-navegacion__boton-ingreso:hover {
+  background: rgba(60, 205, 163, 0.18);
+  color: var(--color-texto-principal);
+  filter: none;
+  box-shadow: inset 0 0 0 1px var(--acento);
+  transform: none;
+}
+
+[data-theme='dark'] .barra-navegacion__boton-perfil {
+  background: var(--color-superficie);
+  border: 1px solid var(--borde-defecto);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .barra-navegacion__boton-perfil:hover {
+  background: var(--color-superficie-elevada);
+  border-color: var(--borde-intenso);
+  transform: none;
+  box-shadow: none;
+}
+
+[data-theme='dark'] .barra-navegacion__boton-perfil[aria-expanded='true'] {
+  border-color: var(--acento);
+  box-shadow: var(--sombra-foco-azul);
+}
+
+[data-theme='dark'] .barra-navegacion__avatar {
+  box-shadow: 0 0 0 2px var(--color-superficie), 0 0 0 3.5px var(--acento-tinte-borde);
+}
+
+[data-theme='dark'] .barra-navegacion__menu-perfil {
+  background: var(--color-superficie-elevada);
+  border: 1px solid var(--borde-defecto);
+  box-shadow: var(--sombra-xl);
+  animation: oscuro-desplegar var(--duracion-normal) cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+[data-theme='dark'] .barra-navegacion__menu-item:hover {
+  background: var(--velo-superficie);
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .barra-navegacion__menu-item--salir:hover {
+  background: var(--color-error-fondo);
+  color: var(--color-error-texto);
+}
+
+[data-theme='dark'] .barra-navegacion__hamburguesa {
+  background: var(--color-superficie);
+  border-color: var(--borde-defecto);
+}
+
+[data-theme='dark'] .barra-navegacion__hamburguesa:hover {
+  background: var(--color-superficie-elevada);
+  border-color: var(--borde-intenso);
+}
+
+[data-theme='dark'] .barra-navegacion__menu-movil {
+  background: var(--superficie-overlay);
+  border-top: 1px solid var(--borde-sutil);
+}
+
+[data-theme='dark'] .barra-navegacion__enlace-movil,
+[data-theme='dark'] .barra-navegacion__fila-tema {
+  border-bottom-color: var(--borde-sutil);
+}
+
+[data-theme='dark'] .barra-navegacion__enlace-movil:hover {
+  background: var(--velo-superficie);
+}
+
+/* ---------- 3. Botones: sistema completo ---------- */
+
+/* Primario: acento sólido, sobrio. Sin neón ni resplandor. */
+[data-theme='dark'] .boton-principal {
+  background: var(--acento);
+  color: var(--acento-sobre);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(0, 0, 0, 0.35);
+  filter: none;
+}
+
+[data-theme='dark'] .boton-principal:hover:not(:disabled) {
+  background: var(--acento-hover);
+  filter: none;
+  transform: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), 0 6px 16px -10px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme='dark'] .boton-principal:active:not(:disabled) {
+  background: var(--acento-activo);
+  filter: none;
+  transform: scale(0.985);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* Deshabilitado: menos contraste, pero legible */
+[data-theme='dark'] .boton-principal:disabled {
+  opacity: 1;
+  background: var(--superficie-fuerte);
+  color: var(--color-texto-terciario);
+  box-shadow: inset 0 0 0 1px var(--borde-sutil);
+}
+
+/* Secundario (contorno): neutro y elegante */
+[data-theme='dark'] .boton-secundario--contorno {
+  background: var(--velo-superficie);
+  border: 1px solid var(--borde-intenso);
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .boton-secundario--contorno:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.24);
+  transform: none;
+}
+
+[data-theme='dark'] .boton-secundario--contorno:active:not(:disabled) {
+  background: var(--velo-superficie-tenue);
+}
+
+/* Fantasma: minimalista (se usa sobre imagen/fondos de marca) */
+[data-theme='dark'] .boton-secundario--fantasma {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+[data-theme='dark'] .boton-secundario--fantasma:hover:not(:disabled) {
+  background: var(--velo-superficie);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme='dark'] .boton-secundario:disabled {
+  opacity: 1;
+  color: var(--color-texto-terciario);
+  border-color: var(--borde-sutil);
+  background: transparent;
+}
+
+[data-theme='dark'] .boton-google {
+  background: var(--velo-superficie);
+  border: 1px solid var(--borde-intenso);
+}
+
+[data-theme='dark'] .boton-google:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: none;
+  transform: none;
+}
+
+[data-theme='dark'] .boton-tema__pista {
+  background: var(--superficie-fuerte);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .boton-tema[aria-pressed='true'] .boton-tema__pista {
+  background: var(--acento-tinte);
+  border-color: var(--acento-tinte-borde);
+}
+
+/* ---------- 4. Inputs: superficie + borde sutil + foco claro ---------- */
+
+[data-theme='dark'] .campo-texto__entrada {
+  background: var(--superficie-entrada);
+  border: 1px solid var(--borde-entrada);
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .campo-texto__entrada:hover:not(:focus) {
+  border-color: var(--borde-entrada-hover);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .campo-texto__entrada:focus {
+  background: var(--color-superficie-elevada);
+  border-color: var(--acento);
+  box-shadow: var(--sombra-foco-azul);
+}
+
+[data-theme='dark'] .campo-texto__entrada:disabled {
+  background: transparent;
+  border-style: dashed;
+  color: var(--color-texto-terciario);
+  cursor: not-allowed;
+}
+
+[data-theme='dark'] .campo-texto__entrada--error {
+  border-color: var(--color-estado-agotado);
+  background: var(--color-error-fondo);
+}
+
+[data-theme='dark'] .campo-texto__entrada--error:focus {
+  box-shadow: 0 0 0 3px rgba(242, 112, 110, 0.28);
+}
+
+[data-theme='dark'] .campo-texto__entrada--exito {
+  border-color: var(--color-estado-disponible);
+}
+
+/* El autocompletado del navegador pinta fondos claros: se neutraliza */
+[data-theme='dark'] input:-webkit-autofill,
+[data-theme='dark'] input:-webkit-autofill:hover,
+[data-theme='dark'] input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-texto-principal);
+  caret-color: var(--color-texto-principal);
+  box-shadow: 0 0 0 100px var(--color-superficie-elevada) inset;
+  transition: background-color 9999s ease-out;
+}
+
+/* ---------- 5. Superficies: menos cajas, más integración ---------- */
+
+[data-theme='dark'] .buscador-viajes,
+[data-theme='dark'] .tarjeta-resultado-viaje,
+[data-theme='dark'] .filtros-resultados,
+[data-theme='dark'] .indicador-progreso,
+[data-theme='dark'] .contador-reserva {
+  border: 1px solid var(--borde-sutil);
+}
+
+[data-theme='dark'] .buscador-viajes {
+  background: var(--color-superficie-elevada);
+  border-color: var(--borde-defecto);
+}
+
+[data-theme='dark'] .buscador-viajes__intercambiar {
+  background: var(--color-superficie);
+  border: 1px solid var(--borde-defecto);
+  color: var(--color-texto-secundario);
+}
+
+[data-theme='dark'] .buscador-viajes__intercambiar:hover {
+  border-color: var(--acento);
+  color: var(--acento-texto);
+  background: var(--acento-tinte);
+}
+
+[data-theme='dark'] .selector-ubicacion__lista {
+  background: var(--color-superficie-elevada);
+  border-color: var(--borde-defecto);
+  animation: oscuro-desplegar var(--duracion-normal) cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+[data-theme='dark'] .selector-ubicacion__opcion:hover {
+  background: var(--velo-superficie);
+}
+
+/* Resultados de viaje: el precio es lo importante, el hover es discreto */
+[data-theme='dark'] .tarjeta-resultado-viaje {
+  background: var(--color-superficie);
+}
+
+[data-theme='dark'] .tarjeta-resultado-viaje:hover {
+  border-color: var(--borde-intenso);
+  box-shadow: var(--sombra-marcada);
+}
+
+[data-theme='dark'] .tarjeta-resultado-viaje--agotado:hover {
+  border-color: var(--borde-sutil);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .tarjeta-resultado-viaje__lateral {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme='dark'] .tarjeta-resultado-viaje__precio {
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .tarjeta-resultado-viaje__pill {
+  background: var(--velo-superficie);
+  color: var(--color-texto-secundario);
+}
+
+[data-theme='dark'] .tarjeta-resultado-viaje__trazo {
+  background: repeating-linear-gradient(90deg, var(--borde-intenso) 0 6px, transparent 6px 10px);
+}
+
+/* Filtros: selección tonal con borde de acento (sin bloques azules) */
+[data-theme='dark'] .filtros-resultados__franja,
+[data-theme='dark'] .filtros-resultados__chip {
+  background: var(--velo-superficie-tenue);
+  border: 1px solid var(--borde-defecto);
+}
+
+[data-theme='dark'] .filtros-resultados__franja:hover,
+[data-theme='dark'] .filtros-resultados__chip:hover {
+  border-color: var(--borde-intenso);
+  background: var(--velo-superficie);
+}
+
+[data-theme='dark'] .filtros-resultados__franja-icono {
+  background: var(--velo-superficie);
+}
+
+[data-theme='dark'] .filtros-resultados__franja--activa,
+[data-theme='dark'] .filtros-resultados__chip--activo {
+  background: var(--acento-tinte);
+  border-color: var(--acento);
+  box-shadow: none;
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .filtros-resultados__franja--activa .filtros-resultados__franja-icono {
+  background: var(--acento-tinte);
+  color: var(--acento-texto);
+}
+
+[data-theme='dark'] .filtros-resultados__franja--activa .filtros-resultados__franja-etiqueta {
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .filtros-resultados__franja--activa .filtros-resultados__franja-detalle {
+  color: var(--color-texto-secundario);
+}
+
+/* ---------- 6. Estados semánticos: tintes, no bloques ---------- */
+
+[data-theme='dark'] .estado-disponibilidad--disponible {
+  background: var(--acento-tinte);
+}
+
+[data-theme='dark'] .estado-disponibilidad__punto {
+  box-shadow: none;
+}
+
+[data-theme='dark'] .contador-reserva {
+  background: var(--color-superficie);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .contador-reserva__icono {
+  background: var(--superficie-fuerte);
+  box-shadow: inset 0 0 0 1px var(--borde-defecto);
+  color: var(--semantico-info);
+}
+
+[data-theme='dark'] .contador-reserva--urgente {
+  background: var(--color-aviso-fondo);
+  border-color: var(--color-aviso-borde);
+}
+
+[data-theme='dark'] .contador-reserva--urgente .contador-reserva__icono {
+  background: var(--color-aviso-fondo-2);
+  box-shadow: inset 0 0 0 1px var(--color-aviso-borde);
+  color: var(--color-aviso-texto);
+}
+
+/* ---------- 7. Progreso de reserva ---------- */
+
+[data-theme='dark'] .indicador-progreso {
+  background: var(--color-superficie);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .indicador-progreso__marcador {
+  background: var(--color-superficie-1);
+  border: 1px solid var(--borde-intenso);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .indicador-progreso__linea {
+  background: var(--borde-defecto);
+}
+
+[data-theme='dark'] .indicador-progreso__linea::after {
+  background: var(--acento);
+}
+
+[data-theme='dark'] .indicador-progreso__paso--completado .indicador-progreso__marcador {
+  background: var(--acento-tinte);
+  border-color: var(--acento-tinte-borde);
+  color: var(--acento-texto);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .indicador-progreso__paso--activo .indicador-progreso__marcador {
+  background: var(--superficie-interactiva);
+  border: 1px solid var(--acento);
+  color: var(--color-texto-principal);
+  box-shadow: var(--sombra-foco-azul);
+}
+
+[data-theme='dark'] .indicador-progreso__paso--activo .indicador-progreso__etiqueta {
+  color: var(--color-texto-principal);
+}
+
+/* ---------- 8. Resumen del viaje (Lima → Cusco) ---------- */
+/* Jerarquía: ruta (foco) → fecha/horario → servicio → precio → CTA.
+   Los metadatos bajan de contraste; el precio y el CTA suben. */
+
+[data-theme='dark'] .info-viaje-compacta {
+  background:
+    radial-gradient(420px 200px at 100% 0%, rgba(60, 205, 163, 0.05), transparent 70%),
+    var(--color-superficie-elevada);
+  color: var(--color-texto-principal);
+  border: 1px solid var(--borde-defecto);
+  box-shadow: var(--sombra-marcada);
+}
+
+[data-theme='dark'] .info-viaje-compacta__fecha {
+  color: var(--color-texto-secundario);
+}
+
+[data-theme='dark'] .info-viaje-compacta__servicio > div {
+  background: var(--velo-superficie-tenue);
+  border: 1px solid var(--borde-sutil);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-theme='dark'] .info-viaje-compacta__servicio dt,
+[data-theme='dark'] .info-viaje-compacta__horario dt {
+  color: var(--color-texto-terciario);
+}
+
+[data-theme='dark'] .info-viaje-compacta__servicio dd,
+[data-theme='dark'] .info-viaje-compacta__ciudad,
+[data-theme='dark'] .info-viaje-compacta__horario dd {
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .info-viaje-compacta__trayecto {
+  color: var(--acento);
+}
+
+[data-theme='dark'] .info-viaje-compacta__linea {
+  border-color: var(--borde-intenso);
+}
+
+[data-theme='dark'] .info-viaje-compacta__bus {
+  background: var(--acento-tinte);
+  border: 1px solid var(--acento-tinte-borde);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .info-viaje-compacta__punto {
+  border-color: var(--acento);
+}
+
+[data-theme='dark'] .info-viaje-compacta__punto--destino {
+  background: var(--acento);
+  box-shadow: 0 0 0 4px var(--acento-tinte);
+}
+
+[data-theme='dark'] .info-viaje-compacta__horarios {
+  border-top-color: var(--borde-defecto);
+}
+
+[data-theme='dark'] .info-viaje-compacta__horario--duracion dd {
+  color: var(--acento-texto);
+}
+
+/* Panel lateral de resumen: superficie elevada, sin filo de color */
+[data-theme='dark'] .resumen-reserva {
+  background: var(--color-superficie-elevada);
+  border: 1px solid var(--borde-defecto);
+  box-shadow: var(--sombra-marcada);
+}
+
+[data-theme='dark'] .resumen-reserva::before {
+  display: none;
+}
+
+/* Listo para avanzar: lo comunica el borde de acento, no un halo */
+[data-theme='dark'] .resumen-reserva--listo {
+  border-color: var(--acento-tinte-borde);
+  box-shadow: var(--sombra-marcada);
+}
+
+[data-theme='dark'] .resumen-reserva__titulo {
+  color: var(--color-texto-terciario);
+}
+
+[data-theme='dark'] .resumen-reserva__ruta {
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .resumen-reserva__ruta svg {
+  color: var(--acento-texto);
+  background: var(--acento-tinte);
+}
+
+[data-theme='dark'] .resumen-reserva__fecha {
+  color: var(--color-texto-secundario);
+}
+
+[data-theme='dark'] .resumen-reserva__fecha-dia,
+[data-theme='dark'] .resumen-reserva__fecha-horas {
+  background: var(--velo-superficie);
+}
+
+[data-theme='dark'] .resumen-reserva__asientos-titulo {
+  color: var(--color-texto-secundario);
+}
+
+/* Chips de asiento: tonal de acento, mismo lenguaje que el asiento elegido */
+[data-theme='dark'] .resumen-reserva__chip {
+  color: var(--acento-texto);
+  background: var(--acento-tinte);
+  box-shadow: inset 0 0 0 1px var(--acento-tinte-borde);
+}
+
+/* Precio base: sin caja teal, el número es el protagonista */
+[data-theme='dark'] .resumen-reserva__lista > .resumen-reserva__fila-precio {
+  background: var(--velo-superficie-tenue);
+  border: 1px solid var(--borde-sutil);
+}
+
+[data-theme='dark'] .resumen-reserva__fila-precio dt {
+  color: var(--color-texto-secundario);
+}
+
+[data-theme='dark'] .resumen-reserva__fila-precio dd,
+[data-theme='dark'] .resumen-reserva__total-monto {
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .resumen-reserva__total {
+  background: var(--acento-tinte);
+  border: 1px solid var(--acento-tinte-borde);
+  color: var(--acento-texto);
+}
+
+/* CTA: la acción primaria */
+[data-theme='dark'] .resumen-reserva .boton-principal {
+  background: var(--acento);
+  color: var(--acento-sobre);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='dark'] .resumen-reserva .boton-principal:hover:not(:disabled) {
+  background: var(--acento-hover);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), 0 6px 16px -10px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme='dark'] .resumen-reserva .boton-principal:active:not(:disabled) {
+  background: var(--acento-activo);
+}
+
+[data-theme='dark'] .resumen-reserva .boton-principal:disabled {
+  background: transparent;
+  border: 1px dashed var(--borde-intenso);
+  color: var(--color-texto-terciario);
+  box-shadow: none;
+}
+
+/* Sin pulso de luz alrededor del botón cuando está listo */
+[data-theme='dark'] .resumen-reserva--listo .boton-principal {
+  animation: none;
+}
+
+[data-theme='dark'] .resumen-reserva__ayuda {
+  background: var(--color-aviso-fondo);
+  border: 1px solid var(--color-aviso-borde);
+  color: var(--color-aviso-texto);
+}
+
+@media (max-width: 640px) {
+  /* Barra inferior fija: vidrio funcional (flota sobre contenido) */
+  [data-theme='dark'] .resumen-reserva {
+    background: var(--panel-fijo-fondo);
+    backdrop-filter: blur(16px) saturate(130%);
+    -webkit-backdrop-filter: blur(16px) saturate(130%);
+    border-color: var(--borde-defecto);
+    box-shadow: 0 -16px 36px -20px rgba(0, 0, 0, 0.7);
+  }
+
+  [data-theme='dark'] .resumen-reserva--listo {
+    border-color: var(--borde-defecto);
+    box-shadow: 0 -16px 36px -20px rgba(0, 0, 0, 0.7), inset 0 2px 0 var(--acento);
+  }
+
+  [data-theme='dark'] .resumen-reserva__lista,
+  [data-theme='dark'] .resumen-reserva__total {
+    background: none;
+    border: none;
+  }
+}
+
+/* ---------- 9. Selector de piso: control segmentado ---------- */
+
+[data-theme='dark'] .selector-piso {
+  background: var(--pista-fondo);
+  border: 1px solid var(--borde-sutil);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='dark'] .selector-piso__opcion::before {
+  border-color: var(--borde-intenso);
+}
+
+[data-theme='dark'] .selector-piso__opcion::after {
+  background: var(--acento);
+}
+
+[data-theme='dark'] .selector-piso__opcion:hover:not(.selector-piso__opcion--activa) {
+  background: var(--velo-superficie-tenue);
+  border-color: var(--borde-sutil);
+  transform: none;
+}
+
+[data-theme='dark'] .selector-piso__opcion:hover:not(.selector-piso__opcion--activa)::before {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme='dark'] .selector-piso__titulo {
+  color: var(--color-texto-secundario);
+}
+
+[data-theme='dark'] .selector-piso__opcion--activa {
+  background: var(--superficie-fuerte);
+  border-color: var(--borde-intenso);
+  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.65);
+  transform: none;
+}
+
+[data-theme='dark'] .selector-piso__opcion--activa::before {
+  border-color: var(--acento);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .selector-piso__opcion--activa .selector-piso__titulo {
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .selector-piso__opcion--activa .selector-piso__subtitulo {
+  color: var(--color-texto-secundario);
+}
+
+/* ---------- 10. Mapa de asientos: componente con jerarquía propia ---------- */
+/* Disponible = neutro limpio · Hover = +luminancia · Seleccionado = acento
+   + check · Ocupado = rojo discreto + X · Bloqueado = gris + candado. */
+
+[data-theme='dark'] .mapa-asientos {
+  background: var(--color-superficie);
+  border: 1px solid var(--borde-sutil);
+  box-shadow: var(--sombra-tarjeta);
+}
+
+[data-theme='dark'] .mapa-asientos__leyenda {
+  background: var(--velo-superficie-tenue);
+  border: 1px solid var(--borde-sutil);
+}
+
+[data-theme='dark'] .mapa-asientos__leyenda-item {
+  color: var(--color-texto-secundario);
+}
+
+[data-theme='dark'] .mapa-asientos__carroceria {
+  background: var(--carroceria-fondo);
+  border: 1px solid var(--borde-defecto);
+  box-shadow: inset 0 -16px 24px -22px rgba(0, 0, 0, 0.6), 0 18px 32px -26px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme='dark'] .mapa-asientos__carroceria::before,
+[data-theme='dark'] .mapa-asientos__carroceria::after {
+  background: var(--carroceria-asidero);
+  border: 1px solid var(--borde-sutil);
+}
+
+[data-theme='dark'] .mapa-asientos__frente {
+  color: var(--color-texto-secundario);
+  border-bottom: 1px dashed var(--borde-defecto);
+}
+
+[data-theme='dark'] .mapa-asientos__frente svg {
+  background: var(--velo-superficie);
+}
+
+[data-theme='dark'] .mapa-asientos__posterior {
+  border-top: 1px dashed var(--borde-defecto);
+}
+
+[data-theme='dark'] .mapa-asientos__pasillo {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.1) 1.5px, transparent 1.5px),
+    linear-gradient(rgba(255, 255, 255, 0.1) 1.5px, transparent 1.5px);
+}
+
+/* Disponible: neutro, claramente seleccionable */
+[data-theme='dark'] .asiento--disponible {
+  background: var(--asiento-disponible-fondo);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--color-texto-secundario);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+[data-theme='dark'] .asiento--disponible:hover {
+  transform: translateY(-2px);
+  background: var(--asiento-disponible-hover);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--color-texto-principal);
+  box-shadow: 0 8px 14px -8px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme='dark'] .asiento--disponible:active {
+  transform: translateY(0);
+}
+
+/* Seleccionado: el único elemento con acento sólido del mapa */
+[data-theme='dark'] .asiento--seleccionado {
+  background: var(--acento);
+  border-color: var(--acento-hover);
+  color: var(--acento-sobre);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 0 0 2px var(--asiento-anillo), 0 0 0 4px var(--acento-tinte-borde), 0 8px 14px -8px rgba(0, 0, 0, 0.7);
+  animation: oscuro-asiento-elegido var(--duracion-normal) cubic-bezier(0.2, 0, 0, 1);
+}
+
+[data-theme='dark'] .asiento--seleccionado::before {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+/* Bloqueado por otro cliente: neutro grisáceo + candado */
+[data-theme='dark'] .asiento--tomado {
+  background: var(--asiento-tomado-fondo);
+  border-color: var(--asiento-tomado-borde);
+  color: var(--asiento-tomado-texto);
+}
+
+/* Ocupado: rojo semántico discreto + X */
+[data-theme='dark'] .asiento--ocupado {
+  background: var(--asiento-ocupado-fondo);
+  border-color: rgba(242, 112, 110, 0.32);
+  color: var(--asiento-ocupado-texto);
+}
+
+[data-theme='dark'] .asiento--tomado::before,
+[data-theme='dark'] .asiento--ocupado::before {
+  background: var(--velo-superficie);
+}
+
+[data-theme='dark'] .asiento--disponible::before {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Foco por teclado: anillo claramente visible, distinto del hover */
+[data-theme='dark'] .asiento:focus-visible {
+  outline: 2px solid var(--color-texto-principal);
+  outline-offset: 3px;
+}
+
+[data-theme='dark'] .mapa-asientos__leyenda-muestra.asiento--seleccionado {
+  box-shadow: 0 0 0 2px var(--acento-tinte-borde);
+  transform: none;
+  animation: none;
+}
+
+/* ---------- 11. Calendario ---------- */
+
+[data-theme='dark'] .selector-fecha__calendario {
+  background: var(--color-superficie-elevada);
+  border: 1px solid var(--borde-defecto);
+  box-shadow: var(--sombra-xl);
+}
+
+[data-theme='dark'] .selector-fecha__cabecera {
+  background: var(--superficie-fuerte);
+  border-bottom: 1px solid var(--borde-sutil);
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .selector-fecha__anio {
+  color: var(--acento-texto);
+}
+
+[data-theme='dark'] .selector-fecha__nav {
+  background: var(--velo-superficie);
+  border: 1px solid var(--borde-defecto);
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .selector-fecha__nav:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--borde-intenso);
+}
+
+[data-theme='dark'] .selector-fecha__dia {
+  background: var(--velo-superficie-tenue);
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .selector-fecha__dia:hover:not(:disabled):not(.selector-fecha__dia--seleccionado) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--borde-intenso);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .selector-fecha__dia--hoy {
+  border-color: var(--acento-tinte-borde);
+  color: var(--acento-texto);
+}
+
+[data-theme='dark'] .selector-fecha__dia--hoy::after {
+  background: var(--acento);
+}
+
+[data-theme='dark'] .selector-fecha__dia--seleccionado {
+  background: var(--acento);
+  color: var(--acento-sobre);
+  box-shadow: 0 0 0 2px var(--color-superficie-elevada), 0 0 0 4px var(--acento-tinte-borde);
+}
+
+[data-theme='dark'] .selector-fecha__dia--seleccionado::after {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .selector-fecha__dia--no-disponible,
+[data-theme='dark'] .selector-fecha__dia--no-disponible:hover {
+  color: #4F636B;
+}
+
+[data-theme='dark'] .selector-fecha__fondo {
+  background: var(--scrim);
+}
+
+/* ---------- 12. Modales ---------- */
+
+[data-theme='dark'] .modal-base__fondo {
+  background: var(--scrim);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: oscuro-aparecer var(--duracion-normal) ease-out both;
+}
+
+[data-theme='dark'] .modal-base__panel {
+  background: var(--color-superficie-elevada);
+  border: 1px solid var(--borde-defecto);
+  box-shadow: var(--sombra-xl);
+  animation: oscuro-modal var(--duracion-normal) cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+[data-theme='dark'] .modal-base__cerrar {
+  background: var(--velo-superficie);
+  color: var(--color-texto-secundario);
+}
+
+[data-theme='dark'] .modal-base__cerrar:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-texto-principal);
+  transform: none;
+}
+
+[data-theme='dark'] .modal-expiracion {
+  background: var(--scrim);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+[data-theme='dark'] .modal-expiracion__caja {
+  background: var(--color-superficie-elevada);
+  border: 1px solid var(--borde-defecto);
+  box-shadow: var(--sombra-xl);
+}
+
+[data-theme='dark'] .modal-expiracion .modal-expiracion__boton {
+  background: var(--acento);
+  color: var(--acento-sobre);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='dark'] .modal-expiracion .modal-expiracion__boton:hover {
+  background: var(--acento-hover);
+}
+
+[data-theme='dark'] .modal-expiracion .modal-expiracion__boton:focus-visible {
+  outline: 2px solid var(--color-texto-principal);
+}
+
+/* ---------- 13. Perfil, pasajes, pago, servicios ---------- */
+
+/* Superficies que eran bloques de marca a pantalla completa pasan a
+   superficie elevada con detalles de marca puntuales. */
+[data-theme='dark'] .tarjeta-perfil {
+  background:
+    radial-gradient(360px 200px at 100% 0%, rgba(60, 205, 163, 0.06), transparent 70%),
+    var(--color-superficie-elevada);
+  border: 1px solid var(--borde-defecto);
+  box-shadow: var(--sombra-marcada);
+}
+
+[data-theme='dark'] .tarjeta-perfil::before {
+  display: none;
+}
+
+[data-theme='dark'] .tarjeta-perfil__avatar {
+  background: var(--superficie-fuerte);
+  border: 1px solid var(--borde-intenso);
+}
+
+[data-theme='dark'] .tarjeta-perfil__item dt {
+  color: var(--color-texto-terciario);
+}
+
+[data-theme='dark'] .tarjeta-perfil__boton-editar {
+  background: var(--velo-superficie);
+  border: 1px solid var(--borde-intenso);
+}
+
+[data-theme='dark'] .tarjeta-perfil__boton-editar:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .tarjeta-ticket {
+  background: var(--color-superficie-elevada);
+  border: 1px solid var(--borde-defecto);
+  box-shadow: var(--sombra-marcada);
+}
+
+[data-theme='dark'] .tarjeta-ticket__franja {
+  background: var(--superficie-fuerte);
+  border-bottom: 1px solid var(--borde-defecto);
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .tarjeta-ticket__acciones button {
+  background: var(--velo-superficie);
+  border: 1px solid var(--borde-intenso);
+  color: var(--color-texto-principal);
+}
+
+[data-theme='dark'] .tarjeta-ticket__acciones button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .pasarela-pago__tarjeta-vista {
+  background:
+    radial-gradient(260px 140px at 100% 0%, rgba(60, 205, 163, 0.08), transparent 70%),
+    var(--superficie-fuerte);
+  border: 1px solid var(--borde-defecto);
+}
+
+[data-theme='dark'] .ticket-pasajero--completo .ticket-pasajero__franja,
+[data-theme='dark'] .ticket-pasajero__marca-punto {
+  background: var(--acento);
+}
+
+[data-theme='dark'] .ticket-pasajero--completo .ticket-pasajero__estado-icono {
+  background: var(--acento-tinte);
+  color: var(--acento-texto);
+  box-shadow: inset 0 0 0 1px var(--acento-tinte-borde);
+}
+
+[data-theme='dark'] .tarjeta-servicio__icono {
+  background: var(--acento-tinte);
+  color: var(--acento-texto);
+  box-shadow: inset 0 0 0 1px var(--acento-tinte-borde);
+  border-color: var(--color-superficie);
+}
+
+/* ---------- 14. Autenticación y pie de página ---------- */
+
+[data-theme='dark'] .pagina-autenticacion__marca {
+  background:
+    radial-gradient(420px 260px at 0% 0%, rgba(44, 150, 165, 0.12), transparent 70%),
+    var(--color-superficie-1);
+  border-right: 1px solid var(--borde-sutil);
+}
+
+[data-theme='dark'] .pagina-autenticacion__marca::before,
+[data-theme='dark'] .pagina-autenticacion__marca::after {
+  display: none;
+}
+
+[data-theme='dark'] .pagina-autenticacion__marca-item-icono {
+  background: var(--acento-tinte);
+  border: 1px solid var(--acento-tinte-borde);
+  color: var(--acento-texto);
+}
+
+/* Pie: más profundo que el lienzo, sin bloque teal */
+[data-theme='dark'] .pie-de-pagina {
+  background: #050B0E;
+  border-top: 1px solid var(--borde-sutil);
+}
+
+[data-theme='dark'] .pie-de-pagina::before {
+  opacity: 0.55;
+}
+
+[data-theme='dark'] .pie-de-pagina__red {
+  background: var(--velo-superficie);
+  border: 1px solid var(--borde-defecto);
+  color: var(--color-texto-secundario);
+}
+
+[data-theme='dark'] .pie-de-pagina__red:hover,
+[data-theme='dark'] .pie-de-pagina__red:focus-visible {
+  background: var(--acento);
+  border-color: transparent;
+  color: var(--acento-sobre);
+}
+
+[data-theme='dark'] .pie-de-pagina__enlace:hover {
+  color: var(--acento-texto);
+}
+
+/* ---------- 15. Movimiento ---------- */
+/* 120 ms feedback · 200 ms transiciones · 300 ms énfasis. Sin rebotes. */
+
+@keyframes oscuro-aparecer {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes oscuro-modal {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes oscuro-desplegar {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes oscuro-asiento-elegido {
+  from { transform: translateY(0) scale(0.96); }
+  to { transform: translateY(-2px) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='dark'] .asiento--seleccionado,
+  [data-theme='dark'] .modal-base__fondo,
+  [data-theme='dark'] .modal-base__panel,
+  [data-theme='dark'] .barra-navegacion__menu-perfil,
+  [data-theme='dark'] .selector-ubicacion__lista {
+    animation: none;
+  }
+}

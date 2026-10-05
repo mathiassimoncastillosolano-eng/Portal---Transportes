@@ -190,121 +190,209 @@
   --transicion-base: 240ms cubic-bezier(0.4, 0, 0.2, 1);
   --transicion-premium: 520ms cubic-bezier(0.16, 1, 0.3, 1);
 
+  /* ---------------------------------------------------------------
+     Sistema de diseño — capa semántica ampliada
+     Alias de la escala existente + tokens nuevos que el modo oscuro
+     redefine. En claro conservan exactamente el aspecto actual.
+     --------------------------------------------------------------- */
+
+  /* Acento de acción: CTA, selección, foco, interacción positiva */
+  --acento: var(--color-verde-600);
+  --acento-hover: var(--color-verde-500);
+  --acento-activo: var(--color-verde-700);
+  --acento-sobre: #06281B;               /* texto sobre fondo de acento */
+  --acento-tinte: rgba(16, 185, 129, 0.12);
+  --acento-tinte-borde: rgba(16, 185, 129, 0.32);
+  --acento-texto: var(--color-texto-exito);
+
+  /* Escala de bordes (sutil → fuerte) */
+  --borde-sutil: var(--color-borde-luz);
+  --borde-defecto: var(--color-borde);
+  --borde-intenso: var(--color-borde-fuerte);
+
+  /* Superficies adicionales de la jerarquía:
+     lienzo → superficie → elevada → fuerte → interactiva → overlay */
+  --superficie-fuerte: var(--color-superficie-2);
+  --superficie-interactiva: var(--color-superficie-teal);
+  --superficie-overlay: var(--color-superficie-velada);
+  --superficie-entrada: var(--color-fondo);
+  --scrim: rgba(7, 30, 37, 0.5);
+
+  /* Estados semánticos (icono / indicador / borde selectivo) */
+  --semantico-info: #0B6878;
+  --semantico-info-tinte: rgba(11, 104, 120, 0.1);
+
+  /* Escala de radios y sombras con nombre de talla */
+  --radio-xs: 6px;
+  --sombra-sm: var(--sombra-tenue);
+  --sombra-md: var(--sombra-suave);
+  --sombra-lg: var(--sombra-marcada);
+  --sombra-xl: var(--sombra-flotante);
+
+  /* Movimiento: rápido / normal / lento */
+  --duracion-rapida: 150ms;
+  --duracion-normal: 240ms;
+  --duracion-lenta: 520ms;
+
   color-scheme: light;
 }
 
 /* ===================================================================
-   MODO OSCURO
-   Solo se redefine la capa semántica: la paleta de marca no cambia,
-   así los fondos de marca (botones, pie de página, paneles oscuros)
-   siguen viéndose igual y el texto sobre ellos se mantiene legible.
+   MODO OSCURO — "Low-luminance, high-clarity"
+   Sistema propio, no un filtro del claro:
+   · Grafito azulado muy profundo (nunca #000) con micro-diferencias de
+     luminancia entre niveles: lienzo → superficie → elevada → fuerte →
+     interactiva → seleccionada.
+   · Bordes de 1px en blanco translúcido (6 / 9 / 14 %), reservando el
+     contraste alto para foco, selección, error e inputs.
+   · Aproximadamente 80 % neutro oscuro, 15 % neutro secundario y 5 % de
+     acento. El acento (menta-turquesa) jerarquiza; no pinta superficies.
+   · Los colores semánticos viven en iconos, badges y bordes selectivos;
+     los fondos son tintes de baja opacidad, nunca bloques de color.
+   La paleta de marca (--color-azul-*, --color-verde-*) no cambia; solo
+   se redefine la capa semántica. Los refinamientos por componente que
+   los tokens no pueden resolver están en oscuro.css.
    =================================================================== */
 
 [data-theme='dark'] {
-  /* Superficies — de más profunda a más elevada */
-  --color-fondo: #071A20;
-  --color-fondo-alterno: #0A222A;
-  --color-superficie-1: #0D2A33;
-  --color-superficie-2: #10323C;
-  --color-superficie-teal: #143A45;
-  --color-superficie: #0F2E38;
-  --color-superficie-velada: rgba(13, 42, 51, 0.78);
-  --color-superficie-elevada: #12343F;
+  /* ---- Superficies (de más profunda a más elevada) ---- */
+  --color-fondo: #070F13;               /* lienzo */
+  --color-fondo-alterno: #0A161B;       /* lienzo secundario */
+  --color-superficie-1: #0C1A20;        /* panel secundario */
+  --color-superficie-2: #101F26;
+  --color-superficie: #0E1C22;          /* superficie base (tarjetas) */
+  --color-superficie-elevada: #12242B;  /* menús, modales, resumen */
+  --color-superficie-teal: #132A31;     /* chips y cajas tenues */
+  --color-superficie-velada: rgba(10, 22, 27, 0.78);
+  --superficie-fuerte: #172F37;
+  --superficie-interactiva: #1B353E;
+  --superficie-overlay: rgba(14, 28, 34, 0.86);
+  --superficie-entrada: rgba(255, 255, 255, 0.035);
+  --scrim: rgba(3, 8, 10, 0.66);
 
-  /* Texto */
-  --color-texto-principal: #E6F0F3;
-  --color-texto-secundario: #9FB4BE;
-  --color-texto-terciario: #728995;
-  /* --color-texto-invertido NO se redefine: nombra el texto que va sobre
-     superficies de marca oscuras (p. ej. el botón fantasma), y esas
-     superficies son oscuras en ambos temas. */
+  /* ---- Texto: jerarquía por luminosidad, nunca por desaparición ---- */
+  --color-texto-principal: #E9F1F3;     /* ≈ 15:1 sobre superficie */
+  --color-texto-secundario: #A9BBC2;    /* ≈ 8.7:1 */
+  --color-texto-terciario: #82979F;     /* ≈ 5.6:1 */
+  /* --color-texto-invertido NO se redefine: nombra el texto sobre
+     superficies de marca oscuras, que lo son en ambos temas. */
 
-  /* Texto de marca: se aclara para mantener contraste sobre oscuro */
-  --color-texto-marca: #6FC6DA;
-  --color-texto-marca-fuerte: #C7E6EE;
-  --color-texto-exito: #4ADE9B;
-  --color-texto-acento: #34D399;
+  /* Los títulos de marca pasan a neutro de alto contraste: el color de
+     marca queda para el acento, no para cada encabezado. */
+  --color-texto-marca: #9ECBD6;
+  --color-texto-marca-fuerte: #E9F1F3;
+  --color-texto-exito: #5FD7AE;
+  --color-texto-acento: #46D3A7;
 
-  /* Bordes */
-  --color-borde: #1E4350;
-  --color-borde-fuerte: #2C5B6B;
-  --color-borde-marca: #3A8498;
-  --color-borde-luz: rgba(255, 255, 255, 0.07);
+  /* ---- Bordes ---- */
+  --color-borde: rgba(255, 255, 255, 0.09);        /* por defecto */
+  --color-borde-fuerte: rgba(255, 255, 255, 0.16); /* hover / énfasis */
+  --color-borde-marca: #3CCDA3;                    /* foco / selección */
+  --color-borde-luz: rgba(255, 255, 255, 0.06);    /* sutil: tarjetas */
+  --borde-sutil: rgba(255, 255, 255, 0.06);
+  --borde-defecto: rgba(255, 255, 255, 0.09);
+  --borde-intenso: rgba(255, 255, 255, 0.14);
+  /* Bordes de controles de formulario: ≥ 3:1 sobre superficie (WCAG 1.4.11) */
+  --borde-entrada: rgba(255, 255, 255, 0.36);
+  --borde-entrada-hover: rgba(255, 255, 255, 0.52);
 
-  /* Estados: se conservan los matices pero sobre base oscura */
-  --color-estado-disponible: #34D399;
-  --color-estado-pocos: #FBBF24;
-  --color-estado-agotado: #F87171;
+  /* ---- Acento ---- */
+  --acento: #3CCDA3;
+  --acento-hover: #4FD9B0;
+  --acento-activo: #31B58E;
+  --acento-sobre: #04211A;
+  --acento-tinte: rgba(60, 205, 163, 0.12);
+  --acento-tinte-borde: rgba(60, 205, 163, 0.34);
+  --acento-texto: #6FE0BF;
 
-  /* Gradientes */
-  --gradiente-hero: linear-gradient(120deg, rgba(3, 14, 18, 0.97) 0%, rgba(7, 30, 37, 0.9) 38%, rgba(13, 42, 51, 0.55) 72%, rgba(13, 42, 51, 0.15) 100%);
-  --gradiente-superficie: linear-gradient(165deg, #12343F 0%, #0E2B34 100%);
-  --gradiente-tarjeta: linear-gradient(170deg, rgba(18, 52, 63, 0.95) 0%, rgba(13, 42, 51, 0.9) 100%);
-  --gradiente-panel-teal: linear-gradient(160deg, #143A45 0%, #0F2E38 100%);
-  --gradiente-menu: linear-gradient(180deg, #143A45 0%, #0F2E38 100%);
-  --gradiente-panel-claro: linear-gradient(180deg, rgba(20, 58, 69, 0.95), rgba(15, 46, 56, 0.9));
-  --gradiente-calendario: linear-gradient(170deg, #143A45 0%, #0E2B34 100%);
+  /* ---- Estados semánticos ---- */
+  --color-estado-disponible: #3FCF9B;
+  --color-estado-pocos: #F0B429;
+  --color-estado-agotado: #F2706E;
+  --semantico-info: #6CC4DB;
+  --semantico-info-tinte: rgba(108, 196, 219, 0.1);
 
-  /* El brillo superior desaparece: sobre oscuro delataría el borde */
-  --brillo-superior: rgba(255, 255, 255, 0.06);
-  --brillo-superior-suave: rgba(255, 255, 255, 0.05);
+  --color-aviso-fondo: rgba(240, 180, 41, 0.08);
+  --color-aviso-fondo-2: rgba(240, 180, 41, 0.12);
+  --color-aviso-borde: rgba(240, 180, 41, 0.28);
+  --color-aviso-texto: #F3D184;
 
-  --velo-superficie: rgba(255, 255, 255, 0.06);
-  --velo-superficie-tenue: rgba(255, 255, 255, 0.04);
+  --color-error-fondo: rgba(242, 112, 110, 0.10);
+  --color-error-fondo-2: rgba(242, 112, 110, 0.14);
+  --color-error-texto: #F6A8A6;
 
-  /* Sombras: más profundas y sin el inset blanco */
-  --sombra-tenue: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --sombra-suave: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 26px -12px rgba(0, 0, 0, 0.6);
-  --sombra-tarjeta: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.35), 0 14px 32px -18px rgba(0, 0, 0, 0.7);
-  --sombra-marcada: 0 4px 10px rgba(0, 0, 0, 0.4), 0 24px 48px -20px rgba(0, 0, 0, 0.75);
-  --sombra-flotante: 0 8px 16px -6px rgba(0, 0, 0, 0.5), 0 34px 64px -26px rgba(0, 0, 0, 0.8);
-  --sombra-interior: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --sombra-foco-verde: 0 0 0 4px rgba(52, 211, 153, 0.26);
-  --sombra-foco-azul: 0 0 0 4px rgba(111, 198, 218, 0.24);
+  --color-exito-fondo: rgba(63, 207, 155, 0.10);
+  --color-superficie-marca: rgba(255, 255, 255, 0.04);
+  --color-superficie-marca-2: rgba(255, 255, 255, 0.07);
+  --color-superficie-exito: rgba(63, 207, 155, 0.11);
+  --color-superficie-exito-2: rgba(63, 207, 155, 0.07);
+  --color-superficie-neutra: #172A31;
 
-  /* Estados informativos en versión oscura */
-  --color-aviso-fondo: #3A2E12;
-  --color-aviso-fondo-2: #332810;
-  --color-aviso-borde: #6B5420;
-  --color-aviso-texto: #F6D98A;
+  /* ---- Gradientes: casi planos. La profundidad viene de la luminancia,
+         no de degradados saturados ---- */
+  --gradiente-hero: linear-gradient(120deg, rgba(3, 9, 12, 0.97) 0%, rgba(6, 18, 23, 0.9) 38%, rgba(10, 26, 32, 0.55) 72%, rgba(10, 26, 32, 0.12) 100%);
+  --gradiente-superficie: linear-gradient(180deg, #112229 0%, #0E1C22 100%);
+  --gradiente-tarjeta: linear-gradient(180deg, #102128 0%, #0E1C22 100%);
+  --gradiente-panel-teal: linear-gradient(180deg, #132A31 0%, #102127 100%);
+  --gradiente-menu: linear-gradient(180deg, #142830 0%, #12242B 100%);
+  --gradiente-panel-claro: linear-gradient(180deg, #102128 0%, #0E1C22 100%);
+  --gradiente-calendario: linear-gradient(180deg, #12242B 0%, #102128 100%);
+  --gradiente-acento: linear-gradient(180deg, #44D4AA 0%, #36C198 100%);
+  --gradiente-halo: radial-gradient(60% 60% at 50% 0%, rgba(60, 205, 163, 0.07) 0%, rgba(60, 205, 163, 0) 70%);
 
-  --color-error-fondo: #3D1D1D;
-  --color-error-fondo-2: #351919;
-  --color-error-texto: #FCA5A5;
+  /* ---- Brillos y velos ---- */
+  --brillo-superior: rgba(255, 255, 255, 0.045);
+  --brillo-superior-suave: rgba(255, 255, 255, 0.03);
+  --velo-superficie: rgba(255, 255, 255, 0.05);
+  --velo-superficie-tenue: rgba(255, 255, 255, 0.03);
 
-  --color-exito-fondo: #10372A;
+  /* ---- Sombras: amplias, difusas, sin negro duro. Se combinan con
+         contraste de superficie y borde sutil ---- */
+  --sombra-tenue: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --sombra-suave: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px -14px rgba(0, 0, 0, 0.5);
+  --sombra-tarjeta: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 1px 2px rgba(0, 0, 0, 0.22), 0 14px 32px -22px rgba(0, 0, 0, 0.55);
+  --sombra-marcada: 0 2px 6px rgba(0, 0, 0, 0.2), 0 20px 44px -24px rgba(0, 0, 0, 0.6);
+  --sombra-flotante: 0 8px 20px -10px rgba(0, 0, 0, 0.45), 0 32px 64px -30px rgba(0, 0, 0, 0.65);
+  --sombra-interior: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --sombra-sm: var(--sombra-tenue);
+  --sombra-md: var(--sombra-suave);
+  --sombra-lg: var(--sombra-marcada);
+  --sombra-xl: var(--sombra-flotante);
+  /* Anillo de foco único para todo el modo oscuro: muy visible */
+  --sombra-foco-verde: 0 0 0 3px rgba(60, 205, 163, 0.32);
+  --sombra-foco-azul: 0 0 0 3px rgba(60, 205, 163, 0.32);
 
-  --color-superficie-marca: #143A45;
-  --color-superficie-marca-2: #19454F;
-  --color-superficie-exito: #10372A;
-  --color-superficie-exito-2: #0D2F24;
+  /* ---- Barra superior, paneles fijos y tramas ---- */
+  --barra-fondo: rgba(8, 17, 21, 0.72);
+  --barra-fondo-scroll: rgba(8, 17, 21, 0.88);
+  --pista-fondo: #091419;
+  --color-celda-tenue: rgba(255, 255, 255, 0.03);
+  --panel-fijo-fondo: rgba(11, 23, 28, 0.94);
 
-  --color-superficie-neutra: #1A3A44;
-  --pista-fondo: linear-gradient(180deg, #0C262E 0%, #103039 100%);
+  /* ---- Esqueletos de carga ---- */
+  --esqueleto-base: #132830;
+  --esqueleto-brillo: #1B343D;
 
-  --barra-fondo: rgba(8, 29, 36, 0.86);
-  --barra-fondo-scroll: rgba(9, 33, 40, 0.94);
+  /* ---- Mapa de asientos ---- */
+  --carroceria-fondo: #0A171C;
+  --carroceria-asidero: #15272E;
+  --asiento-disponible-fondo: #152A32;
+  --asiento-disponible-hover: #1D3741;
+  --asiento-libre-fondo: #132830;
+  --asiento-ocupado-fondo: rgba(242, 112, 110, 0.10);
+  --asiento-anillo: #0E1C22;
+  --asiento-tomado-fondo: repeating-linear-gradient(135deg, #111E24 0 5px, #0E1A20 5px 10px);
+  --asiento-tomado-borde: rgba(255, 255, 255, 0.08);
+  --asiento-tomado-texto: #7E929A;
+  --asiento-ocupado-texto: #F2A19F;
 
-  --color-celda-tenue: rgba(20, 58, 69, 0.55);
-
-  --panel-fijo-fondo: linear-gradient(180deg, rgba(18, 52, 63, 0.985), rgba(13, 42, 51, 0.99));
-
-  --carroceria-asidero: #1E4855;
-  --asiento-tomado-fondo: repeating-linear-gradient(135deg, #1B3B46 0 5px, #16333D 5px 10px);
-  --asiento-tomado-borde: #2C5160;
-  --asiento-tomado-texto: #A9BDC8;
-  --asiento-ocupado-texto: #F0A5A5;
-
-  --esqueleto-base: #143A45;
-  --esqueleto-brillo: #1B4A58;
-
-  /* Mapa de asientos */
-  --asiento-disponible-fondo: linear-gradient(180deg, #17404C 0%, #123A3A 100%);
-  --asiento-disponible-hover: linear-gradient(180deg, #1C4F5B 0%, #164A42 100%);
-  --asiento-libre-fondo: linear-gradient(180deg, #173F4B 0%, #122F39 100%);
-  --asiento-ocupado-fondo: linear-gradient(180deg, #45201F 0%, #351818 100%);
-  --asiento-anillo: rgba(7, 26, 32, 0.9);
-  --carroceria-fondo: linear-gradient(180deg, #0F2E38 0%, #0A222A 100%);
+  /* ---- Movimiento: rápido 120 / normal 200 / lento 300 ms ---- */
+  --duracion-rapida: 120ms;
+  --duracion-normal: 200ms;
+  --duracion-lenta: 300ms;
+  --transicion-rapida: 120ms cubic-bezier(0.2, 0, 0, 1);
+  --transicion-base: 200ms cubic-bezier(0.2, 0, 0, 1);
+  --transicion-premium: 300ms cubic-bezier(0.2, 0, 0, 1);
 
   color-scheme: dark;
 }

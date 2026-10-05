@@ -134,3 +134,73 @@
   opacity: 0.7;
   cursor: wait;
 }
+
+/* ---------- Sistema de botones: variantes adicionales ----------
+   Comparten radio, altura, tipografía y movimiento con primario y
+   secundario. Usan solo tokens, así funcionan en ambos temas. */
+
+.boton-terciario,
+.boton-destructivo,
+.boton-exito {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-2);
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--tamano-sm);
+  padding: 0.7rem 1.4rem;
+  border-radius: var(--radio-pastilla);
+  border: 1px solid transparent;
+  transition: background var(--transicion-rapida), border-color var(--transicion-rapida), color var(--transicion-rapida);
+}
+
+.boton-terciario:disabled,
+.boton-destructivo:disabled,
+.boton-exito:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Terciario / ghost: solo texto, para acciones de bajo énfasis */
+.boton-terciario {
+  background: transparent;
+  color: var(--color-texto-marca);
+}
+
+.boton-terciario:hover:not(:disabled) {
+  background: var(--velo-superficie);
+  color: var(--color-texto-principal);
+}
+
+/* Destructivo: el rojo solo aparece en la acción irreversible */
+.boton-destructivo {
+  background: var(--color-error-fondo);
+  border-color: var(--color-estado-agotado);
+  color: var(--color-error-texto);
+}
+
+.boton-destructivo:hover:not(:disabled) {
+  background: var(--color-destructivo-fondo);
+  border-color: var(--color-destructivo-fondo);
+  color: #fff;
+}
+
+/* Éxito: confirmación positiva de bajo peso visual */
+.boton-exito {
+  background: var(--color-superficie-exito);
+  border-color: var(--color-estado-disponible);
+  color: var(--color-texto-exito);
+}
+
+.boton-exito:hover:not(:disabled) {
+  border-color: var(--color-texto-exito);
+}
+
+.boton-terciario:focus-visible,
+.boton-destructivo:focus-visible,
+.boton-exito:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 3px;
+}
