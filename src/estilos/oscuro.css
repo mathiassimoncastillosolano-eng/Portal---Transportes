@@ -1125,6 +1125,11 @@
   color: var(--acento-sobre);
 }
 
+[data-theme='dark'] .pie-de-pagina__linea-inferior {
+  border-top-color: var(--borde-sutil);
+  color: var(--color-texto-terciario);
+}
+
 [data-theme='dark'] .pie-de-pagina__enlace:hover {
   color: var(--acento-texto);
 }

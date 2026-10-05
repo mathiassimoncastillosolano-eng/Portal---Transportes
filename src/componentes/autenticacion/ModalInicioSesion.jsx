@@ -57,10 +57,6 @@ export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
     }
   }
 
-  function usarCuentaDemo() {
-    setCorreo(usuarioDemo.correo)
-    setContrasena(usuarioDemo.contrasena)
-  }
 
   return (
     <ModalBase
@@ -101,9 +97,7 @@ export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
           {cargando ? 'Ingresando…' : 'Iniciar sesión'}
         </BotonPrincipal>
 
-        <button type="button" className="formulario-autenticacion__demo" onClick={usarCuentaDemo}>
-          Usar cuenta de demostración
-        </button>
+
       </form>
 
       <p className="formulario-autenticacion__pie">
