@@ -139,6 +139,20 @@
   transform: none;
 }
 
+[data-theme='dark'] .barra-navegacion__boton-registro {
+  background: var(--color-superficie);
+  color: var(--color-texto-principal);
+  border-color: var(--borde-defecto);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .barra-navegacion__boton-registro:hover {
+  background: var(--color-superficie-elevada);
+  border-color: var(--acento);
+  transform: none;
+  box-shadow: none;
+}
+
 [data-theme='dark'] .barra-navegacion__boton-perfil {
   background: var(--color-superficie);
   border: 1px solid var(--borde-defecto);

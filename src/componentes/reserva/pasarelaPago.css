@@ -147,9 +147,9 @@
 }
 
 .pasarela-pago__marca--activa {
-  border-color: var(--color-azul-700);
-  background: var(--color-azul-50);
-  color: var(--color-azul-800);
+  border-color: var(--color-borde-marca);
+  background: var(--color-superficie-marca);
+  color: var(--color-texto-marca);
 }
 
 .pasarela-pago__nota {
@@ -159,9 +159,9 @@
 }
 
 .pasarela-pago__aviso {
-  background: #FDF0DA;
-  color: #92580A;
-  border: 1px solid #F2CE94;
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso-texto);
+  border: 1px solid var(--color-aviso-borde);
   border-radius: var(--radio-md);
   padding: var(--espacio-3) var(--espacio-4);
   font-size: var(--tamano-sm);
@@ -171,7 +171,7 @@
 .pasarela-pago__pasos-yape {
   margin: 0;
   padding: var(--espacio-4) var(--espacio-4) var(--espacio-4) 2.4rem;
-  background: var(--color-azul-50);
+  background: var(--color-superficie-marca);
   border-radius: var(--radio-md);
   font-size: var(--tamano-sm);
   color: var(--color-texto-secundario);

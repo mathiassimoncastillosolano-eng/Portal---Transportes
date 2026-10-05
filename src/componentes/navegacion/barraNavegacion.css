@@ -164,6 +164,27 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 14px 24px -10px rgba(11, 53, 64, 0.75);
 }
 
+.barra-navegacion__boton-registro {
+  display: inline-flex;
+  align-items: center;
+  background: var(--gradiente-panel-claro);
+  color: var(--color-azul-900);
+  border: 1px solid rgba(15, 76, 92, 0.22);
+  padding: calc(0.72rem - 1px) 1.5rem;
+  border-radius: var(--radio-pastilla);
+  font-weight: 600;
+  font-size: var(--tamano-sm);
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 var(--brillo-superior), 0 8px 18px -12px rgba(11, 53, 64, 0.4);
+  transition: transform var(--transicion-rapida), border-color var(--transicion-rapida), box-shadow var(--transicion-rapida);
+}
+
+.barra-navegacion__boton-registro:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-azul-700);
+  box-shadow: inset 0 1px 0 var(--brillo-superior), 0 12px 22px -12px rgba(11, 53, 64, 0.5);
+}
+
 .barra-navegacion__perfil {
   position: relative;
 }
@@ -430,5 +451,12 @@
 @media (max-width: 420px) {
   .barra-navegacion__acciones {
     gap: var(--espacio-2);
+  }
+}
+
+/* En pantallas estrechas "Crear cuenta" pasa al menú móvil. */
+@media (max-width: 600px) {
+  .barra-navegacion__boton-registro {
+    display: none;
   }
 }
