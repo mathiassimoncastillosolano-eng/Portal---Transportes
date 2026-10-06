@@ -1116,6 +1116,59 @@
   color: var(--acento-texto);
 }
 
+/* El lienzo del formulario queda un paso por debajo de la columna de marca,
+   así la tarjeta elevada se separa del fondo por luminancia y no por sombra. */
+[data-theme='dark'] .pagina-autenticacion__panel {
+  background: var(--gradiente-halo), var(--color-fondo);
+}
+
+/* Tarjeta: superficie elevada con borde de 1px y un brillo superior mínimo
+   que insinúa el canto sin dibujar una línea blanca. */
+[data-theme='dark'] .pagina-autenticacion__tarjeta {
+  background: var(--color-superficie-elevada);
+  border: 1px solid var(--borde-defecto);
+  box-shadow:
+    inset 0 1px 0 var(--brillo-superior),
+    var(--sombra-xl);
+}
+
+/* Separadores: en oscuro el degradado parte del borde sutil para que las
+   líneas no destaquen más que el propio canto de la tarjeta. */
+[data-theme='dark'] .pagina-autenticacion__divisor::before,
+[data-theme='dark'] .formulario-autenticacion__divisor::before {
+  background: linear-gradient(90deg, transparent, var(--borde-intenso));
+}
+
+[data-theme='dark'] .pagina-autenticacion__divisor::after,
+[data-theme='dark'] .formulario-autenticacion__divisor::after {
+  background: linear-gradient(90deg, var(--borde-intenso), transparent);
+}
+
+/* Botón de Google: GIS dibuja su variante oficial oscura (filled_black).
+   El anillo propio sube de contraste para integrar ese negro casi puro con
+   la superficie azulada de la tarjeta. */
+[data-theme='dark'] .boton-google-contenedor__gis::after {
+  border-color: var(--borde-intenso);
+}
+
+[data-theme='dark'] .boton-google-contenedor__gis:hover::after {
+  border-color: rgba(255, 255, 255, 0.26);
+}
+
+[data-theme='dark'] .pagina-autenticacion__pie,
+[data-theme='dark'] .formulario-autenticacion__pie {
+  border-top-color: var(--borde-defecto);
+}
+
+[data-theme='dark'] .aviso-autenticacion--error {
+  border-color: rgba(242, 112, 110, 0.3);
+}
+
+[data-theme='dark'] .campo-texto__ojo:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-texto-principal);
+}
+
 /* Pie: más profundo que el lienzo, sin bloque teal */
 [data-theme='dark'] .pie-de-pagina {
   background: #050B0E;

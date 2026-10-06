@@ -3,23 +3,10 @@ import { ModalBase } from '../comunes/ModalBase'
 import { CampoTexto } from '../comunes/CampoTexto'
 import { BotonPrincipal } from '../comunes/BotonPrincipal'
 import { BotonGoogle } from '../comunes/BotonGoogle'
+import { AvisoAutenticacion } from './AvisoAutenticacion'
+import { ICONO_CANDADO, ICONO_CORREO } from './iconosAutenticacion'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
-import { usuarioDemo } from '../../datos/usuarios'
 import './autenticacion.css'
-
-const ICONO_CORREO = (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-    <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-11Z" stroke="currentColor" strokeWidth="1.6" />
-    <path d="m4 6.5 8 6 8-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
-
-const ICONO_CANDADO = (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-    <rect x="5" y="10.5" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="1.6" />
-    <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-  </svg>
-)
 
 export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
   const { iniciarSesion, iniciarSesionConGoogle } = useAutenticacion()
@@ -57,7 +44,6 @@ export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
     }
   }
 
-
   return (
     <ModalBase
       titulo="Iniciar sesión"
@@ -67,7 +53,9 @@ export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
     >
       <BotonGoogle alCredencial={manejarGoogle} alError={setError} deshabilitado={cargando} />
 
-      <div className="divisor-o formulario-autenticacion__divisor">o continúa con tu correo</div>
+      <div className="divisor-o formulario-autenticacion__divisor">
+        <span>o continúa con tu correo</span>
+      </div>
 
       <form className="formulario-autenticacion" onSubmit={manejarEnvio}>
         <CampoTexto
@@ -79,6 +67,7 @@ export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
           requerido
           autoComplete="email"
           icono={ICONO_CORREO}
+          deshabilitado={cargando}
         />
         <CampoTexto
           etiqueta="Contraseña"
@@ -89,15 +78,17 @@ export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
           requerido
           autoComplete="current-password"
           icono={ICONO_CANDADO}
+          alternarVisibilidad
+          deshabilitado={cargando}
         />
 
-        {error && <p className="formulario-autenticacion__error">{error}</p>}
+        <AvisoAutenticacion tono="error">{error}</AvisoAutenticacion>
 
-        <BotonPrincipal tipo="submit" deshabilitado={cargando} ancho="100%">
-          {cargando ? 'Ingresando…' : 'Iniciar sesión'}
-        </BotonPrincipal>
-
-
+        <div className="formulario-autenticacion__acciones">
+          <BotonPrincipal tipo="submit" deshabilitado={cargando} cargando={cargando} ancho="100%">
+            {cargando ? 'Ingresando…' : 'Iniciar sesión'}
+          </BotonPrincipal>
+        </div>
       </form>
 
       <p className="formulario-autenticacion__pie">

@@ -1,0 +1,50 @@
+/* Mensajes de estado de autenticación.
+   El color vive en el icono, el texto y un borde fino; el fondo es un tinte
+   de baja opacidad, nunca un bloque saturado. Así funciona igual en claro y
+   en oscuro usando solo tokens. */
+
+.aviso-autenticacion {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radio-sm);
+  border: 1px solid transparent;
+  font-size: var(--tamano-xs);
+  font-weight: 500;
+  line-height: 1.5;
+  animation: aviso-autenticacion-entrar var(--duracion-normal) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.aviso-autenticacion__icono {
+  display: flex;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.aviso-autenticacion__texto {
+  min-width: 0;
+}
+
+.aviso-autenticacion--error {
+  background: var(--color-error-fondo);
+  border-color: rgba(239, 68, 68, 0.26);
+  color: var(--color-error-texto);
+}
+
+.aviso-autenticacion--exito {
+  background: var(--color-superficie-exito);
+  border-color: var(--acento-tinte-borde);
+  color: var(--color-texto-exito);
+}
+
+@keyframes aviso-autenticacion-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

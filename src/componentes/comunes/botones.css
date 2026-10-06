@@ -32,6 +32,48 @@
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
+  transform: none;
+}
+
+.boton-principal:focus-visible {
+  outline: 2.5px solid var(--acento);
+  outline-offset: 3px;
+}
+
+/* Indicador de progreso: aparece junto al texto, sin cambiar la altura del
+   botón ni provocar salto de layout al pasar a "cargando". */
+.boton-principal__contenido {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+.boton-principal__girador {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-right-color: transparent;
+  animation: boton-girar 620ms linear infinite;
+}
+
+.boton-principal--cargando {
+  cursor: progress;
+}
+
+@keyframes boton-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boton-principal__girador {
+    animation-duration: 1.6s;
+  }
 }
 
 .boton-secundario {
@@ -75,7 +117,17 @@
   cursor: not-allowed;
 }
 
-/* ---------- Botón "Continuar con Google" (Google Identity Services) ---------- */
+/* ---------- Botón "Continuar con Google" (Google Identity Services) ----------
+
+   El botón real lo dibuja Google dentro de `.boton-google-contenedor__gis`
+   con su variante oficial: `outline` en tema claro y `filled_black` en
+   oscuro (ver BotonGoogle.jsx). El logotipo conserva siempre sus colores
+   originales y en oscuro el fondo es oscuro, sin rectángulo blanco.
+
+   Lo que sí controla la aplicación es el marco: un anillo discreto del mismo
+   radio que el botón de Google, que lo integra con el resto de controles y
+   aporta los estados hover / active. `.boton-google` es el respaldo propio
+   que se muestra mientras la librería de Google carga o si falla.           */
 
 .boton-google {
   display: inline-flex;
@@ -83,6 +135,7 @@
   justify-content: center;
   gap: 0.7rem;
   width: 100%;
+  min-height: 48px;
   background: var(--color-superficie);
   border: 1.5px solid var(--color-borde);
   color: var(--color-texto-principal);
@@ -120,14 +173,51 @@
 }
 
 .boton-google-contenedor__gis {
+  position: relative;
   display: flex;
   justify-content: center;
-  min-height: 44px;
+  min-height: 48px;
+  border-radius: var(--radio-pastilla);
+  transition:
+    box-shadow var(--transicion-rapida),
+    transform var(--transicion-rapida);
+}
+
+/* Anillo propio sobre el botón de Google: no intercepta el clic y mantiene
+   la coherencia con el borde de los demás controles. */
+.boton-google-contenedor__gis::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid var(--color-borde);
+  pointer-events: none;
+  transition: border-color var(--transicion-rapida);
+}
+
+.boton-google-contenedor__gis:hover::after {
+  border-color: var(--color-borde-fuerte);
+}
+
+.boton-google-contenedor__gis:hover {
+  transform: translateY(-1px);
+}
+
+.boton-google-contenedor__gis:active {
+  transform: translateY(0);
+}
+
+/* Google dibuja su botón con un ancho en píxeles; se estira al contenedor
+   para que en móvil ocupe todo el ancho disponible. */
+.boton-google-contenedor__gis > div {
+  width: 100% !important;
+  max-width: 100%;
 }
 
 .boton-google-contenedor__gis--bloqueado {
-  opacity: 0.6;
+  opacity: 0.55;
   pointer-events: none;
+  filter: saturate(0.7);
 }
 
 .boton-google:disabled {

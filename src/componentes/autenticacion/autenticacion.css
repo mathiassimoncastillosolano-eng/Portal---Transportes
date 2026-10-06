@@ -1,5 +1,29 @@
+/* ===================================================================
+   Formularios de autenticación en modal (ModalInicioSesion y
+   FormularioRegistro).
+
+   Comparten con las páginas los mismos componentes — CampoTexto,
+   BotonPrincipal, BotonGoogle y AvisoAutenticacion — y aquí se repiten
+   las mismas medidas de separador, rejilla, acciones y pie, para que el
+   modal y la pantalla completa se lean como la misma interfaz.
+   =================================================================== */
+
 .formulario-autenticacion__divisor {
   margin: var(--espacio-5) 0;
+  gap: var(--espacio-4);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--color-texto-terciario);
+}
+
+.formulario-autenticacion__divisor::before,
+.formulario-autenticacion__divisor::after {
+  background: linear-gradient(90deg, transparent, var(--color-borde));
+}
+
+.formulario-autenticacion__divisor::after {
+  background: linear-gradient(90deg, var(--color-borde), transparent);
 }
 
 .formulario-autenticacion {
@@ -14,39 +38,86 @@
   gap: var(--espacio-4);
 }
 
-@media (max-width: 420px) {
-  .formulario-autenticacion__fila {
-    grid-template-columns: 1fr;
-  }
-}
-
-.formulario-autenticacion__error {
-  color: var(--color-estado-agotado);
-  font-size: var(--tamano-sm);
-  background: var(--color-error-fondo);
-  border-radius: var(--radio-sm);
-  padding: 0.7rem 0.9rem;
-  font-weight: 500;
+.formulario-autenticacion__acciones {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--espacio-3);
+  margin-top: var(--espacio-2);
 }
 
 .formulario-autenticacion__demo {
   background: none;
   border: none;
-  color: var(--color-texto-secundario);
+  color: var(--color-texto-terciario);
   font-size: var(--tamano-xs);
+  font-weight: 500;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  padding: 0.35rem;
+  border-radius: var(--radio-xs);
   align-self: center;
   transition: color var(--transicion-rapida);
 }
 
-.formulario-autenticacion__demo:hover {
+.formulario-autenticacion__demo:hover:not(:disabled) {
   color: var(--color-texto-marca);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
+.formulario-autenticacion__demo:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- Estado de éxito del registro ---------- */
+
+.formulario-autenticacion__exito {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espacio-4);
+  padding: var(--espacio-2) 0 var(--espacio-2);
+  text-align: center;
+}
+
+.formulario-autenticacion__exito-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--color-superficie-exito);
+  border: 1px solid var(--acento-tinte-borde);
+  color: var(--color-texto-exito);
+  animation: formulario-exito-entrar var(--duracion-normal) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.formulario-autenticacion__exito-texto {
+  max-width: 34ch;
+  color: var(--color-texto-secundario);
+  font-size: var(--tamano-sm);
+  line-height: 1.55;
+}
+
+@keyframes formulario-exito-entrar {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---------- Pie ---------- */
+
 .formulario-autenticacion__pie {
-  margin-top: var(--espacio-5);
+  margin-top: var(--espacio-6);
+  padding-top: var(--espacio-5);
+  border-top: 1px solid var(--borde-sutil);
   text-align: center;
   font-size: var(--tamano-sm);
   color: var(--color-texto-secundario);
@@ -59,4 +130,27 @@
   font-weight: 600;
   cursor: pointer;
   padding: 0;
+  border-radius: var(--radio-xs);
+  transition: color var(--transicion-rapida);
+}
+
+.formulario-autenticacion__enlace:hover {
+  color: var(--acento-texto);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 520px) {
+  .formulario-autenticacion__fila {
+    grid-template-columns: 1fr;
+  }
+
+  .formulario-autenticacion__divisor {
+    margin: var(--espacio-4) 0;
+  }
+
+  .formulario-autenticacion__pie {
+    margin-top: var(--espacio-5);
+    padding-top: var(--espacio-4);
+  }
 }

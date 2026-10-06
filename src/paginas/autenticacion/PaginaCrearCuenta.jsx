@@ -3,6 +3,14 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { CampoTexto } from '../../componentes/comunes/CampoTexto'
 import { BotonPrincipal } from '../../componentes/comunes/BotonPrincipal'
 import { BotonGoogle } from '../../componentes/comunes/BotonGoogle'
+import { AvisoAutenticacion } from '../../componentes/autenticacion/AvisoAutenticacion'
+import { PanelMarcaAutenticacion } from '../../componentes/autenticacion/PanelMarcaAutenticacion'
+import {
+  ICONO_CANDADO,
+  ICONO_CORREO,
+  ICONO_TELEFONO,
+  ICONO_USUARIO,
+} from '../../componentes/autenticacion/iconosAutenticacion'
 import { validarRegistro } from '../../utilidades/validarRegistro'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import './autenticacionPagina.css'
@@ -16,25 +24,11 @@ const VALORES_INICIALES = {
   confirmarContrasena: '',
 }
 
-const ICONO_CORREO = (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-    <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-11Z" stroke="currentColor" strokeWidth="1.6" />
-    <path d="m4 6.5 8 6 8-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
-
-const ICONO_TELEFONO = (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-    <path d="M6.6 10.5c1.2 2.4 3.1 4.3 5.5 5.5l1.9-1.9c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.5.6.6 0 1 .4 1 1V19c0 .6-.4 1-1 1C10.6 20 4 13.4 4 5.5c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.5.1.4 0 .8-.2 1L6.6 10.5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-  </svg>
-)
-
-const ICONO_CANDADO = (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-    <rect x="5" y="10.5" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="1.6" />
-    <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-  </svg>
-)
+const VENTAJAS = [
+  'Registro rápido, sin complicaciones',
+  'Cinco niveles de servicio a tu elección',
+  'Atención al cliente las 24 horas',
+]
 
 export function PaginaCrearCuenta() {
   const { registrarUsuario, iniciarSesionConGoogle } = useAutenticacion()
@@ -88,54 +82,28 @@ export function PaginaCrearCuenta() {
 
   return (
     <section className="pagina-autenticacion">
-      <div className="pagina-autenticacion__marca">
-        <div className="pagina-autenticacion__marca-logo">
-          <span className="pagina-autenticacion__marca-isotipo">RL</span>
-          RutaLibre
-        </div>
-
-        <div className="pagina-autenticacion__marca-cuerpo">
-          <h1 className="pagina-autenticacion__marca-titulo">Únete a RutaLibre</h1>
-          <p className="pagina-autenticacion__marca-texto">
-            Crea tu cuenta y empieza a reservar pasajes en minutos, con
-            tickets electrónicos y todo tu historial de viajes en un solo lugar.
-          </p>
-        </div>
-
-        <ul className="pagina-autenticacion__marca-lista">
-          <li className="pagina-autenticacion__marca-item">
-            <span className="pagina-autenticacion__marca-item-icono">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5 10 17l9-10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </span>
-            Registro rápido, sin complicaciones
-          </li>
-          <li className="pagina-autenticacion__marca-item">
-            <span className="pagina-autenticacion__marca-item-icono">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5 10 17l9-10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </span>
-            Cinco niveles de servicio a tu elección
-          </li>
-          <li className="pagina-autenticacion__marca-item">
-            <span className="pagina-autenticacion__marca-item-icono">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5 10 17l9-10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </span>
-            Atención al cliente las 24 horas
-          </li>
-        </ul>
-      </div>
+      <PanelMarcaAutenticacion
+        titulo="Únete a RutaLibre"
+        texto="Crea tu cuenta y empieza a reservar pasajes en minutos, con tickets electrónicos y todo tu historial de viajes en un solo lugar."
+        ventajas={VENTAJAS}
+      />
 
       <div className="pagina-autenticacion__panel">
         <div className="pagina-autenticacion__tarjeta pagina-autenticacion__tarjeta--ancha animar-aparicion">
-          <h2 className="pagina-autenticacion__titulo">Crear cuenta</h2>
-          <p className="pagina-autenticacion__subtitulo">
-            Regístrate para comprar pasajes y guardar tus tickets electrónicos.
-          </p>
+          <header className="pagina-autenticacion__encabezado">
+            <h2 className="pagina-autenticacion__titulo">Crear cuenta</h2>
+            <p className="pagina-autenticacion__subtitulo">
+              Regístrate para comprar pasajes y guardar tus tickets electrónicos.
+            </p>
+          </header>
 
           <div className="pagina-autenticacion__social">
             <BotonGoogle alCredencial={manejarGoogle} alError={setErrorGeneral} deshabilitado={cargando} />
           </div>
 
-          <div className="divisor-o pagina-autenticacion__divisor">o regístrate con tu correo</div>
+          <div className="divisor-o pagina-autenticacion__divisor">
+            <span>o regístrate con tu correo</span>
+          </div>
 
           <form className="pagina-autenticacion__formulario" onSubmit={manejarEnvio}>
             <div className="pagina-autenticacion__fila">
@@ -145,6 +113,9 @@ export function PaginaCrearCuenta() {
                 alCambiar={(valor) => actualizarCampo('nombres', valor)}
                 error={errores.nombres}
                 requerido
+                autoComplete="given-name"
+                icono={ICONO_USUARIO}
+                deshabilitado={cargando}
               />
               <CampoTexto
                 etiqueta="Apellidos"
@@ -152,6 +123,9 @@ export function PaginaCrearCuenta() {
                 alCambiar={(valor) => actualizarCampo('apellidos', valor)}
                 error={errores.apellidos}
                 requerido
+                autoComplete="family-name"
+                icono={ICONO_USUARIO}
+                deshabilitado={cargando}
               />
             </div>
 
@@ -163,7 +137,9 @@ export function PaginaCrearCuenta() {
               error={errores.correo}
               requerido
               autoComplete="email"
+              marcador="tucorreo@ejemplo.com"
               icono={ICONO_CORREO}
+              deshabilitado={cargando}
             />
 
             <CampoTexto
@@ -173,6 +149,8 @@ export function PaginaCrearCuenta() {
               alCambiar={(valor) => actualizarCampo('telefono', valor)}
               error={errores.telefono}
               icono={ICONO_TELEFONO}
+              modoEntrada="tel"
+              deshabilitado={cargando}
             />
 
             <div className="pagina-autenticacion__fila">
@@ -182,9 +160,12 @@ export function PaginaCrearCuenta() {
                 valor={valores.contrasena}
                 alCambiar={(valor) => actualizarCampo('contrasena', valor)}
                 error={errores.contrasena}
+                ayuda="Mínimo 8 caracteres"
                 requerido
                 autoComplete="new-password"
                 icono={ICONO_CANDADO}
+                alternarVisibilidad
+                deshabilitado={cargando}
               />
               <CampoTexto
                 etiqueta="Confirmar contraseña"
@@ -195,14 +176,18 @@ export function PaginaCrearCuenta() {
                 requerido
                 autoComplete="new-password"
                 icono={ICONO_CANDADO}
+                alternarVisibilidad
+                deshabilitado={cargando}
               />
             </div>
 
-            {errorGeneral && <p className="pagina-autenticacion__error">{errorGeneral}</p>}
+            <AvisoAutenticacion tono="error">{errorGeneral}</AvisoAutenticacion>
 
-            <BotonPrincipal tipo="submit" deshabilitado={cargando} ancho="100%">
-              {cargando ? 'Creando cuenta…' : 'Crear cuenta'}
-            </BotonPrincipal>
+            <div className="pagina-autenticacion__acciones">
+              <BotonPrincipal tipo="submit" deshabilitado={cargando} cargando={cargando} ancho="100%">
+                {cargando ? 'Creando cuenta…' : 'Crear cuenta'}
+              </BotonPrincipal>
+            </div>
           </form>
 
           <p className="pagina-autenticacion__pie">

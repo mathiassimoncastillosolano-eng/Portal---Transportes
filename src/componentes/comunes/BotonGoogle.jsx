@@ -4,6 +4,7 @@ import {
   inicializarGoogle,
   registrarManejadorCredencial,
 } from '../../servicios/googleServicio'
+import { useTema } from '../../hooks/useTema'
 import './botones.css'
 
 const ICONO_GOOGLE = (
@@ -27,6 +28,11 @@ const ICONO_GOOGLE = (
   </svg>
 )
 
+/** Ancho que Google debe dibujar, acotado a los límites que acepta GIS. */
+function medirAncho(elemento) {
+  return Math.min(400, Math.max(200, Math.round(elemento?.offsetWidth || 320)))
+}
+
 /**
  * "Continuar con Google" con Google Identity Services.
  *
@@ -34,12 +40,26 @@ const ICONO_GOOGLE = (
  * token (`credential`) que se pasa a `alCredencial`; el backend lo valida.
  * Mientras la librería carga (o si falla), se muestra el botón con el estilo
  * propio de la aplicación.
+ *
+ * Integración con el modo oscuro
+ * ------------------------------
+ * El botón lo renderiza Google dentro de su propio contenedor, así que el CSS
+ * de la aplicación no puede repintarlo: por eso antes aparecía un bloque
+ * blanco sobre el lienzo oscuro. La solución es pedirle a GIS su variante
+ * oficial oscura (`theme: 'filled_black'`) cuando el tema es oscuro, y la
+ * clara (`outline`) cuando es claro. Así el fondo del botón es oscuro, el
+ * logotipo de Google conserva sus colores originales y no hay rectángulo
+ * blanco alrededor. Al cambiar de tema se vuelve a dibujar.
+ *
+ * Nada de esto altera el flujo de OAuth: la configuración de `initialize`, el
+ * callback de la credencial y el contrato con el backend son los mismos.
  */
 export function BotonGoogle({ texto = 'Continuar con Google', alCredencial, alError, deshabilitado = false }) {
   const contenedor = useRef(null)
   const alCredencialRef = useRef(alCredencial)
   const alErrorRef = useRef(alError)
   const [listo, setListo] = useState(false)
+  const { esOscuro } = useTema()
 
   alCredencialRef.current = alCredencial
   alErrorRef.current = alError
@@ -47,6 +67,7 @@ export function BotonGoogle({ texto = 'Continuar con Google', alCredencial, alEr
   useEffect(() => {
     let activo = true
     let quitarManejador = () => {}
+    let observador
 
     cargarGoogle()
       .then((google) => {
@@ -59,17 +80,42 @@ export function BotonGoogle({ texto = 'Continuar con Google', alCredencial, alEr
             alErrorRef.current?.('No se recibió la credencial de Google. Inténtalo de nuevo.')
           }
         })
-        google.accounts.id.renderButton(contenedor.current, {
-          type: 'standard',
-          theme: 'outline',
-          size: 'large',
-          text: 'continue_with',
-          shape: 'pill',
-          logo_alignment: 'left',
-          locale: 'es',
-          width: Math.min(400, Math.max(200, Math.round(contenedor.current.offsetWidth || 320))),
-        })
+
+        const dibujar = () => {
+          if (!activo || !contenedor.current) return
+          // Se limpia antes de redibujar para que al cambiar de tema o de
+          // ancho no queden dos botones apilados.
+          contenedor.current.replaceChildren()
+          google.accounts.id.renderButton(contenedor.current, {
+            type: 'standard',
+            theme: esOscuro ? 'filled_black' : 'outline',
+            size: 'large',
+            text: 'continue_with',
+            shape: 'pill',
+            logo_alignment: 'left',
+            locale: 'es',
+            width: medirAncho(contenedor.current),
+          })
+        }
+
+        dibujar()
         setListo(true)
+
+        // El ancho del botón lo fija Google en píxeles, así que hay que
+        // redibujarlo cuando cambia el espacio disponible (giro de pantalla,
+        // ventana redimensionada) para que siga ocupando todo el ancho.
+        if (typeof ResizeObserver !== 'undefined') {
+          let anchoPrevio = medirAncho(contenedor.current)
+          observador = new ResizeObserver(() => {
+            if (!contenedor.current) return
+            const nuevo = medirAncho(contenedor.current.parentElement ?? contenedor.current)
+            if (Math.abs(nuevo - anchoPrevio) > 8) {
+              anchoPrevio = nuevo
+              dibujar()
+            }
+          })
+          if (contenedor.current.parentElement) observador.observe(contenedor.current.parentElement)
+        }
       })
       .catch((error) => {
         if (activo) alErrorRef.current?.(error.message)
@@ -77,9 +123,10 @@ export function BotonGoogle({ texto = 'Continuar con Google', alCredencial, alEr
 
     return () => {
       activo = false
+      observador?.disconnect()
       quitarManejador()
     }
-  }, [])
+  }, [esOscuro])
 
   return (
     <div className="boton-google-contenedor">

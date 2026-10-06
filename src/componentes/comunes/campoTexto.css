@@ -1,14 +1,36 @@
+/* ===================================================================
+   CampoTexto — input del sistema de diseño
+   Altura, radio y tipografía unificados con el sistema de botones:
+   control de 48px, radio --radio-sm y etiqueta de peso medio.
+   Todo se expresa con tokens, así el modo oscuro lo resuelve la capa
+   semántica y no hay valores duplicados por tema.
+   =================================================================== */
+
 .campo-texto {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.campo-texto__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espacio-3);
 }
 
 .campo-texto__etiqueta {
   font-size: var(--tamano-xs);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-texto-secundario);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
+}
+
+.campo-texto__accion {
+  font-size: var(--tamano-xs);
+  font-weight: 600;
+  color: var(--color-texto-marca);
 }
 
 .campo-texto__envoltura {
@@ -19,7 +41,7 @@
 
 .campo-texto__icono {
   position: absolute;
-  left: 0.95rem;
+  left: 0.9rem;
   display: flex;
   color: var(--color-texto-terciario);
   pointer-events: none;
@@ -28,22 +50,33 @@
 
 .campo-texto__entrada {
   width: 100%;
+  min-height: 48px;
   border: 1.5px solid var(--color-borde);
   border-radius: var(--radio-sm);
-  padding: 0.8rem 0.95rem;
-  background: var(--color-fondo);
-  transition: border-color var(--transicion-rapida), background var(--transicion-rapida), box-shadow var(--transicion-rapida);
+  padding: 0.78rem 0.95rem;
+  background: var(--superficie-entrada);
+  color: var(--color-texto-principal);
+  font-size: var(--tamano-sm);
+  line-height: 1.4;
+  transition:
+    border-color var(--transicion-rapida),
+    background var(--transicion-rapida),
+    box-shadow var(--transicion-rapida);
 }
 
 .campo-texto--con-icono .campo-texto__entrada {
-  padding-left: 2.6rem;
+  padding-left: 2.7rem;
+}
+
+.campo-texto--con-accion .campo-texto__entrada {
+  padding-right: 3rem;
 }
 
 .campo-texto__entrada::placeholder {
   color: var(--color-texto-terciario);
 }
 
-.campo-texto__entrada:hover {
+.campo-texto__entrada:hover:not(:focus):not(:disabled) {
   border-color: var(--color-borde-fuerte);
 }
 
@@ -54,9 +87,18 @@
   box-shadow: var(--sombra-foco-azul);
 }
 
-.campo-texto__entrada:focus + .campo-texto__icono,
+/* El icono acompaña al foco: señal de estado sin añadir ruido de color */
 .campo-texto__envoltura:focus-within .campo-texto__icono {
   color: var(--color-texto-marca);
+}
+
+.campo-texto__entrada:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.campo-texto--deshabilitado .campo-texto__etiqueta {
+  opacity: 0.6;
 }
 
 .campo-texto__entrada--error {
@@ -64,14 +106,76 @@
 }
 
 .campo-texto__entrada--error:focus {
+  border-color: var(--color-estado-agotado);
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14);
 }
 
+/* ---------- Botón mostrar / ocultar contraseña ---------- */
+
+.campo-texto__ojo {
+  position: absolute;
+  right: 0.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radio-xs);
+  background: transparent;
+  color: var(--color-texto-terciario);
+  cursor: pointer;
+  transition:
+    color var(--transicion-rapida),
+    background var(--transicion-rapida);
+}
+
+.campo-texto__ojo:hover:not(:disabled) {
+  color: var(--color-texto-principal);
+  background: var(--velo-superficie);
+}
+
+.campo-texto__ojo:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ---------- Mensajes ---------- */
+
 .campo-texto__error {
+  display: flex;
+  /* alineado arriba: con mensajes de dos líneas el icono debe acompañar a la
+     primera, no centrarse respecto al bloque */
+  align-items: flex-start;
+  gap: 0.35rem;
   font-size: var(--tamano-xs);
   color: var(--color-estado-agotado);
   font-weight: 500;
+  animation: campo-texto-error var(--duracion-rapida) ease-out both;
 }
+
+.campo-texto__error svg {
+  flex-shrink: 0;
+  margin-top: 0.12em;
+}
+
+@keyframes campo-texto-error {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.campo-texto__ayuda {
+  font-size: var(--tamano-xs);
+  color: var(--color-texto-terciario);
+}
+
+/* ---------- Variante select (CampoSeleccion) ---------- */
 
 .campo-texto__entrada--seleccion {
   appearance: none;
@@ -85,11 +189,6 @@
   display: flex;
   color: var(--color-texto-secundario);
   pointer-events: none;
-}
-
-.campo-texto__ayuda {
-  font-size: var(--tamano-xs);
-  color: var(--color-texto-terciario);
 }
 
 /* Estado éxito (validación correcta): borde semántico, sin relleno */

@@ -3,6 +3,13 @@ import { ModalBase } from '../comunes/ModalBase'
 import { CampoTexto } from '../comunes/CampoTexto'
 import { BotonPrincipal } from '../comunes/BotonPrincipal'
 import { BotonGoogle } from '../comunes/BotonGoogle'
+import { AvisoAutenticacion } from './AvisoAutenticacion'
+import {
+  ICONO_CANDADO,
+  ICONO_CORREO,
+  ICONO_TELEFONO,
+  ICONO_USUARIO,
+} from './iconosAutenticacion'
 import { validarRegistro } from '../../utilidades/validarRegistro'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import './autenticacion.css'
@@ -71,8 +78,19 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
   if (cuentaCreada) {
     return (
       <ModalBase titulo="Cuenta creada" abierto={abierto} alCerrar={alCerrar}>
-        <p role="status">Tu cuenta se creó correctamente. Inicia sesión para continuar.</p>
-        <BotonPrincipal onClick={alIrAIniciarSesion}>Iniciar sesión</BotonPrincipal>
+        <div className="formulario-autenticacion__exito">
+          <span className="formulario-autenticacion__exito-icono" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12.6l4.2 4.2L19 7.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <p className="formulario-autenticacion__exito-texto" role="status">
+            Tu cuenta se creó correctamente. Inicia sesión para continuar.
+          </p>
+          <BotonPrincipal onClick={alIrAIniciarSesion} ancho="100%">
+            Iniciar sesión
+          </BotonPrincipal>
+        </div>
       </ModalBase>
     )
   }
@@ -86,7 +104,9 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
     >
       <BotonGoogle alCredencial={manejarGoogle} alError={setErrorGeneral} deshabilitado={cargando} />
 
-      <div className="divisor-o formulario-autenticacion__divisor">o regístrate con tu correo</div>
+      <div className="divisor-o formulario-autenticacion__divisor">
+        <span>o regístrate con tu correo</span>
+      </div>
 
       <form className="formulario-autenticacion" onSubmit={manejarEnvio}>
         <div className="formulario-autenticacion__fila">
@@ -96,6 +116,9 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
             alCambiar={(valor) => actualizarCampo('nombres', valor)}
             error={errores.nombres}
             requerido
+            autoComplete="given-name"
+            icono={ICONO_USUARIO}
+            deshabilitado={cargando}
           />
           <CampoTexto
             etiqueta="Apellidos"
@@ -103,6 +126,9 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
             alCambiar={(valor) => actualizarCampo('apellidos', valor)}
             error={errores.apellidos}
             requerido
+            autoComplete="family-name"
+            icono={ICONO_USUARIO}
+            deshabilitado={cargando}
           />
         </div>
 
@@ -114,6 +140,9 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
           error={errores.correo}
           requerido
           autoComplete="email"
+          marcador="tucorreo@ejemplo.com"
+          icono={ICONO_CORREO}
+          deshabilitado={cargando}
         />
 
         <CampoTexto
@@ -122,6 +151,9 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
           valor={valores.telefono}
           alCambiar={(valor) => actualizarCampo('telefono', valor)}
           error={errores.telefono}
+          icono={ICONO_TELEFONO}
+          modoEntrada="tel"
+          deshabilitado={cargando}
         />
 
         <div className="formulario-autenticacion__fila">
@@ -131,8 +163,12 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
             valor={valores.contrasena}
             alCambiar={(valor) => actualizarCampo('contrasena', valor)}
             error={errores.contrasena}
+            ayuda="Mínimo 8 caracteres"
             requerido
             autoComplete="new-password"
+            icono={ICONO_CANDADO}
+            alternarVisibilidad
+            deshabilitado={cargando}
           />
           <CampoTexto
             etiqueta="Confirmar contraseña"
@@ -142,14 +178,19 @@ export function FormularioRegistro({ abierto, alCerrar, alIrAIniciarSesion }) {
             error={errores.confirmarContrasena}
             requerido
             autoComplete="new-password"
+            icono={ICONO_CANDADO}
+            alternarVisibilidad
+            deshabilitado={cargando}
           />
         </div>
 
-        {errorGeneral && <p className="formulario-autenticacion__error">{errorGeneral}</p>}
+        <AvisoAutenticacion tono="error">{errorGeneral}</AvisoAutenticacion>
 
-        <BotonPrincipal tipo="submit" deshabilitado={cargando} ancho="100%">
-          {cargando ? 'Creando cuenta…' : 'Crear cuenta'}
-        </BotonPrincipal>
+        <div className="formulario-autenticacion__acciones">
+          <BotonPrincipal tipo="submit" deshabilitado={cargando} cargando={cargando} ancho="100%">
+            {cargando ? 'Creando cuenta…' : 'Crear cuenta'}
+          </BotonPrincipal>
+        </div>
       </form>
 
       <p className="formulario-autenticacion__pie">

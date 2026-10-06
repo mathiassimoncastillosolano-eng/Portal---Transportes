@@ -18,7 +18,7 @@
   overflow-y: auto;
   background: var(--gradiente-superficie);
   border: 1px solid var(--color-borde-luz);
-  border-radius: var(--radio-lg);
+  border-radius: var(--radio-xl);
   box-shadow: var(--sombra-flotante);
   padding: var(--espacio-7) var(--espacio-6) var(--espacio-6);
 }
@@ -51,10 +51,15 @@
 .modal-base__titulo {
   font-size: var(--tamano-xl);
   font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+  /* deja aire al botón de cerrar */
+  padding-right: var(--espacio-6);
 }
 
 .modal-base__subtitulo {
-  margin-top: var(--espacio-2);
+  margin-top: 0.5rem;
+  max-width: 44ch;
   color: var(--color-texto-secundario);
   font-size: var(--tamano-sm);
   line-height: 1.55;
