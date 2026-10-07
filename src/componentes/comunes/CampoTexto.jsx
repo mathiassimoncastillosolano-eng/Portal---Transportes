@@ -22,6 +22,7 @@ const ICONO_OJO_TACHADO = (
  * Props añadidas (todas opcionales, el comportamiento por defecto no cambia):
  * · `alternarVisibilidad` — en campos de contraseña añade el botón mostrar/ocultar.
  * · `deshabilitado` — estado disabled visual y funcional.
+ * · `autoEnfocar` — enfoca el campo al montarse (p. ej. al cambiar de paso en un modal).
  * · `accion` — nodo opcional alineado a la derecha de la etiqueta (p. ej. "¿Olvidaste tu contraseña?").
  *
  * La accesibilidad se resuelve aquí una sola vez: `aria-invalid` cuando hay
@@ -43,6 +44,7 @@ export function CampoTexto({
   alternarVisibilidad = false,
   deshabilitado = false,
   accion,
+  autoEnfocar = false,
 }) {
   const idBase = useId()
   const idMensaje = `${idBase}-mensaje`
@@ -84,6 +86,7 @@ export function CampoTexto({
           placeholder={marcador}
           required={requerido}
           disabled={deshabilitado}
+          autoFocus={autoEnfocar}
           autoComplete={autoComplete}
           inputMode={modoEntrada}
           aria-invalid={error ? 'true' : undefined}

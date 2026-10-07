@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import './modalBase.css'
 
-export function ModalBase({ titulo, subtitulo, abierto, alCerrar, children }) {
+// `cerrarAlPulsarFondo` (por defecto true) permite desactivar el cierre accidental al pulsar fuera,
+// útil en flujos con progreso (p. ej. recuperar contraseña). Escape y la ✕ siguen cerrando.
+export function ModalBase({ titulo, subtitulo, abierto, alCerrar, children, cerrarAlPulsarFondo = true }) {
   useEffect(() => {
     if (!abierto) return undefined
     const manejarTecla = (evento) => {
@@ -18,7 +20,7 @@ export function ModalBase({ titulo, subtitulo, abierto, alCerrar, children }) {
   if (!abierto) return null
 
   return (
-    <div className="modal-base__fondo" role="presentation" onMouseDown={alCerrar}>
+    <div className="modal-base__fondo" role="presentation" onMouseDown={cerrarAlPulsarFondo ? alCerrar : undefined}>
       <div
         className="modal-base__panel animar-aparicion"
         role="dialog"

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ModalBase } from '../comunes/ModalBase'
 import { CampoTexto } from '../comunes/CampoTexto'
 import { BotonPrincipal } from '../comunes/BotonPrincipal'
@@ -8,12 +8,20 @@ import { ICONO_CANDADO, ICONO_CORREO } from './iconosAutenticacion'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import './autenticacion.css'
 
-export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
+export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta, alOlvidoContrasena, correoInicial = '' }) {
   const { iniciarSesion, iniciarSesionConGoogle } = useAutenticacion()
   const [correo, setCorreo] = useState('')
   const [contrasena, setContrasena] = useState('')
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
+
+  // Al volver de la recuperación de contraseña se rellena el correo y se descarta cualquier contraseña escrita antes.
+  useEffect(() => {
+    if (abierto && correoInicial) {
+      setCorreo(correoInicial)
+      setContrasena('')
+    }
+  }, [abierto, correoInicial])
 
   async function manejarEnvio(evento) {
     evento.preventDefault()
@@ -80,6 +88,18 @@ export function ModalInicioSesion({ abierto, alCerrar, alIrACrearCuenta }) {
           icono={ICONO_CANDADO}
           alternarVisibilidad
           deshabilitado={cargando}
+          accion={
+            alOlvidoContrasena && (
+              <button
+                type="button"
+                className="formulario-autenticacion__enlace"
+                onClick={() => alOlvidoContrasena(correo)}
+                disabled={cargando}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            )
+          }
         />
 
         <AvisoAutenticacion tono="error">{error}</AvisoAutenticacion>

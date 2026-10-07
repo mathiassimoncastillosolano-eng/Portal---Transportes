@@ -79,6 +79,9 @@ public class ConfiguracionSeguridad {
                         // Inicio de sesion/registro con Google: la identidad se
                         // comprueba validando el ID token de Google en el servicio.
                         .requestMatchers(HttpMethod.POST, "/api/auth/google").permitAll()
+                        // Recuperacion de contrasena: se usa sin sesion; la autorizacion la da el
+                        // codigo enviado al correo (ver RecuperacionContrasenaService).
+                        .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/**").permitAll()
                         // Perfil y cierre de sesion: requieren JWT valido.
                         .requestMatchers("/api/usuarios/**", "/api/auth/logout", "/api/auth/google/vincular").authenticated()
                         // Cualquier otra ruta (dominios aun no implementados,

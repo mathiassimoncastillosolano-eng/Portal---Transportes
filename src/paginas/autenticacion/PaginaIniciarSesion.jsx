@@ -7,6 +7,7 @@ import { AvisoAutenticacion } from '../../componentes/autenticacion/AvisoAutenti
 import { PanelMarcaAutenticacion } from '../../componentes/autenticacion/PanelMarcaAutenticacion'
 import { ICONO_CANDADO, ICONO_CORREO } from '../../componentes/autenticacion/iconosAutenticacion'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
+import { useModalesAutenticacion } from '../../layouts/LayoutPrincipal'
 import { usuarioDemo } from '../../datos/usuarios'
 import './autenticacionPagina.css'
 
@@ -19,6 +20,7 @@ const VENTAJAS = [
 export function PaginaIniciarSesion() {
   const { iniciarSesion, iniciarSesionConGoogle } = useAutenticacion()
   const navegar = useNavigate()
+  const { abrirRecuperarContrasena } = useModalesAutenticacion()
   const ubicacion = useLocation()
   const [correo, setCorreo] = useState(ubicacion.state?.correoRegistro ?? '')
   const [contrasena, setContrasena] = useState('')
@@ -108,6 +110,16 @@ export function PaginaIniciarSesion() {
               icono={ICONO_CANDADO}
               alternarVisibilidad
               deshabilitado={cargando}
+              accion={
+                <button
+                  type="button"
+                  className="pagina-autenticacion__enlace"
+                  onClick={() => abrirRecuperarContrasena(correo)}
+                  disabled={cargando}
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              }
             />
 
             <AvisoAutenticacion tono="error">{error}</AvisoAutenticacion>
