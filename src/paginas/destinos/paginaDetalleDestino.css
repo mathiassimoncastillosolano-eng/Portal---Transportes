@@ -1,0 +1,114 @@
+.pagina-detalle-destino {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 1100px;
+}
+
+.pagina-detalle-destino__volver {
+  justify-self: start;
+  color: var(--color-texto-marca);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pagina-detalle-destino__volver:hover,
+.pagina-detalle-destino__volver:focus-visible {
+  text-decoration: underline;
+}
+
+.pagina-detalle-destino__portada {
+  position: relative;
+  min-height: clamp(300px, 48vw, 520px);
+  overflow: hidden;
+  border-radius: var(--radio-lg);
+  background: var(--color-superficie-marca);
+  isolation: isolate;
+}
+
+.pagina-detalle-destino__portada::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(0deg, rgba(9, 26, 32, .78), rgba(9, 26, 32, .08) 70%);
+}
+
+.pagina-detalle-destino__portada img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pagina-detalle-destino__titulo {
+  position: absolute;
+  z-index: 1;
+  right: clamp(1.5rem, 5vw, 3.5rem);
+  bottom: clamp(1.5rem, 5vw, 3.5rem);
+  left: clamp(1.5rem, 5vw, 3.5rem);
+  color: #fff;
+}
+
+.pagina-detalle-destino__titulo span,
+.pagina-detalle-destino__descripcion span {
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.pagina-detalle-destino__titulo h1 {
+  margin: .4rem 0 0;
+  color: #fff;
+  font-family: var(--fuente-titulos);
+  font-size: clamp(2.5rem, 7vw, 5rem);
+  line-height: 1.05;
+}
+
+.pagina-detalle-destino__descripcion {
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  background: var(--color-superficie-elevada);
+}
+
+.pagina-detalle-destino__descripcion span {
+  color: var(--color-texto-acento);
+}
+
+.pagina-detalle-destino__descripcion p {
+  max-width: 65ch;
+  margin: .85rem 0 0;
+  color: var(--color-texto-marca);
+  font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+  line-height: 1.6;
+}
+
+.pagina-detalle-destino__busqueda {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  background: var(--color-superficie-elevada);
+}
+
+.pagina-detalle-destino__busqueda h2 {
+  margin: 0;
+  color: var(--color-texto-marca);
+  font-family: var(--fuente-titulos);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.pagina-detalle-destino__busqueda > p {
+  margin: 0;
+  color: var(--color-texto-secundario);
+}
+
+.pagina-detalle-destino__estado {
+  justify-items: start;
+  color: var(--color-texto-marca);
+}
+
+.pagina-detalle-destino__estado a {
+  color: var(--color-texto-acento);
+  font-weight: 700;
+}

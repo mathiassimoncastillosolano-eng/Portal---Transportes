@@ -1,0 +1,17 @@
+export const descripcionesDestinos = {
+  Cajamarca: 'Disfruta de sus paisajes andinos, sus tradiciones y las aguas termales de Baños del Inca.',
+  'Chepén': 'Contempla el valle del Jequetepeque desde Cerro Chepén y conoce la historia de esta ciudad norteña.',
+  Chiclayo: 'Acércate al legado del Señor de Sipán y disfruta de los sabores de la costa norte.',
+  Chimbote: 'Descubre su bahía y los paisajes marinos que rodean la Isla Blanca.',
+  Huaraz: 'Prepárate para conocer las lagunas, nevados y senderos de la Cordillera Blanca.',
+  'Jaén': 'Descubre la tradición cafetera local y los paisajes que acompañan la Ruta del Café.',
+  Lima: 'Combina un paseo por su centro histórico con la gastronomía y los barrios frente al mar.',
+  'Máncora': 'Disfruta del mar, los paseos por la playa y el ambiente de este balneario del norte.',
+  Pacasmayo: 'Pasea junto al mar, conoce su muelle histórico y prueba la cocina marina del norte.',
+  Paita: 'Conoce su historia portuaria y explora las playas cercanas, como Colán y Yacila.',
+  Piura: 'Descubre los sabores norteños y comienza desde aquí un recorrido hacia las playas de la región.',
+  Sullana: 'Pasea por la ribera del río Chira y contempla el paisaje de su valle.',
+  Talara: 'Explora la costa norte desde una ciudad cercana a playas como Lobitos y Cabo Blanco.',
+  Trujillo: 'Descubre la historia de Chan Chan y los sabores tradicionales de La Libertad.',
+  Tumbes: 'Combina playas, manglares y gastronomía marina en el extremo norte del Perú.',
+}

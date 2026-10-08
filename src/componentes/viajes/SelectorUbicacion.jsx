@@ -2,12 +2,10 @@ import { useRef, useState } from 'react'
 import { useClicFuera } from '../../hooks/useClicFuera'
 import './selectorUbicacion.css'
 
-export function SelectorUbicacion({ etiqueta, valor, alCambiar, excluir, ciudades = [] }) {
+export function SelectorUbicacion({ etiqueta, valor, alCambiar, ciudades = [], deshabilitado = false }) {
   const [abierto, setAbierto] = useState(false)
   const referencia = useRef(null)
   useClicFuera(referencia, () => setAbierto(false))
-
-  const opciones = ciudades.filter((ciudad) => ciudad !== excluir)
 
   return (
     <div className="selector-ubicacion" ref={referencia}>
@@ -17,6 +15,7 @@ export function SelectorUbicacion({ etiqueta, valor, alCambiar, excluir, ciudade
         aria-label={etiqueta}
         aria-expanded={abierto}
         className="selector-ubicacion__control"
+        disabled={deshabilitado}
         onClick={() => setAbierto((valorActual) => !valorActual)}
       >
         <svg className="selector-ubicacion__icono" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -28,7 +27,7 @@ export function SelectorUbicacion({ etiqueta, valor, alCambiar, excluir, ciudade
 
       {abierto && (
         <ul className="selector-ubicacion__lista animar-aparicion">
-          {opciones.map((ciudad) => (
+          {ciudades.map((ciudad) => (
             <li key={ciudad}>
               <button
                 type="button"
