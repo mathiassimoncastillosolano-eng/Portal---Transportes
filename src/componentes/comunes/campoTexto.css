@@ -33,6 +33,20 @@
   color: var(--color-texto-marca);
 }
 
+.campo-texto__accion button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.campo-texto__accion button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .campo-texto__envoltura {
   position: relative;
   display: flex;

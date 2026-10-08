@@ -24,3 +24,13 @@ CREATE TABLE IF NOT EXISTS tipo_bus (
  fecha_creacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
  url_imagen varchar(255), descripcion_reclinacion varchar(60)
 );
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ id_usuario integer NOT NULL REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+ token_hash varchar(64) NOT NULL UNIQUE,
+ fecha_expiracion timestamp NOT NULL,
+ fecha_uso timestamp,
+ fecha_creacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ intentos integer NOT NULL DEFAULT 0,
+ fecha_verificacion timestamp
+);

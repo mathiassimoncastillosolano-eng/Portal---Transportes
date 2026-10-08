@@ -18,6 +18,7 @@ import com.transportes.auth.excepciones.CredencialesInvalidasException;
 import com.transportes.auth.excepciones.CuentaExistenteException;
 import com.transportes.auth.excepciones.GoogleServicioNoDisponibleException;
 import com.transportes.auth.excepciones.GoogleTokenInvalidoException;
+import com.transportes.auth.excepciones.RecuperacionContrasenaException;
 import com.transportes.usuarios.excepciones.CorreoYaRegistradoException;
 import com.transportes.usuarios.excepciones.UsuarioNoEncontradoException;
 
@@ -77,6 +78,13 @@ public class ManejadorGlobalExcepciones {
     public ResponseEntity<RespuestaError> manejarCredencialesInvalidas(
             CredencialesInvalidasException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.UNAUTHORIZED, excepcion.getMessage(), request, null);
+    }
+
+    /** Recuperacion de contrasena: el servicio ya fija estado y mensaje seguros (sin enumerar cuentas). */
+    @ExceptionHandler(RecuperacionContrasenaException.class)
+    public ResponseEntity<RespuestaError> manejarRecuperacionContrasena(
+            RecuperacionContrasenaException excepcion, HttpServletRequest request) {
+        return construirRespuesta(excepcion.getStatus(), excepcion.getMessage(), request, null);
     }
 
     @ExceptionHandler(GoogleTokenInvalidoException.class)

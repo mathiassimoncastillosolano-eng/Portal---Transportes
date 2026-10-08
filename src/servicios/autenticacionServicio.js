@@ -108,3 +108,42 @@ export async function actualizarPerfil({ nombres, apellidos, telefono }) {
   })
   return adaptarUsuario(perfil)
 }
+
+// ---------------------------------------------------------------------------
+// Recuperación de contraseña por correo. Ninguna llamada envía el token JWT de
+// sesión (`autenticar: false`) y el backend decide la cuenta a partir del código
+// verificado: el frontend nunca envía un identificador de usuario.
+// ---------------------------------------------------------------------------
+
+export function solicitarCodigoRecuperacion(correo) {
+  return solicitarApi('/api/auth/password-reset/request', {
+    method: 'POST',
+    autenticar: false,
+    body: JSON.stringify({ correo: correo.trim().toLowerCase() }),
+  })
+}
+
+export function reenviarCodigoRecuperacion(correo) {
+  return solicitarApi('/api/auth/password-reset/resend', {
+    method: 'POST',
+    autenticar: false,
+    body: JSON.stringify({ correo: correo.trim().toLowerCase() }),
+  })
+}
+
+/** Devuelve `{ pruebaRecuperacion, expiraEnSegundos }`. */
+export function verificarCodigoRecuperacion(correo, codigo) {
+  return solicitarApi('/api/auth/password-reset/verify', {
+    method: 'POST',
+    autenticar: false,
+    body: JSON.stringify({ correo: correo.trim().toLowerCase(), codigo }),
+  })
+}
+
+export function completarRecuperacionContrasena(pruebaRecuperacion, contrasena, confirmarContrasena) {
+  return solicitarApi('/api/auth/password-reset/complete', {
+    method: 'POST',
+    autenticar: false,
+    body: JSON.stringify({ pruebaRecuperacion, contrasena, confirmarContrasena }),
+  })
+}
