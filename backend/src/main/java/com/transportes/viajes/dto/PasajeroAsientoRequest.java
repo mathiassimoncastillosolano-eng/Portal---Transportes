@@ -8,6 +8,7 @@ public record PasajeroAsientoRequest(
         String numeroDocumento,
         String nombres,
         String apellidos,
-        LocalDate fechaNacimiento
+        LocalDate fechaNacimiento,
+        String nroTelefono
 ) {
 }

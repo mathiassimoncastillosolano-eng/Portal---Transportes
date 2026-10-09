@@ -23,3 +23,23 @@
     padding: var(--espacio-5);
   }
 }
+
+/* Avisos del formulario: DNI no encontrado/registrado, menores y error del asiento. */
+.formulario-pasajero__aviso,
+.formulario-pasajero__error-asiento {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.formulario-pasajero__aviso {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.formulario-pasajero__error-asiento {
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.45);
+}

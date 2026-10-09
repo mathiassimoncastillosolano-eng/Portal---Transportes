@@ -335,3 +335,35 @@ export function abrirEventosAsientos(idViaje, { alAbrir, alAsiento }) {
   return () => fuente.close()
 }
 
+/**
+ * "Continuar al pago": valida los pasajeros en el servidor (POST /api/viajes/{id}/pasajeros) y los deja en
+ * una caché TEMPORAL del backend, ligada a la sesión. No escribe en la base de datos ni ocupa asientos.
+ *
+ * Errores de DATOS llegan como 200 con valido:false y la lista `errores`
+ * ({ idAsiento, campo, mensaje }); NO se lanzan. Los errores de sesión o asientos sí se lanzan
+ * con `error.status`: 401 token inválido, 410 sesión vencida, 409 asientos no disponibles.
+ * @returns {Promise<{ valido: boolean, errores: Array<{ idAsiento: number, campo: string, mensaje: string }> }>}
+ */
+export async function guardarPasajeros(idViaje, tokenSesion, pasajeros) {
+  const respuesta = await solicitarApi(`/api/viajes/${idViaje}/pasajeros`, {
+    method: 'POST',
+    autenticar: false,
+    body: JSON.stringify({ tokenSesion, pasajeros }),
+  })
+  const errores = Array.isArray(respuesta?.errores) ? respuesta.errores : []
+  return { valido: respuesta?.valido !== false && errores.length === 0, errores }
+}
+
+/**
+ * TEMPORAL (solo desarrollo): simula la confirmación del pago llamando a
+ * POST /api/viajes/{id}/confirmar-demo. Guarda en PostgreSQL los pasajeros de la caché y pasa los
+ * asientos a OCUPADO. Existe únicamente si el backend tiene reserva.confirmacion-demo=true; si no,
+ * responde 404. NO cobra nada. Retirar cuando exista el POST /api/pagos real.
+ */
+export async function confirmarCompraDemo(idViaje, tokenSesion) {
+  return solicitarApi(`/api/viajes/${idViaje}/confirmar-demo`, {
+    method: 'POST',
+    autenticar: false,
+    body: JSON.stringify({ tokenSesion }),
+  })
+}
