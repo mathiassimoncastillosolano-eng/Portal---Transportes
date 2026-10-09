@@ -45,6 +45,7 @@
 }
 
 .carrusel-servicios__item {
+  display: flex;
   flex: 0 0 auto;
   width: clamp(232px, 21vw, 292px);
   padding-block: var(--espacio-3);
