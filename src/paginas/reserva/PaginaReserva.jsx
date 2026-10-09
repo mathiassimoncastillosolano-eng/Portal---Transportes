@@ -18,6 +18,11 @@ import {
   validarPagoTarjeta,
   validarPagoYape,
 } from '../../utilidades/pagoMercadoPago'
+import {
+  MENSAJE_DNI_REPETIDO,
+  construirPasajerosApi,
+  mapearErroresServidor,
+} from '../../utilidades/validarPasajero'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { useBusqueda } from '../../hooks/useBusqueda'
 import {
@@ -28,6 +33,8 @@ import {
   bloquearAsiento,
   liberarAsiento,
   abrirEventosAsientos,
+  guardarPasajeros,
+  confirmarCompraDemo,
 } from '../../servicios/viajesServicio'
 import { formatearPrecio } from '../../utilidades/formato'
 import './paginaReserva.css'
@@ -120,6 +127,18 @@ export function PaginaReserva() {
   const [pagando, setPagando] = useState(false)
   const [respuestaPago, setRespuestaPago] = useState(null)
   const pagoCompletado = respuestaPago?.status === 'approved' || respuestaPago?.status === 'in_process'
+  // Solo es true cuando el BACKEND confirmó la compra (pasajeros a la BD y asientos ocupados).
+  const [compraConfirmada, setCompraConfirmada] = useState(false)
+  const [confirmandoCompra, setConfirmandoCompra] = useState(false)
+  const [errorConfirmacion, setErrorConfirmacion] = useState(null)
+  const [guardandoPasajeros, setGuardandoPasajeros] = useState(false)
+  // Espejos síncronos para cerrar la ventana entre dos clics antes del primer repintado.
+  const pagandoRef = useRef(false)
+  const confirmandoRef = useRef(false)
+  const guardandoRef = useRef(false)
+  const compraConfirmadaRef = useRef(false)
+  // Errores devueltos por el servidor: { clave: { campo: mensaje } }
+  const [erroresServidor, setErroresServidor] = useState({})
 
   // La sesión puede cargar después del primer render: completa el correo y el
   // celular con los del usuario solo si el comprador aún no los escribió.
@@ -208,6 +227,8 @@ export function PaginaReserva() {
   }
 
   async function cargarMapaAsientos(silencioso = false) {
+    // Confirmada la compra, el mapa ya no cuenta mis asientos como "míos": se conserva la vista final.
+    if (compraConfirmadaRef.current) return
     const token = sesionRef.current?.tokenSesion
     if (!silencioso) setCargandoMapa(true)
     if (!silencioso) setErrorMapa(null)
@@ -282,21 +303,71 @@ export function PaginaReserva() {
   }, [idViaje, intentosMapa])
 
   // Al vencer la sesión: liberar (lo hace el backend) y redirigir a resultados.
-  // Si el pago ya se completó no se agenda (o se cancela) el vencimiento.
+  // Si el pago ya se completó, o hay un pago en curso, no se agenda (o se cancela) el vencimiento:
+  // el backend decide si los asientos siguen vigentes, y si el pago falla se vuelve a agendar.
   useEffect(() => {
-    if (!sesion || pagoCompletado) return undefined
+    if (!sesion || pagoCompletado || pagando) return undefined
     const restante = Math.max(sesion.expiraEn - Date.now(), 0)
     const temporizador = setTimeout(manejarSesionVencida, restante)
     return () => clearTimeout(temporizador)
-  }, [sesion, pagoCompletado])
+  }, [sesion, pagoCompletado, pagando])
 
   // Si pierdo todos los asientos (p. ej. expiraron) estando en otro paso, vuelvo a elegir.
   useEffect(() => {
-    if (mapaAsientos && pasoActual !== 'asiento' && asientosSeleccionados.length === 0) {
+    if (mapaAsientos && pasoActual !== 'asiento' && asientosSeleccionados.length === 0 && !compraConfirmada) {
       setPasoActual('asiento')
       setClaveActivaPasajero(null)
     }
-  }, [mapaAsientos, pasoActual, asientosSeleccionados.length])
+  }, [mapaAsientos, pasoActual, asientosSeleccionados.length, compraConfirmada])
+
+  // Si un asiento deja de ser mío (lo liberé, venció o el servidor me lo quitó), se descartan los datos y
+  // errores asociados a él para que no reaparezcan si luego vuelvo a elegirlo.
+  useEffect(() => {
+    if (compraConfirmada) return
+    const vigentes = new Set(asientosSeleccionados.map((asiento) => asiento.clave))
+    const limpiar = (anterior) => {
+      const sobrantes = Object.keys(anterior).filter((clave) => !vigentes.has(clave))
+      if (sobrantes.length === 0) return anterior
+      const copia = { ...anterior }
+      sobrantes.forEach((clave) => delete copia[clave])
+      return copia
+    }
+    setPasajeros(limpiar)
+    setErroresServidor(limpiar)
+  }, [asientosSeleccionados, compraConfirmada])
+
+  // DNI repetido entre los pasajeros de esta compra. Se marca en TODOS los que comparten el mismo DNI
+  // (no solo del 2.º en adelante), para que se vea cuáles chocan sin importar el orden en que se escribieron.
+  const erroresDniRepetido = useMemo(() => {
+    const clavesPorDni = {}
+    asientosSeleccionados.forEach((asiento) => {
+      const dni = pasajeros[asiento.clave]?.dni ?? ''
+      if (!/^\d{8}$/.test(dni)) return
+      if (!clavesPorDni[dni]) clavesPorDni[dni] = []
+      clavesPorDni[dni].push(asiento.clave)
+    })
+    const resultado = {}
+    Object.values(clavesPorDni).forEach((claves) => {
+      if (claves.length < 2) return
+      claves.forEach((clave) => {
+        resultado[clave] = { dni: MENSAJE_DNI_REPETIDO }
+      })
+    })
+    return resultado
+  }, [asientosSeleccionados, pasajeros])
+
+  const hayDniRepetido = Object.keys(erroresDniRepetido).length > 0
+
+  // Lo que recibe GestorPasajeros: DNI repetido + errores del servidor (gana el de DNI repetido).
+  const erroresExternos = useMemo(() => {
+    const fusion = {}
+    ;[erroresDniRepetido, erroresServidor].forEach((mapa) => {
+      Object.entries(mapa).forEach(([clave, campos]) => {
+        fusion[clave] = { ...campos, ...fusion[clave] }
+      })
+    })
+    return fusion
+  }, [erroresDniRepetido, erroresServidor])
 
     if (!contexto) {
     return <Navigate to="/" replace />
@@ -365,12 +436,20 @@ export function PaginaReserva() {
   const limiteAlcanzado = asientosSeleccionados.length >= MAXIMO_PASAJEROS_POR_COMPRA
   const precioTotal = asientosSeleccionados.reduce((total, asiento) => total + (asiento.precio ?? 0), 0)
 
+  const excedeTopeYape = metodoPago === 'yape' && precioTotal > TOPE_MAXIMO_YAPE
+
   const pasajerosCompletos =
     asientosSeleccionados.length > 0 &&
     asientosSeleccionados.every((asiento) => pasajeroEstaCompleto(pasajeros[asiento.clave]))
 
   function quitarDatosPasajero(clave) {
     setPasajeros((anterior) => {
+      const copia = { ...anterior }
+      delete copia[clave]
+      return copia
+    })
+    setErroresServidor((anterior) => {
+      if (!anterior[clave]) return anterior
       const copia = { ...anterior }
       delete copia[clave]
       return copia
@@ -464,6 +543,17 @@ export function PaginaReserva() {
       ...anterior,
       [clave]: { ...(anterior[clave] ?? DATOS_PASAJERO_VACIOS), [campo]: valor },
     }))
+    // Al editar, desaparece el error del servidor de ese campo (y el del asiento).
+    setErroresServidor((anterior) => {
+      if (!anterior[clave]) return anterior
+      const restoCampos = { ...anterior[clave] }
+      delete restoCampos[campo]
+      delete restoCampos.asiento
+      const copia = { ...anterior }
+      if (Object.keys(restoCampos).length === 0) delete copia[clave]
+      else copia[clave] = restoCampos
+      return copia
+    })
   }
 
   async function manejarEliminarTicket(clave) {
@@ -513,11 +603,57 @@ export function PaginaReserva() {
     setRespuestaPago(null)
   }
 
-  // Ya no se bloquea aquí: los asientos se bloquearon al hacer clic.
-  function confirmarPasajerosYContinuar() {
-    if (!pasajerosCompletos) return
+  // Lleva al primer asiento (en orden de selección) que tenga algún error.
+  function activarPrimerAsientoConError(mapaErrores) {
+    const primero = asientosSeleccionados.find((asiento) => mapaErrores[asiento.clave])
+    if (primero) setClaveActivaPasajero(primero.clave)
+  }
+
+  // "Continuar al pago": el backend valida los pasajeros y los deja en una caché TEMPORAL de su memoria
+  // (se descarta al vencer la sesión). No se escribe en la base de datos todavía: eso ocurre al aprobarse
+  // el pago (confirmarCompra). Solo avanza al pago si el servidor responde valido: true.
+  async function confirmarPasajerosYContinuar() {
+    if (guardandoRef.current || !pasajerosCompletos || hayDniRepetido) return
+    const token = sesionRef.current?.tokenSesion
+    if (!token) return
+
     setErrorBloqueo(null)
-    setPasoActual('pago')
+    setErroresServidor({})
+    guardandoRef.current = true
+    setGuardandoPasajeros(true)
+    try {
+      const guardado = await guardarPasajeros(idViaje, token, construirPasajerosApi(asientosSeleccionados, pasajeros))
+
+      if (guardado.valido) {
+        setPasoActual('pago')
+        return
+      }
+
+      const mapaErrores = mapearErroresServidor(guardado.errores, asientosSeleccionados)
+      if (Object.keys(mapaErrores).length === 0) {
+        setErrorBloqueo('No se pudieron validar los datos de los pasajeros. Revísalos e inténtalo de nuevo.')
+        return
+      }
+      setErroresServidor(mapaErrores)
+      activarPrimerAsientoConError(mapaErrores)
+      // Si el servidor dice que un asiento ya no es mío, resincroniza el mapa para que deje de aparecer seleccionado.
+      if (Object.values(mapaErrores).some((campos) => campos.asiento)) {
+        setErrorBloqueo('Un asiento ya no estaba reservado para ti y se quitó de tu selección.')
+        cargarMapaAsientos(true)
+      }
+    } catch (error) {
+      if (error.status === 410 || error.status === 401) {
+        manejarSesionVencida()
+      } else if (error.status === 409) {
+        setErrorBloqueo(error.message || 'Alguno de tus asientos ya no está reservado para ti. Revisa tu selección e inténtalo de nuevo.')
+        cargarMapaAsientos(true)
+      } else {
+        setErrorBloqueo(error.message)
+      }
+    } finally {
+      guardandoRef.current = false
+      setGuardandoPasajeros(false)
+    }
   }
 
   function manejarCambiarCampoPago(campo, valor) {
@@ -531,13 +667,40 @@ export function PaginaReserva() {
     setErroresPago(VALIDADORES_PAGO[metodoPago](datosPago[metodoPago]))
   }
 
+  // Solo se llama con un pago aprobado. Confirma la compra en el backend: guarda en PostgreSQL los pasajeros
+  // de la caché y pasa los asientos de BLOQUEADO_TEMPORAL a OCUPADO en una transacción. Si falla, el usuario
+  // puede reintentar sin volver a pagar.
+  async function confirmarCompra() {
+    const token = sesionRef.current?.tokenSesion
+    if (!token || confirmandoRef.current || compraConfirmadaRef.current) return
+    confirmandoRef.current = true
+    setConfirmandoCompra(true)
+    setErrorConfirmacion(null)
+    try {
+      await confirmarCompraDemo(idViaje, token)
+      compraConfirmadaRef.current = true
+      setCompraConfirmada(true)
+      borrarSesionAsientos(idViaje)
+    } catch (error) {
+      if (error.status === 410 || error.status === 401) {
+        manejarSesionVencida()
+      } else {
+        setErrorConfirmacion(error.message || 'No se pudo confirmar tu compra. Inténtalo de nuevo.')
+      }
+    } finally {
+      confirmandoRef.current = false
+      setConfirmandoCompra(false)
+    }
+  }
+
   function manejarPago() {
+    if (pagandoRef.current || compraConfirmadaRef.current) return
     const valores = datosPago[metodoPago]
     const errores = VALIDADORES_PAGO[metodoPago](valores)
     setErroresPago(errores)
     setCamposTocadosPago(Object.fromEntries(Object.keys(valores).map((campo) => [campo, true])))
     if (Object.keys(errores).length > 0) return
-    if (metodoPago === 'yape' && precioTotal > TOPE_MAXIMO_YAPE) return
+    if (excedeTopeYape) return
 
     // Este es el cuerpo que recibirá POST /api/pagos (T-33). En producción el
     // token lo genera MercadoPago.js a partir de los datos de la tarjeta (o del
@@ -552,16 +715,26 @@ export function PaginaReserva() {
     })
     console.info('[Pago demo] Solicitud para POST /api/pagos:', solicitud)
 
+    pagandoRef.current = true
     setRespuestaPago(null)
     setPagando(true)
     setTimeout(() => {
+      const respuesta = simularRespuestaPago(metodoPago, valores)
+      pagandoRef.current = false
       setPagando(false)
-      setRespuestaPago(simularRespuestaPago(metodoPago, valores))
+      setRespuestaPago(respuesta)
+      // Solo un pago aprobado confirma; rechazado o en proceso no guarda nada en la base de datos.
+      if (respuesta.status === 'approved') confirmarCompra()
     }, 1400)
   }
 
   async function volverAlPasoAnterior() {
-    if (pasoActual === 'pasajero') setPasoActual('asiento')
+    if (pagandoRef.current || confirmandoRef.current || guardandoRef.current) return
+    if (compraConfirmadaRef.current) {
+      // Compra ya confirmada: no hay nada que liberar.
+      borrarContexto()
+      irAResultados()
+    } else if (pasoActual === 'pasajero') setPasoActual('asiento')
     else if (pasoActual === 'pago') setPasoActual('pasajero')
     else {
       const token = sesionRef.current?.tokenSesion
@@ -606,8 +779,12 @@ export function PaginaReserva() {
         ? [{ etiqueta: 'Precio de este asiento', valor: formatearPrecio(asientoActivo.precio) }]
         : []),
     ]
-    textoBoton = pasajerosCompletos ? 'Continuar al pago →' : 'Completa los datos de todos los pasajeros'
-    deshabilitadoBoton = !pasajerosCompletos
+    textoBoton = !pasajerosCompletos
+      ? 'Completa los datos de todos los pasajeros'
+      : hayDniRepetido
+        ? 'Corrige los DNI repetidos'
+        : 'Continuar al pago →'
+    deshabilitadoBoton = !pasajerosCompletos || hayDniRepetido || guardandoPasajeros
   } else if (pasoActual === 'pago') {
     const nombres = asientosSeleccionados
       .map((asiento) => nombreCortoPasajero(pasajeros[asiento.clave]))
@@ -618,16 +795,20 @@ export function PaginaReserva() {
       { etiqueta: 'Servicio', valor: resultado.tipoBus },
       { etiqueta: 'Pasajeros', valor: resumenNombres || `${asientosSeleccionados.length}` },
     ]
-    const excedeTopeYape = metodoPago === 'yape' && precioTotal > TOPE_MAXIMO_YAPE
     filasDetalle.push({ etiqueta: 'Medio de pago', valor: metodoPago === 'yape' ? 'Yape' : 'Tarjeta' })
     if (metodoPago === 'tarjeta' && datosPago.tarjeta.cuotas > 1) {
       filasDetalle.push({ etiqueta: 'Cuotas', valor: `${datosPago.tarjeta.cuotas}` })
     }
-    if (respuestaPago?.status === 'approved') textoBoton = 'Pago aprobado ✓'
-    else if (respuestaPago?.status === 'in_process') textoBoton = 'Pago en proceso'
+    if (respuestaPago?.status === 'approved') {
+      textoBoton = errorConfirmacion
+        ? 'Reintentar confirmación'
+        : compraConfirmada
+          ? 'Compra confirmada ✓'
+          : 'Pago aprobado ✓'
+    } else if (respuestaPago?.status === 'in_process') textoBoton = 'Pago en proceso'
     else if (respuestaPago?.status === 'rejected') textoBoton = 'Reintentar pago'
     else textoBoton = `Pagar ${formatearPrecio(precioTotal)}`
-    deshabilitadoBoton = pagoCompletado || excedeTopeYape
+    deshabilitadoBoton = (pagoCompletado && !errorConfirmacion) || excedeTopeYape
   }
 
   return (
@@ -681,6 +862,7 @@ export function PaginaReserva() {
               alCambiarCampo={manejarCambiarCampoPasajero}
               alEliminar={manejarEliminarTicket}
               alCambiarAsientos={manejarCambiarAsientos}
+              erroresExternos={erroresExternos}
             />
           )}
 
@@ -725,6 +907,12 @@ export function PaginaReserva() {
               {errorBloqueo}
             </p>
           )}
+
+          {errorConfirmacion && (
+            <p className="pagina-reserva__aviso-tope" role="alert">
+              {errorConfirmacion}
+            </p>
+          )}
         </div>
 
         <ResumenReserva
@@ -740,10 +928,18 @@ export function PaginaReserva() {
               ? irAPasajeros
               : pasoActual === 'pasajero'
                 ? confirmarPasajerosYContinuar
-                : manejarPago
+                : errorConfirmacion
+                  ? confirmarCompra
+                  : manejarPago
           }
           deshabilitado={deshabilitadoBoton}
-          cargando={pasoActual === 'pago' ? pagando : false}
+          cargando={
+            pasoActual === 'pago'
+              ? pagando || confirmandoCompra
+              : pasoActual === 'pasajero'
+                ? guardandoPasajeros
+                : false
+          }
           mensajeAyuda={mensajeAyuda}
         />
       </div>

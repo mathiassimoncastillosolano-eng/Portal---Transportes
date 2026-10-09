@@ -44,4 +44,7 @@ public class Pasajero {
 
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
+
+    @Column(name = "nro_telefono", length = 20)
+    private String nroTelefono;
 }

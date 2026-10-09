@@ -147,15 +147,17 @@ public class ViajeAsientoServicio {
     }
 
     /**
-     * GANCHO PARA PAGOS: llamar SOLO cuando el pago esté confirmado (no hay endpoint público a propósito).
-     * Pasa a OCUPADO todos los asientos bloqueados por la sesión. Si alguno ya no está vigente,
-     * lanza excepción y no se confirma NINGUNO (todo o nada).
+     * GANCHO PARA PAGOS: lo invoca SOLO {@link PasajerosSesionServicio#confirmarCompra} tras un pago aprobado
+     * (no hay endpoint público que lo llame directamente a propósito).
+     * En una única transacción: crea o actualiza los pasajeros y pasa a OCUPADO todos los asientos
+     * bloqueados por la sesión. Si alguno ya no está vigente, lanza excepción y se revierte TODO
+     * (asientos y pasajeros): todo o nada.
      *
-     * @param pasajeros opcional: datos de pasajero por asiento (puede ser null o vacío)
+     * @param pasajeros datos de pasajero ya validados: exactamente uno por cada asiento bloqueado de la sesión
      * @return ids de los asientos confirmados
      * @throws SesionExpiradaException si la sesión venció (-> 410)
      * @throws SesionInvalidaException si el token es falso o de otro viaje (-> 401)
-     * @throws AsientoNoDisponibleException si no hay asientos que confirmar o alguno expiró (-> 409)
+     * @throws AsientoNoDisponibleException si no hay asientos que confirmar, faltan pasajeros o alguno expiró (-> 409)
      */
     @Transactional
     public List<Integer> confirmarSesion(Long idViaje, String tokenSesion, List<PasajeroAsientoRequest> pasajeros) {
@@ -172,16 +174,18 @@ public class ViajeAsientoServicio {
             throw new AsientoNoDisponibleException("No hay asientos bloqueados en esta sesión para confirmar.");
         }
 
+        if (pasajeros == null || pasajeros.size() != idsAsientos.size()) {
+            throw new AsientoNoDisponibleException("Faltan los datos del pasajero de algún asiento.");
+        }
         Map<Integer, Integer> pasajeroPorAsiento = new HashMap<>();
-        if (pasajeros != null) {
-            Set<Integer> propios = Set.copyOf(idsAsientos);
-            for (PasajeroAsientoRequest p : pasajeros) {
-                if (p.idAsiento() == null || !propios.contains(p.idAsiento())) {
-                    throw new AsientoNoDisponibleException(
-                            "El asiento " + p.idAsiento() + " no pertenece a esta sesión.");
-                }
-                pasajeroPorAsiento.put(p.idAsiento(), buscarOCrearPasajero(p));
+        Set<Integer> propios = Set.copyOf(idsAsientos);
+        for (PasajeroAsientoRequest p : pasajeros) {
+            if (p.idAsiento() == null || !propios.contains(p.idAsiento())
+                    || pasajeroPorAsiento.containsKey(p.idAsiento())) {
+                throw new AsientoNoDisponibleException(
+                        "El asiento " + p.idAsiento() + " no pertenece a esta sesión.");
             }
+            pasajeroPorAsiento.put(p.idAsiento(), buscarOCrearPasajero(p));
         }
 
         LocalDateTime ahora = LocalDateTime.now();
@@ -224,9 +228,21 @@ public class ViajeAsientoServicio {
         return filas;
     }
 
+    /**
+     * Pasajero existente: solo se actualizan los datos permitidos (celular y, si faltaba, la fecha de
+     * nacimiento); nombres y apellidos nunca se sobrescriben. Pasajero nuevo: se crea con todos los datos.
+     * El candado por documento evita que dos compras simultáneas creen el mismo pasajero dos veces.
+     */
     private Integer buscarOCrearPasajero(PasajeroAsientoRequest p) {
+        viajeAsientoRepositorio.bloquearSesion("pasajero:" + p.tipoDocumento() + ":" + p.numeroDocumento());
         return pasajeroRepositorio.findByTipoDocumentoAndNumeroDocumento(p.tipoDocumento(), p.numeroDocumento())
-                .map(Pasajero::getIdPasajero)
+                .map(existente -> {
+                    existente.setNroTelefono(p.nroTelefono());
+                    if (existente.getFechaNacimiento() == null) {
+                        existente.setFechaNacimiento(p.fechaNacimiento());
+                    }
+                    return pasajeroRepositorio.save(existente).getIdPasajero();
+                })
                 .orElseGet(() -> {
                     Pasajero nuevo = new Pasajero();
                     nuevo.setTipoDocumento(p.tipoDocumento());
@@ -234,6 +250,7 @@ public class ViajeAsientoServicio {
                     nuevo.setNombres(p.nombres());
                     nuevo.setApellidos(p.apellidos());
                     nuevo.setFechaNacimiento(p.fechaNacimiento());
+                    nuevo.setNroTelefono(p.nroTelefono());
                     nuevo.setFechaCreacion(LocalDateTime.now());
                     return pasajeroRepositorio.save(nuevo).getIdPasajero();
                 });

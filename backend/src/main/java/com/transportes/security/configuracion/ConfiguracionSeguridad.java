@@ -84,6 +84,8 @@ public class ConfiguracionSeguridad {
                         .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/**").permitAll()
                         // Perfil y cierre de sesion: requieren JWT valido.
                         .requestMatchers("/api/usuarios/**", "/api/auth/logout", "/api/auth/google/vincular").authenticated()
+                        // Consulta de pasajeros por DNI: expone datos personales, exige JWT.
+                        .requestMatchers("/api/pasajeros/**").authenticated()
                         // Cualquier otra ruta (dominios aun no implementados,
                         // como destinos/servicios/viajes) permanece publica por
                         // ahora, ya que estan fuera del alcance de esta tarea.

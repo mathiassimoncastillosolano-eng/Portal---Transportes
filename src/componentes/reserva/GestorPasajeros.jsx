@@ -24,9 +24,14 @@ export function GestorPasajeros({
   alCambiarCampo,
   alEliminar,
   alCambiarAsientos,
+  erroresExternos = {},
 }) {
   const total = asientos.length
-  const completos = asientos.filter((asiento) => pasajeroEstaCompleto(pasajeros[asiento.clave])).length
+  // Un pasajero está listo si pasa la validación local y no tiene errores externos
+  // (servidor o DNI repetido).
+  const estaListo = (clave) =>
+    pasajeroEstaCompleto(pasajeros[clave]) && Object.keys(erroresExternos[clave] ?? {}).length === 0
+  const completos = asientos.filter((asiento) => estaListo(asiento.clave)).length
   const asientoActivo = asientos.find((asiento) => asiento.clave === claveActiva) ?? asientos[0]
 
   return (
@@ -74,6 +79,7 @@ export function GestorPasajeros({
             key={asientoActivo.clave}
             valores={pasajeros[asientoActivo.clave]}
             alCambiarCampo={(campo, valor) => alCambiarCampo(asientoActivo.clave, campo, valor)}
+            erroresExternos={erroresExternos[asientoActivo.clave]}
           />
         </>
       )}
