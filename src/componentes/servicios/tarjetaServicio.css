@@ -1,5 +1,6 @@
 .tarjeta-servicio {
-  height: 338px;
+  min-height: 338px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--color-superficie);
@@ -35,9 +36,7 @@
   transform: scale(1.06);
 }
 
-/* Cuerpo con altura fija (heredada de la card): la jerarquía interna
-   (icono → título → descripción → característica) siempre ocupa el
-   mismo espacio, sin importar cuánto texto tenga cada servicio. */
+/* La tarjeta puede crecer si el contenido necesita más líneas. */
 .tarjeta-servicio__cuerpo {
   flex: 1 1 auto;
   min-height: 0;
@@ -74,25 +73,18 @@
   text-overflow: ellipsis;
 }
 
-/* Siempre reserva el espacio de 2 líneas, tenga o no tenga el
-   servicio una descripción de esa longitud: evita que una card
-   "crezca" y rompa la alineación del carrusel. */
+/* Reserva dos líneas para textos breves, pero muestra el texto completo. */
 .tarjeta-servicio__descripcion {
   flex-shrink: 0;
   margin-top: 0.35rem;
   font-size: var(--tamano-sm);
   color: var(--color-texto-secundario);
   line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
   min-height: calc(1.5em * 2);
+  overflow-wrap: anywhere;
 }
 
-/* Siempre pegada a la base de la card: si la descripción es corta,
-   el espacio libre se acumula arriba de esta línea, nunca cambia
-   la altura total de la tarjeta. */
+/* La característica permanece abajo y puede ocupar más de una línea. */
 .tarjeta-servicio__caracteristica {
   flex-shrink: 0;
   margin-top: auto;
@@ -101,7 +93,5 @@
   font-size: var(--tamano-xs);
   font-weight: 600;
   color: var(--color-texto-marca);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
