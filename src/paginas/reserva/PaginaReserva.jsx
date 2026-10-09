@@ -32,6 +32,7 @@ import {
 import { formatearPrecio } from '../../utilidades/formato'
 import './paginaReserva.css'
 import { Contador } from '../../componentes/reserva/Contador'
+import { CargadorRutaLibre, EstadoRuta, useFaseCarga } from '../../componentes/carga'
 
 const TOPE_MAXIMO_YAPE = 2000
 
@@ -139,6 +140,10 @@ export function PaginaReserva() {
   const [cargandoMapa, setCargandoMapa] = useState(true)
   const [errorMapa, setErrorMapa] = useState(null)
   const [errorBloqueo, setErrorBloqueo] = useState(null)
+  const [intentosMapa, setIntentosMapa] = useState(0)
+  // Fase visual de la carga del mapa (el hook debe llamarse antes de cualquier return).
+  const { fase: faseCarga, ciclo: cicloCarga, entrando: contenidoEntrando } =
+    useFaseCarga(cargandoMapa, { falla: Boolean(errorMapa) })
 
   // Sesión de reserva: { tokenSesion, expiraEn (ms, timestamp) }.
   const [sesion, setSesion] = useState(null)
@@ -274,7 +279,7 @@ export function PaginaReserva() {
       cancelado = true
       cerrarEventos()
     }
-  }, [idViaje])
+  }, [idViaje, intentosMapa])
 
   // Al vencer la sesión: liberar (lo hace el backend) y redirigir a resultados.
   // Si el pago ya se completó no se agenda (o se cancela) el vencimiento.
@@ -297,12 +302,45 @@ export function PaginaReserva() {
     return <Navigate to="/" replace />
   }
 
-  if (cargandoMapa) {
-    return <p className="pagina-reserva__estado">Cargando disponibilidad de asientos…</p>
+  // Mientras carga (o se desvanece el cargador) se conserva la estructura de la
+  // página: indicador de pasos arriba y un panel con el alto del contenido.
+  if (faseCarga !== 'contenido' || cargandoMapa) {
+    return (
+      <section className="pagina-reserva seccion contenedor">
+        <IndicadorProgreso pasoActual="asiento" />
+        <CargadorRutaLibre
+          variante="asientos"
+          fase={faseCarga === 'contenido' ? 'viajando' : faseCarga}
+          ciclo={cicloCarga}
+          falla={Boolean(errorMapa)}
+          detalle={contexto.resultado?.origen && contexto.resultado?.destino
+            ? `${contexto.resultado.origen} → ${contexto.resultado.destino}` : undefined}
+          pagina
+        />
+      </section>
+    )
   }
 
   if (errorMapa) {
-    return <p className="pagina-reserva__estado pagina-reserva__estado--error">{errorMapa}</p>
+    return (
+      <section className="pagina-reserva seccion contenedor">
+        <IndicadorProgreso pasoActual="asiento" />
+        <EstadoRuta
+          tipo="error"
+          entrando={contenidoEntrando}
+          titulo="No pudimos consultar los asientos"
+          texto={errorMapa}
+          accion={{
+            texto: 'Reintentar',
+            alClick: () => {
+              setErrorMapa(null)
+              setCargandoMapa(true)
+              setIntentosMapa((n) => n + 1)
+            },
+          }}
+        />
+      </section>
+    )
   }
 
   const { resultado, fecha } = contexto
@@ -310,7 +348,18 @@ export function PaginaReserva() {
   const pisoInfo = mapaAsientos.mapaPorPiso[pisoActivo]
 
   if (!pisoInfo) {
-    return <p className="pagina-reserva__estado pagina-reserva__estado--error">Este viaje no tiene asientos configurados.</p>
+    return (
+      <section className="pagina-reserva seccion contenedor">
+        <IndicadorProgreso pasoActual="asiento" />
+        <EstadoRuta
+          tipo="vacio"
+          entrando={contenidoEntrando}
+          titulo="Sin asientos configurados"
+          texto="Este viaje no tiene asientos configurados."
+          accion={{ texto: 'Volver a los resultados', alClick: () => irAResultados() }}
+        />
+      </section>
+    )
   }
 
   const limiteAlcanzado = asientosSeleccionados.length >= MAXIMO_PASAJEROS_POR_COMPRA
@@ -582,7 +631,7 @@ export function PaginaReserva() {
   }
 
   return (
-    <section className="pagina-reserva seccion contenedor">
+    <section className={`pagina-reserva seccion contenedor${contenidoEntrando ? ' carga-entrada' : ''}`}>
       <IndicadorProgreso pasoActual={pasoActual} />
 
       <div className="pagina-reserva__encabezado">

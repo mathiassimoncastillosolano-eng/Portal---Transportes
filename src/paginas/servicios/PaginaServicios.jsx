@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { obtenerServicios } from '../../servicios/serviciosServicio'
 import { TarjetaServicio } from '../../componentes/servicios/TarjetaServicio'
+import { PanelAsincrono } from '../../componentes/carga'
 import './paginaServicios.css'
 
 export function PaginaServicios() {
   const [servicios, setServicios] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
+  const [intentos, setIntentos] = useState(0)
 
   useEffect(() => {
     let cancelado = false
@@ -28,7 +30,7 @@ export function PaginaServicios() {
     return () => {
       cancelado = true
     }
-  }, [])
+  }, [intentos])
 
   return (
     <section className="seccion contenedor">
@@ -41,21 +43,20 @@ export function PaginaServicios() {
         </p>
       </div>
 
-      {cargando && <p className="pagina-servicios__vacio">Cargando servicios...</p>}
-
-      {error && <p className="pagina-servicios__vacio">{error}</p>}
-
-      {!error && !cargando && servicios.length === 0 && (
-        <p className="pagina-servicios__vacio">Todavía no hay servicios disponibles.</p>
-      )}
-
-      {!error && servicios.length > 0 && (
+      <PanelAsincrono
+        variante="servicios"
+        cargando={cargando}
+        error={error}
+        vacio={servicios.length === 0}
+        alReintentar={() => setIntentos((n) => n + 1)}
+        estadoVacio={{ titulo: 'Aún no hay servicios', texto: 'Todavía no hay servicios disponibles.' }}
+      >
         <div className="pagina-servicios__cuadricula">
           {servicios.map((servicio) => (
             <TarjetaServicio key={servicio.id} servicio={servicio} />
           ))}
         </div>
-      )}
+      </PanelAsincrono>
     </section>
   )
 }

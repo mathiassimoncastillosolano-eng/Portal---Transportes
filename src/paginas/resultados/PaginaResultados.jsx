@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BuscadorViajes } from '../../componentes/viajes/BuscadorViajes'
 import { TarjetaResultadoViaje } from '../../componentes/viajes/TarjetaResultadoViaje'
 import { FiltrosResultados } from '../../componentes/viajes/FiltrosResultados'
-import { BotonSecundario } from '../../componentes/comunes/BotonSecundario'
+import { PanelAsincrono } from '../../componentes/carga'
 import { useBusqueda } from '../../hooks/useBusqueda'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { useModalesAutenticacion } from '../../layouts/LayoutPrincipal'
@@ -21,6 +21,7 @@ export function PaginaResultados() {
   const fecha = parametrosUrl.get('fecha') ?? ''
   const horario = parametrosUrl.get('horario') ?? 'cualquiera'
   const [serviciosSeleccionados, setServiciosSeleccionados] = useState(new Set())
+  const buscadorRef = useRef(null)
 
   useEffect(() => {
     if (!origen && !destino && !fecha) { navegar('/', { replace: true }); return }
@@ -53,6 +54,11 @@ export function PaginaResultados() {
       return copia
     })
   }
+  function modificarBusqueda() {
+    const bloque = buscadorRef.current
+    bloque?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    bloque?.querySelector('button, input')?.focus({ preventScroll: true })
+  }
   function limpiarFiltros() {
     setServiciosSeleccionados(new Set())
     cambiarHorario('cualquiera')
@@ -70,11 +76,16 @@ export function PaginaResultados() {
   const idMasEconomico = disponibles.length
     ? disponibles.reduce((menor, r) => r.precio < menor.precio ? r : menor).id : null
   const hayFiltrosActivos = horario !== 'cualquiera' || serviciosSeleccionados.size > 0
+  // Entre cambiar la URL y que el efecto lance la búsqueda hay un render: se
+  // trata como "cargando" para no mostrar un instante «sin viajes».
+  const busquedaPendiente = Boolean(origen || destino || fecha) &&
+    (criterios?.origen !== origen || criterios?.destino !== destino ||
+     criterios?.fecha !== fecha || criterios?.horario !== horario)
 
   return (
     <section className="seccion contenedor pagina-resultados">
       <ModalExpiracionReserva />
-      <div className="pagina-resultados__filtro">
+      <div className="pagina-resultados__filtro" ref={buscadorRef}>
         <BuscadorViajes key={`${origen}-${destino}-${fecha}`} alBuscar={manejarBuscar}
           buscando={buscando} valoresIniciales={{ origen, destino, fecha }} />
       </div>
@@ -89,29 +100,32 @@ export function PaginaResultados() {
           <FiltrosResultados horario={horario} alCambiarHorario={cambiarHorario}
             serviciosDisponibles={serviciosDisponibles} serviciosSeleccionados={serviciosSeleccionados}
             alAlternarServicio={alternarServicio} hayFiltrosActivos={hayFiltrosActivos} alLimpiarFiltros={limpiarFiltros} />
-          {buscando ? (
-            <div className="resultados-busqueda__lista" aria-busy="true">
-              {[1, 2, 3].map((n) => <div key={n} className="resultados-busqueda__esqueleto" />)}
-            </div>
-          ) : error ? (
-            <div className="resultados-busqueda__vacio" role="alert">
-              <p className="resultados-busqueda__error">{error}</p>
-              <BotonSecundario onClick={() => ejecutarBusqueda({ origen, destino, fecha, horario })}>Reintentar</BotonSecundario>
-            </div>
-          ) : resultadosFiltrados.length === 0 ? (
-            <div className="resultados-busqueda__vacio">
-              <h2>No encontramos viajes {hayFiltrosActivos ? 'con estos filtros' : 'para esta búsqueda'}.</h2>
-              <p>Prueba con otra fecha o modifica los filtros.</p>
-              {hayFiltrosActivos && <BotonSecundario onClick={limpiarFiltros}>Limpiar filtros</BotonSecundario>}
-            </div>
-          ) : (
+          <PanelAsincrono
+            variante="busqueda"
+            origen={origen}
+            destino={destino}
+            cargando={buscando || busquedaPendiente}
+            error={error}
+            vacio={resultadosFiltrados.length === 0}
+            alReintentar={() => ejecutarBusqueda({ origen, destino, fecha, horario })}
+            estadoError={{ titulo: 'No pudimos consultar los viajes' }}
+            estadoVacio={{
+              titulo: `Sin viajes ${hayFiltrosActivos ? 'con estos filtros' : 'disponibles'}`,
+              texto: hayFiltrosActivos
+                ? 'No encontramos viajes con estos filtros. Prueba con otro horario o servicio.'
+                : 'No encontramos viajes para esta búsqueda. Prueba con otra fecha.',
+              accion: hayFiltrosActivos
+                ? { texto: 'Limpiar filtros', alClick: limpiarFiltros }
+                : { texto: 'Modificar búsqueda', alClick: modificarBusqueda },
+            }}
+          >
             <div className="resultados-busqueda__lista">
               {resultadosFiltrados.map((resultado) => (
                 <TarjetaResultadoViaje key={resultado.id} resultado={resultado}
                   esMasEconomico={resultado.id === idMasEconomico} alSeleccionar={manejarSeleccion} />
               ))}
             </div>
-          )}
+          </PanelAsincrono>
         </div>
       </div>
     </section>

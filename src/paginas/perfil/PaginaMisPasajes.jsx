@@ -5,6 +5,7 @@ import { listarBoletosDelUsuario } from '../../servicios/boletosServicio'
 import { comprasVigentes } from '../../utilidades/pasajesVista'
 import { TarjetaPasaje } from '../../componentes/perfil/TarjetaPasaje'
 import { TarjetaTicket } from '../../componentes/perfil/TarjetaTicket'
+import { PanelAsincrono } from '../../componentes/carga'
 import './paginaMisPasajes.css'
 
 export function PaginaMisPasajes() {
@@ -68,24 +69,33 @@ export function PaginaMisPasajes() {
         <p className="pagina-mis-pasajes__aviso" role="status">Vista de demostración · Estos datos no provienen de la base de datos.</p>}
       {codigoReciente && estado === 'listo' && compras.some((compra) => compra.boletos.some((b) => b.codigo === codigoReciente)) &&
         <p className="pagina-mis-pasajes__confirmacion">Tu compra ya aparece entre los pasajes vigentes.</p>}
-      {estado === 'cargando' ? (
-        <p className="pagina-mis-pasajes__vacio" role="status">Cargando tus pasajes…</p>
-      ) : estado === 'error' ? (
-        <div className="pagina-mis-pasajes__vacio" role="alert"><p>{error}</p><button type="button" onClick={() => setIntentos((n) => n + 1)}>Reintentar</button></div>
-      ) : fuente === 'pendiente' ? (
-        <p className="pagina-mis-pasajes__vacio">La consulta de compras estará disponible cuando se integre el servicio del equipo backend.</p>
-      ) : compras.length === 0 ? (
-        <p className="pagina-mis-pasajes__vacio">No tienes pasajes vigentes. Aquí aparecerán tus próximas compras confirmadas.</p>
-      ) : seleccionada ? (
-        <div className="pagina-mis-pasajes__detalle">
-          <button type="button" className="pagina-mis-pasajes__volver" onClick={() => { setCompraSeleccionada(null); setErrorPdf('') }}>← Volver a mis pasajes</button>
-          <TarjetaTicket compra={seleccionada} onDescargar={descargarPdf} descargando={descargando} errorPdf={errorPdf} demostracion={fuente === 'demostracion'} />
-        </div>
-      ) : (
-        <div className="pagina-mis-pasajes__lista">
-          {compras.map((compra) => <TarjetaPasaje key={compra.id} compra={compra} onVerDetalle={() => setCompraSeleccionada(compra.id)} />)}
-        </div>
-      )}
+      <PanelAsincrono
+        variante="generico"
+        mensaje="Consultando tus pasajes"
+        mensajeListo="Pasajes listos"
+        cargando={estado === 'cargando'}
+        error={estado === 'error' ? error : null}
+        vacio={fuente !== 'pendiente' && compras.length === 0}
+        alReintentar={() => setIntentos((n) => n + 1)}
+        estadoError={{ titulo: 'No pudimos cargar tus pasajes' }}
+        estadoVacio={{
+          titulo: 'No tienes pasajes vigentes',
+          texto: 'Aquí aparecerán tus próximas compras confirmadas.',
+        }}
+      >
+        {() => fuente === 'pendiente' ? (
+          <p className="pagina-mis-pasajes__vacio">La consulta de compras estará disponible cuando se integre el servicio del equipo backend.</p>
+        ) : seleccionada ? (
+          <div className="pagina-mis-pasajes__detalle">
+            <button type="button" className="pagina-mis-pasajes__volver" onClick={() => { setCompraSeleccionada(null); setErrorPdf('') }}>← Volver a mis pasajes</button>
+            <TarjetaTicket compra={seleccionada} onDescargar={descargarPdf} descargando={descargando} errorPdf={errorPdf} demostracion={fuente === 'demostracion'} />
+          </div>
+        ) : (
+          <div className="pagina-mis-pasajes__lista">
+            {compras.map((compra) => <TarjetaPasaje key={compra.id} compra={compra} onVerDetalle={() => setCompraSeleccionada(compra.id)} />)}
+          </div>
+        )}
+      </PanelAsincrono>
     </section>
   )
 }

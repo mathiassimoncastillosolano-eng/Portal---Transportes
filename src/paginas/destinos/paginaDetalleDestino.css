@@ -98,17 +98,13 @@
   font-size: clamp(1.4rem, 3vw, 2rem);
 }
 
-.pagina-detalle-destino__busqueda > p {
+.pagina-detalle-destino__busqueda > p,
+.pagina-detalle-destino__busqueda .carga-contenido > p {
   margin: 0;
   color: var(--color-texto-secundario);
 }
 
-.pagina-detalle-destino__estado {
-  justify-items: start;
-  color: var(--color-texto-marca);
-}
-
-.pagina-detalle-destino__estado a {
-  color: var(--color-texto-acento);
-  font-weight: 700;
+.pagina-detalle-destino__busqueda .carga-contenido {
+  display: grid;
+  gap: 1rem;
 }

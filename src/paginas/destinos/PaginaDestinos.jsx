@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { obtenerDestinos } from '../../servicios/destinosServicio'
 import { TarjetaDestino } from '../../componentes/destinos/TarjetaDestino'
+import { PanelAsincrono } from '../../componentes/carga'
 import './paginaDestinos.css'
 
 export function PaginaDestinos() {
   const [destinos, setDestinos] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
+  const [intentos, setIntentos] = useState(0)
 
   useEffect(() => {
     let cancelado = false
@@ -28,7 +30,7 @@ export function PaginaDestinos() {
     return () => {
       cancelado = true
     }
-  }, [])
+  }, [intentos])
 
   return (
     <section className="seccion contenedor pagina-destinos">
@@ -40,21 +42,20 @@ export function PaginaDestinos() {
         </p>
       </div>
 
-      {cargando && <p className="pagina-destinos__vacio">Cargando destinos...</p>}
-
-      {error && <p className="pagina-destinos__vacio">{error}</p>}
-
-      {!error && !cargando && destinos.length === 0 && (
-        <p className="pagina-destinos__vacio">Todavía no hay destinos disponibles.</p>
-      )}
-
-      {!error && destinos.length > 0 && (
+      <PanelAsincrono
+        variante="destinos"
+        cargando={cargando}
+        error={error}
+        vacio={destinos.length === 0}
+        alReintentar={() => setIntentos((n) => n + 1)}
+        estadoVacio={{ titulo: 'Aún no hay destinos', texto: 'Todavía no hay destinos disponibles.' }}
+      >
         <div className="pagina-destinos__cuadricula">
           {destinos.map((destino) => (
             <TarjetaDestino key={destino.id} destino={destino} grande />
           ))}
         </div>
-      )}
+      </PanelAsincrono>
     </section>
   )
 }
