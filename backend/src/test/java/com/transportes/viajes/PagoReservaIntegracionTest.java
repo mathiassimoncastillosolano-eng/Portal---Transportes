@@ -32,15 +32,15 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Flujo de reserva contra H2: bloqueo de asientos, consulta de DNI, "Continuar al pago" (datos en caché,
- * sin tocar la BD) y confirmación del pago simulado (pasajeros + asientos a la BD en una transacción).
+ * Flujo de reserva contra H2: bloqueo de asientos, consulta de DNI y "Continuar al pago" (datos en caché,
+ * sin tocar la BD). La confirmación ya no existe como endpoint público: solo ocurre tras un pago verificado
+ * de Mercado Pago (ver com.transportes.pagos.PagoMercadoPagoIntegracionTest).
  */
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
     "spring.datasource.url=jdbc:h2:mem:reserva;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE",
     "spring.sql.init.schema-locations=classpath:schema-test.sql,classpath:schema-reserva-test.sql",
-    "reserva.token-secreto=secreto-de-pruebas-de-reserva-solo-local-0123456789",
-    "reserva.confirmacion-demo=true"
+    "reserva.token-secreto=secreto-de-pruebas-de-reserva-solo-local-0123456789"
 })
 class PagoReservaIntegracionTest {
 
@@ -55,7 +55,7 @@ class PagoReservaIntegracionTest {
 
     @BeforeEach
     void preparar() {
-        for (String tabla : List.of("viaje_asiento", "pasajero", "asiento", "viaje", "bus")) {
+        for (String tabla : List.of("pasaje", "pago", "operacion_pago", "venta", "viaje_asiento", "pasajero", "asiento", "viaje", "bus")) {
             jdbc.update("DELETE FROM " + tabla);
         }
         jdbc.update("INSERT INTO bus(id_bus,id_tipo_bus,activo) VALUES(1,NULL,true)");
@@ -117,7 +117,8 @@ class PagoReservaIntegracionTest {
         return json.readTree(r.body());
     }
 
-    HttpResponse<String> confirmar(String token) throws Exception {
+    /** El antiguo endpoint de pago simulado fue retirado: nadie puede ocupar asientos sin pagar. */
+    HttpResponse<String> confirmarDemo(String token) throws Exception {
         return enviar("POST", "/api/viajes/" + VIAJE + "/confirmar-demo", Map.of("tokenSesion", token), null);
     }
 
@@ -173,61 +174,25 @@ class PagoReservaIntegracionTest {
     // ---------- continuar al pago + confirmación ----------
 
     @Test
-    void continuarAlPagoNoPersisteYLaConfirmacionGuardaTodo() throws Exception {
+    void continuarAlPagoNoPersisteYElPagoSimuladoYaNoExiste() throws Exception {
         String token = sesionConAsientos(1, 2);
         assertTrue(continuar(token, dosPasajeros()).get("valido").asBoolean());
         assertNadaPersistido(); // solo hay caché: ni pasajeros ni asientos ocupados
         assertEquals(2, cuenta("SELECT COUNT(*) FROM viaje_asiento WHERE estado_viaje_asiento='BLOQUEADO_TEMPORAL'"));
 
-        var r = confirmar(token);
-        assertEquals(200, r.statusCode(), r.body());
-        assertEquals(2, json.readTree(r.body()).size());
-
-        assertEquals(2, cuenta("SELECT COUNT(*) FROM viaje_asiento WHERE estado_viaje_asiento='OCUPADO' AND id_pasajero IS NOT NULL"));
-        assertEquals(1, cuenta("SELECT COUNT(*) FROM viaje_asiento WHERE estado_viaje_asiento='DISPONIBLE'"));
-        assertEquals(2, cuenta("SELECT COUNT(*) FROM pasajero"));
-
-        // Existente: nombres intactos, celular actualizado.
-        var ana = jdbc.queryForMap("SELECT nombres, apellidos, nro_telefono FROM pasajero WHERE numero_documento='11111111'");
-        assertEquals("ANA", ana.get("nombres"));
-        assertEquals("LOPEZ", ana.get("apellidos"));
-        assertEquals("922222222", ana.get("nro_telefono"));
-        // Nuevo: creado con el celular en nro_telefono.
-        var carlos = jdbc.queryForMap("SELECT nombres, apellidos, nro_telefono FROM pasajero WHERE numero_documento='22222222'");
-        assertEquals("Carlos", carlos.get("nombres"));
-        assertEquals("933333333", carlos.get("nro_telefono"));
-
-        // Doble confirmación: la caché ya se vació y no hay asientos bloqueados.
-        assertEquals(409, confirmar(token).statusCode());
-        assertEquals(2, cuenta("SELECT COUNT(*) FROM pasajero"));
-    }
-
-    @Test
-    void sinContinuarAlPagoNoSePuedeConfirmar() throws Exception {
-        String token = sesionConAsientos(1, 2);
-        assertEquals(409, confirmar(token).statusCode());
+        var demo = confirmarDemo(token);
+        assertTrue(demo.statusCode() == 404 || demo.statusCode() == 405, "el endpoint demo no debe existir: " + demo.statusCode());
         assertNadaPersistido();
-        assertEquals(2, cuenta("SELECT COUNT(*) FROM viaje_asiento WHERE estado_viaje_asiento='BLOQUEADO_TEMPORAL'"));
+        assertEquals(0, cuenta("SELECT COUNT(*) FROM venta"));
     }
 
     @Test
-    void volverAContinuarReemplazaLosDatosYLosInvalidosLosDescartan() throws Exception {
-        String token = sesionConAsientos(1, 2);
-        continuar(token, dosPasajeros());
-        var corregidos = dosPasajeros();
-        corregidos.set(1, pasajero(2, "22222222", "Carlos", "Quispe Rojas", "944444444"));
-        continuar(token, corregidos);
-        assertEquals(200, confirmar(token).statusCode());
-        assertEquals("944444444", jdbc.queryForObject(
-                "SELECT nro_telefono FROM pasajero WHERE numero_documento='22222222'", String.class));
-
-        // Con datos inválidos no queda nada en caché: confirmar falla y no se guarda nada.
-        String otra = sesionConAsientos(3);
-        continuar(otra, List.of(pasajero(3, "33333333", "Luis", "Perez", "955555555")));
-        var invalido = continuar(otra, List.of(pasajero(3, "33333333", "Luis", "Perez", "123")));
+    void datosInvalidosNoQuedanEnCache() throws Exception {
+        String token = sesionConAsientos(3);
+        continuar(token, List.of(pasajero(3, "33333333", "Luis", "Perez", "955555555")));
+        var invalido = continuar(token, List.of(pasajero(3, "33333333", "Luis", "Perez", "123")));
         assertFalse(invalido.get("valido").asBoolean());
         assertEquals("nroTelefono", invalido.get("errores").get(0).get("campo").asText());
-        assertEquals(409, confirmar(otra).statusCode());
         assertEquals(0, cuenta("SELECT COUNT(*) FROM pasajero WHERE numero_documento='33333333'"));
     }
 
@@ -241,21 +206,14 @@ class PagoReservaIntegracionTest {
         sesionConAsientos(3); // asiento 3 pertenece a otra sesión
         var cruzado = continuar(token, List.of(pasajero(3, "22222222", "Carlos", "Quispe", "933333333")));
         assertFalse(cruzado.get("valido").asBoolean());
-        assertEquals(409, confirmar(token).statusCode());
         assertNadaPersistido();
     }
 
     @Test
-    void sesionInvalidaOAsientosVencidosNoConfirmanNiGuardan() throws Exception {
+    void sesionInvalidaSeRechaza() throws Exception {
         var falsa = enviar("POST", "/api/viajes/" + VIAJE + "/pasajeros",
                 Map.of("tokenSesion", "token-falso", "pasajeros", dosPasajeros()), null);
         assertEquals(401, falsa.statusCode());
-        assertEquals(401, confirmar("token-falso").statusCode());
-
-        String token = sesionConAsientos(1, 2);
-        continuar(token, dosPasajeros());
-        jdbc.update("UPDATE viaje_asiento SET fecha_expiracion_bloqueo = DATEADD('MINUTE', -1, CURRENT_TIMESTAMP) WHERE token_bloqueo IS NOT NULL");
-        assertEquals(409, confirmar(token).statusCode());
-        assertNadaPersistido(); // la transacción se revierte: tampoco se actualiza el celular de ANA
+        assertNadaPersistido();
     }
 }

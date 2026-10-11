@@ -29,7 +29,7 @@ import com.transportes.viajes.servicios.TokenSesionServicio.SesionReserva;
 /**
  * "Continuar al pago": valida los pasajeros contra los asientos bloqueados por la sesión y los deja
  * en una caché temporal en memoria. NO escribe en la base de datos ni ocupa asientos; eso ocurre
- * en {@link #confirmarCompra} cuando el pago se aprueba. Los mensajes nunca incluyen datos personales.
+ * cuando el backend verifica un pago aprobado de Mercado Pago (ver com.transportes.pagos). Los mensajes nunca incluyen datos personales.
  */
 @Service
 public class PasajerosSesionServicio {
@@ -41,18 +41,15 @@ public class PasajerosSesionServicio {
     private final TokenSesionServicio tokenSesionServicio;
     private final ViajeAsientoRepositorio viajeAsientoRepositorio;
     private final PasajeroRepositorio pasajeroRepositorio;
-    private final ViajeAsientoServicio viajeAsientoServicio;
     private final PasajerosSesionCache cache;
 
     public PasajerosSesionServicio(TokenSesionServicio tokenSesionServicio,
                                    ViajeAsientoRepositorio viajeAsientoRepositorio,
                                    PasajeroRepositorio pasajeroRepositorio,
-                                   ViajeAsientoServicio viajeAsientoServicio,
                                    PasajerosSesionCache cache) {
         this.tokenSesionServicio = tokenSesionServicio;
         this.viajeAsientoRepositorio = viajeAsientoRepositorio;
         this.pasajeroRepositorio = pasajeroRepositorio;
-        this.viajeAsientoServicio = viajeAsientoServicio;
         this.cache = cache;
     }
 
@@ -105,19 +102,16 @@ public class PasajerosSesionServicio {
     }
 
     /**
-     * Pago aprobado: crea/actualiza los pasajeros de la caché en PostgreSQL y ocupa los asientos, todo en
-     * una transacción (si algo falla no se guarda nada). Solo después se vacía la caché.
-     *
-     * @throws AsientoNoDisponibleException sin datos de pasajeros (vencieron o no se continuó al pago) (-> 409)
+     * Pasajeros ya validados en "Continuar al pago" para la sesión (caché temporal). El servicio de pagos los
+     * copia a la operación de pago al crear la order: ese es el único camino que los lleva a PostgreSQL, y solo
+     * después de que el backend verifica el pago aprobado.
      */
-    public List<Integer> confirmarCompra(Long idViaje, String tokenSesion) {
-        SesionReserva sesion = tokenSesionServicio.validar(tokenSesion, idViaje);
-        List<PasajeroAsientoRequest> pasajeros = cache.obtener(sesion.idSesion())
-                .orElseThrow(() -> new AsientoNoDisponibleException(
-                        "Los datos de los pasajeros vencieron. Vuelve a ingresarlos para continuar al pago."));
-        List<Integer> confirmados = viajeAsientoServicio.confirmarSesion(idViaje, tokenSesion, pasajeros);
-        cache.eliminar(sesion.idSesion());
-        return confirmados;
+    public java.util.Optional<List<PasajeroAsientoRequest>> pasajerosValidados(String idSesion) {
+        return cache.obtener(idSesion);
+    }
+
+    public void descartarPasajeros(String idSesion) {
+        cache.eliminar(idSesion);
     }
 
     private void validarContraSesion(Integer idViaje, Set<Integer> asientosPropios,

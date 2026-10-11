@@ -26,7 +26,7 @@ export function eliminarToken() {
  * mensaje legible para mostrar en la interfaz.
  */
 export async function solicitarApi(ruta, opciones = {}) {
-  const { autenticar = true, ...opcionesFetch } = opciones
+  const { autenticar = true, timeoutMs, ...opcionesFetch } = opciones
   const token = autenticar ? obtenerToken() : null
 
   const encabezados = {
@@ -38,14 +38,28 @@ export async function solicitarApi(ruta, opciones = {}) {
     encabezados.Authorization = `Bearer ${token}`
   }
 
+  // timeoutMs (opcional): corta la espera. El error lleva sinRespuesta = true para que el llamador sepa
+  // que el resultado es DESCONOCIDO (la solicitud pudo llegar al servidor) y no lo trate como un rechazo.
+  const controlador = timeoutMs ? new AbortController() : null
+  const temporizador = controlador ? setTimeout(() => controlador.abort(), timeoutMs) : null
+
   let respuesta
   try {
     respuesta = await fetch(`${URL_BASE_API}${ruta}`, {
       ...opcionesFetch,
       headers: encabezados,
+      ...(controlador ? { signal: controlador.signal } : {}),
     })
   } catch (error) {
-    throw new Error('No se pudo conectar con el servidor. Verifica tu conexión e inténtalo de nuevo.')
+    const sinConexion = new Error(
+      controlador?.signal.aborted
+        ? 'El servidor está tardando en responder.'
+        : 'No se pudo conectar con el servidor. Verifica tu conexión e inténtalo de nuevo.',
+    )
+    sinConexion.sinRespuesta = true
+    throw sinConexion
+  } finally {
+    if (temporizador) clearTimeout(temporizador)
   }
 
   const tieneCuerpo = respuesta.status !== 204

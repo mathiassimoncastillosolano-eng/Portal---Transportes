@@ -67,6 +67,26 @@ public class TokenSesionServicio {
     }
 
     /**
+     * Reemite el token de una sesión EXISTENTE (mismo id, mismos asientos) con una nueva expiración. Se usa
+     * cuando el servidor extiende el bloqueo de los asientos durante el pago, para que un reintento tras un
+     * rechazo siga siendo posible mientras los asientos continúan reservados.
+     */
+    public SesionReserva reemitir(String idSesion, Long idViaje, LocalDateTime nuevaExpiracion) {
+        Instant ahora = Instant.now();
+        Instant expira = nuevaExpiracion.atZone(ZoneId.systemDefault()).toInstant();
+        String token = Jwts.builder()
+                .id(idSesion)
+                .subject("sesion-reserva")
+                .claim("tipo", TIPO_SESION)
+                .claim("idViaje", idViaje)
+                .issuedAt(Date.from(ahora))
+                .expiration(Date.from(expira))
+                .signWith(clave)
+                .compact();
+        return new SesionReserva(token, idSesion, idViaje, aLocal(expira));
+    }
+
+    /**
      * @throws SesionExpiradaException si venció (-> 410)
      * @throws SesionInvalidaException si es falsa, alterada o de otro viaje (-> 401)
      */

@@ -216,6 +216,20 @@ function leerSesionGuardada(idViaje) {
   }
 }
 
+/**
+ * Guarda una sesión reemitida por el backend (p. ej. al iniciar el pago se extiende la reserva de los
+ * asientos y llega un token nuevo con la misma identidad).
+ */
+export function guardarSesionAsientos(idViaje, { tokenSesion, segundosRestantes }) {
+  const sesion = { tokenSesion, expiraEn: Date.now() + segundosRestantes * 1000 }
+  try {
+    sessionStorage.setItem(`${PREFIJO_SESION}${idViaje}`, JSON.stringify(sesion))
+  } catch {
+    // no bloqueante
+  }
+  return sesion
+}
+
 export function borrarSesionAsientos(idViaje) {
   try {
     sessionStorage.removeItem(`${PREFIJO_SESION}${idViaje}`)
@@ -352,18 +366,4 @@ export async function guardarPasajeros(idViaje, tokenSesion, pasajeros) {
   })
   const errores = Array.isArray(respuesta?.errores) ? respuesta.errores : []
   return { valido: respuesta?.valido !== false && errores.length === 0, errores }
-}
-
-/**
- * TEMPORAL (solo desarrollo): simula la confirmación del pago llamando a
- * POST /api/viajes/{id}/confirmar-demo. Guarda en PostgreSQL los pasajeros de la caché y pasa los
- * asientos a OCUPADO. Existe únicamente si el backend tiene reserva.confirmacion-demo=true; si no,
- * responde 404. NO cobra nada. Retirar cuando exista el POST /api/pagos real.
- */
-export async function confirmarCompraDemo(idViaje, tokenSesion) {
-  return solicitarApi(`/api/viajes/${idViaje}/confirmar-demo`, {
-    method: 'POST',
-    autenticar: false,
-    body: JSON.stringify({ tokenSesion }),
-  })
 }

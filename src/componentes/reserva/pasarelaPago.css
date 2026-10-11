@@ -212,3 +212,55 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Card Payment Brick de Mercado Pago */
+.pasarela-pago__brick {
+  display: grid;
+  gap: var(--espacio-3);
+}
+
+.pasarela-pago__brick--bloqueado {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.pasarela-pago__brick-contenedor {
+  min-height: 1px;
+}
+
+.pasarela-pago__brick-cargando {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  padding: var(--espacio-5);
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  color: var(--color-texto-secundario);
+  font-size: var(--tamano-sm);
+}
+
+.pasarela-pago__spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid var(--color-borde);
+  border-top-color: var(--color-verde-600);
+  animation: pasarela-pago-girar 900ms linear infinite;
+}
+
+.pasarela-pago__reintentar {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@keyframes pasarela-pago-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}

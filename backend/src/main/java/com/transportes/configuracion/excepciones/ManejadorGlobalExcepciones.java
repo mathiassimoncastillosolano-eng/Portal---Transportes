@@ -74,6 +74,32 @@ public class ManejadorGlobalExcepciones {
                 "El cuerpo de la solicitud debe ser un JSON válido", request, null);
     }
 
+    @ExceptionHandler(com.transportes.pagos.excepciones.PagoException.class)
+    public ResponseEntity<RespuestaError> manejarPago(
+            com.transportes.pagos.excepciones.PagoException excepcion, HttpServletRequest request) {
+        return construirRespuesta(excepcion.getStatus(), excepcion.getMessage(), request, null);
+    }
+
+    /** Mercado Pago no respondio a tiempo: el resultado se verifica luego (el pago NO se da por aprobado). */
+    @ExceptionHandler(com.transportes.pagos.mercadopago.ErrorMercadoPagoException.class)
+    public ResponseEntity<RespuestaError> manejarProveedorPago(
+            com.transportes.pagos.mercadopago.ErrorMercadoPagoException excepcion, HttpServletRequest request) {
+        log.warn("Error del proveedor de pagos en {}: {}", request.getRequestURI(), excepcion.getTipo());
+        return construirRespuesta(HttpStatus.SERVICE_UNAVAILABLE,
+                "No pudimos comunicarnos con Mercado Pago. Inténtalo nuevamente en unos segundos.", request, null);
+    }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.HandlerMethodValidationException.class)
+    public ResponseEntity<RespuestaError> manejarValidacionParametros(Exception excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.BAD_REQUEST, "Los datos enviados no son validos.", request, null);
+    }
+
+    @ExceptionHandler({org.springframework.web.servlet.resource.NoResourceFoundException.class,
+            org.springframework.web.HttpRequestMethodNotSupportedException.class})
+    public ResponseEntity<RespuestaError> manejarRutaInexistente(Exception excepcion, HttpServletRequest request) {
+        return construirRespuesta(HttpStatus.NOT_FOUND, "Recurso no encontrado.", request, null);
+    }
+
     @ExceptionHandler(CredencialesInvalidasException.class)
     public ResponseEntity<RespuestaError> manejarCredencialesInvalidas(
             CredencialesInvalidasException excepcion, HttpServletRequest request) {

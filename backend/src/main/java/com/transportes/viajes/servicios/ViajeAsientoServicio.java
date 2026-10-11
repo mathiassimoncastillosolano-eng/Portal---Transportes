@@ -1,5 +1,6 @@
 package com.transportes.viajes.servicios;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.transportes.buses.dto.AsientoFisicoDTO;
@@ -146,62 +148,75 @@ public class ViajeAsientoServicio {
         publicador.publishEvent(new AsientoCambiadoEvento(idViaje, idAsiento, "disponible"));
     }
 
+    /** Asiento vendido dentro de la transacción de registro de la compra. */
+    public record AsientoOcupado(Integer idAsiento, Integer idViajeAsiento, Integer idPasajero,
+                                 BigDecimal precio, String numero, short piso) {
+    }
+
     /**
-     * GANCHO PARA PAGOS: lo invoca SOLO {@link PasajerosSesionServicio#confirmarCompra} tras un pago aprobado
-     * (no hay endpoint público que lo llame directamente a propósito).
-     * En una única transacción: crea o actualiza los pasajeros y pasa a OCUPADO todos los asientos
-     * bloqueados por la sesión. Si alguno ya no está vigente, lanza excepción y se revierte TODO
-     * (asientos y pasajeros): todo o nada.
+     * GANCHO PARA PAGOS: lo invoca SOLO el registro de una compra cuyo pago Mercado Pago ya fue verificado
+     * en el backend ({@code RegistroCompraServicio}). No usa el JWT de la sesión (puede haber vencido mientras
+     * se procesaba el pago): la operación de pago guarda el id de sesión que figura en token_bloqueo.
      *
-     * @param pasajeros datos de pasajero ya validados: exactamente uno por cada asiento bloqueado de la sesión
-     * @return ids de los asientos confirmados
-     * @throws SesionExpiradaException si la sesión venció (-> 410)
-     * @throws SesionInvalidaException si el token es falso o de otro viaje (-> 401)
-     * @throws AsientoNoDisponibleException si no hay asientos que confirmar, faltan pasajeros o alguno expiró (-> 409)
+     * <p>Debe ejecutarse dentro de la transacción del registro (MANDATORY): crea o actualiza los pasajeros y pasa
+     * a OCUPADO cada asiento que SIGUE bloqueado por esa sesión. Si alguno ya no lo está (lo liberó el job y otro
+     * cliente lo tomó), lanza excepción y se revierte TODO: todo o nada.</p>
+     *
+     * @param pasajeros exactamente uno por cada asiento bloqueado de la sesión
+     * @throws AsientoNoDisponibleException si no hay asientos, faltan pasajeros o alguno ya no pertenece a la sesión
      */
-    @Transactional
-    public List<Integer> confirmarSesion(Long idViaje, String tokenSesion, List<PasajeroAsientoRequest> pasajeros) {
-        SesionReserva sesion = tokenSesionServicio.validar(tokenSesion, idViaje);
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<AsientoOcupado> ocuparAsientosDeSesion(Long idViaje, String idSesion, List<PasajeroAsientoRequest> pasajeros) {
         Integer idViajeInt = Math.toIntExact(idViaje);
+        viajeAsientoRepositorio.bloquearSesion(idSesion);
 
-        viajeAsientoRepositorio.bloquearSesion(sesion.idSesion());
-
-        List<Integer> idsAsientos = viajeAsientoRepositorio
-                .findByIdViajeAndTokenBloqueoAndEstadoViajeAsiento(idViajeInt, sesion.idSesion(), "BLOQUEADO_TEMPORAL")
-                .stream().map(ViajeAsiento::getIdAsiento).toList();
-
-        if (idsAsientos.isEmpty()) {
-            throw new AsientoNoDisponibleException("No hay asientos bloqueados en esta sesión para confirmar.");
+        List<ViajeAsiento> bloqueados = viajeAsientoRepositorio
+                .findByIdViajeAndTokenBloqueoAndEstadoViajeAsiento(idViajeInt, idSesion, "BLOQUEADO_TEMPORAL");
+        if (bloqueados.isEmpty()) {
+            throw new AsientoNoDisponibleException("Los asientos de esta reserva ya no están disponibles.");
         }
-
-        if (pasajeros == null || pasajeros.size() != idsAsientos.size()) {
-            throw new AsientoNoDisponibleException("Faltan los datos del pasajero de algún asiento.");
+        if (pasajeros == null || pasajeros.size() != bloqueados.size()) {
+            throw new AsientoNoDisponibleException("Los asientos reservados no coinciden con los pasajeros.");
         }
-        Map<Integer, Integer> pasajeroPorAsiento = new HashMap<>();
-        Set<Integer> propios = Set.copyOf(idsAsientos);
+        Map<Integer, PasajeroAsientoRequest> pasajeroPorAsiento = new HashMap<>();
         for (PasajeroAsientoRequest p : pasajeros) {
-            if (p.idAsiento() == null || !propios.contains(p.idAsiento())
-                    || pasajeroPorAsiento.containsKey(p.idAsiento())) {
-                throw new AsientoNoDisponibleException(
-                        "El asiento " + p.idAsiento() + " no pertenece a esta sesión.");
+            if (p.idAsiento() == null || pasajeroPorAsiento.put(p.idAsiento(), p) != null) {
+                throw new AsientoNoDisponibleException("Los datos de los pasajeros no son válidos.");
             }
-            pasajeroPorAsiento.put(p.idAsiento(), buscarOCrearPasajero(p));
         }
 
-        LocalDateTime ahora = LocalDateTime.now();
-        for (Integer idAsiento : idsAsientos) {
-            int filas = viajeAsientoRepositorio.confirmarAsientoSiVigente(
-                    idViajeInt, idAsiento, sesion.idSesion(), pasajeroPorAsiento.get(idAsiento), ahora);
+        List<AsientoOcupado> ocupados = new java.util.ArrayList<>();
+        for (ViajeAsiento va : bloqueados.stream().sorted(Comparator.comparing(ViajeAsiento::getIdAsiento)).toList()) {
+            PasajeroAsientoRequest p = pasajeroPorAsiento.get(va.getIdAsiento());
+            if (p == null) {
+                throw new AsientoNoDisponibleException("El asiento " + va.getIdAsiento() + " no tiene pasajero.");
+            }
+            Integer idPasajero = buscarOCrearPasajero(p);
+            int filas = viajeAsientoRepositorio.ocuparAsientoDeSesion(va.getIdViajeAsiento(), idSesion, idPasajero);
             if (filas == 0) {
-                throw new AsientoNoDisponibleException(
-                        "El asiento " + idAsiento + " ya no está vigente; la reserva expiró.");
+                throw new AsientoNoDisponibleException("El asiento " + va.getIdAsiento() + " ya no está disponible.");
             }
+            AsientoFisicoDTO fisico = asientoServicio.obtenerPorId(va.getIdAsiento());
+            ocupados.add(new AsientoOcupado(va.getIdAsiento(), va.getIdViajeAsiento(), idPasajero, va.getPrecio(),
+                    fisico == null ? String.valueOf(va.getIdAsiento()) : fisico.numero(),
+                    fisico == null ? 1 : fisico.piso()));
         }
+        for (AsientoOcupado o : ocupados) {
+            publicador.publishEvent(new AsientoCambiadoEvento(idViaje, o.idAsiento(), "ocupado"));
+        }
+        return ocupados;
+    }
 
-        for (Integer idAsiento : idsAsientos) {
-            publicador.publishEvent(new AsientoCambiadoEvento(idViaje, idAsiento, "ocupado"));
-        }
-        return idsAsientos;
+    /**
+     * Mantiene bloqueados los asientos de la sesión mientras Mercado Pago procesa el pago, para que el job de
+     * liberación no los suelte a mitad del cobro. Solo afecta asientos todavía vigentes de esa sesión.
+     *
+     * @return cantidad de asientos extendidos
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public int extenderBloqueoSesion(Long idViaje, String idSesion, LocalDateTime nuevaExpiracion) {
+        return viajeAsientoRepositorio.extenderBloqueoSesion(
+                Math.toIntExact(idViaje), idSesion, nuevaExpiracion, LocalDateTime.now());
     }
 
     /** Libera bloqueos vencidos (todos los viajes) y emite un evento por asiento. Lo usa el job. */

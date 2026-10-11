@@ -14,7 +14,8 @@ import com.transportes.viajes.dto.PasajeroAsientoRequest;
 /**
  * Caché EN MEMORIA de los pasajeros ya validados en "Continuar al pago", por sesión de reserva.
  * No toca la base de datos: los datos solo pasan a PostgreSQL cuando el pago se confirma
- * ({@link PasajerosSesionServicio#confirmarCompra}). Cada entrada vence con la sesión y se descarta sola.
+ * (ver com.transportes.pagos.servicios.PagoServicio, que los copia a la operación de pago).
+ * Cada entrada vence con la sesión y se descarta sola.
  * Como la denylist de tokens, se pierde al reiniciar el servidor (el usuario vuelve a continuar al pago).
  */
 @Component

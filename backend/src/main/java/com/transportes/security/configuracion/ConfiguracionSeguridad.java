@@ -86,6 +86,10 @@ public class ConfiguracionSeguridad {
                         .requestMatchers("/api/usuarios/**", "/api/auth/logout", "/api/auth/google/vincular").authenticated()
                         // Consulta de pasajeros por DNI: expone datos personales, exige JWT.
                         .requestMatchers("/api/pasajeros/**").authenticated()
+                        // Webhook de Mercado Pago: publico, pero el controlador exige la firma x-signature.
+                        .requestMatchers(HttpMethod.POST, "/api/pagos/webhook").permitAll()
+                        // Pagos: la venta se asocia al usuario autenticado.
+                        .requestMatchers("/api/pagos/**").authenticated()
                         // Cualquier otra ruta (dominios aun no implementados,
                         // como destinos/servicios/viajes) permanece publica por
                         // ahora, ya que estan fuera del alcance de esta tarea.
@@ -98,7 +102,8 @@ public class ConfiguracionSeguridad {
 
     private CorsConfigurationSource fuenteConfiguracionCors() {
         CorsConfiguration configuracion = new CorsConfiguration();
-        configuracion.setAllowedOrigins(List.of(origenesPermitidos.split(",")));
+        configuracion.setAllowedOrigins(List.of(origenesPermitidos.split(",")).stream()
+                .map(String::trim).filter(origen -> !origen.isEmpty() && !"*".equals(origen)).toList());
         configuracion.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuracion.setAllowCredentials(true);

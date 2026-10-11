@@ -17,7 +17,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
     "spring.datasource.url=jdbc:h2:mem:viajes;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE",
-    "spring.sql.init.schema-locations=classpath:schema-test.sql,classpath:schema-viajes-test.sql"
+    "spring.sql.init.schema-locations=classpath:schema-test.sql,classpath:schema-viajes-test.sql",
+    // Esquema reducido solo para la búsqueda (consultas nativas): no se validan las demás entidades JPA.
+    "spring.jpa.hibernate.ddl-auto=none"
 })
 class BusquedaIntegracionTest {
     @LocalServerPort int port;

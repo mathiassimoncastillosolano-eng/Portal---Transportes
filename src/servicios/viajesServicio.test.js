@@ -1,6 +1,6 @@
 import { afterEach, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buscarViajes, guardarPasajeros, confirmarCompraDemo } from './viajesServicio.js'
+import { buscarViajes, guardarPasajeros } from './viajesServicio.js'
 
 const fetchOriginal = globalThis.fetch
 afterEach(() => { globalThis.fetch = fetchOriginal })
@@ -72,15 +72,7 @@ test('guardarPasajeros propaga el status de 401, 409 y 410', async () => {
   }
 })
 
-test('confirmarCompraDemo llama a /confirmar-demo con el token en el cuerpo y no en la URL', async () => {
-  let llamada
-  globalThis.fetch = async (url, opciones) => {
-    llamada = { url: new URL(url), opciones }
-    return new Response(JSON.stringify([7]))
-  }
-  assert.deepEqual(await confirmarCompraDemo(15, 'tok-abc'), [7])
-  assert.equal(llamada.url.pathname, '/api/viajes/15/confirmar-demo')
-  assert.equal(llamada.url.search, '')
-  assert.equal(llamada.opciones.method, 'POST')
-  assert.deepEqual(JSON.parse(llamada.opciones.body), { tokenSesion: 'tok-abc' })
+test('ya no existe la confirmación simulada desde el navegador', async () => {
+  const modulo = await import('./viajesServicio.js')
+  assert.equal(modulo.confirmarCompraDemo, undefined)
 })

@@ -51,16 +51,28 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
     int liberarAsientoSiPropio(@Param("idViaje") Integer idViaje, @Param("idAsiento") Integer idAsiento,
                                 @Param("token") String token);
 
-    /** Pasa a OCUPADO solo si sigue bloqueado por esa sesión Y vigente (un pago tardío no roba asientos). */
-    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    /**
+     * Pasa a OCUPADO solo si el asiento SIGUE bloqueado por esa sesión. Si el job ya lo liberó (y quizá otro
+     * cliente lo tomó), la condición falla y no se toca: un pago tardío nunca roba un asiento ajeno.
+     * Sin clearAutomatically: se ejecuta dentro de la transacción del registro de compra y no debe desvincular
+     * la operación de pago que esa transacción tiene bloqueada.
+     */
+    @Modifying(flushAutomatically = true)
     @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'OCUPADO', "
          + "va.fechaExpiracionBloqueo = null, va.idPasajero = :idPasajero "
-         + "WHERE va.idViaje = :idViaje AND va.idAsiento = :idAsiento "
-         + "AND va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' AND va.tokenBloqueo = :token "
-         + "AND va.fechaExpiracionBloqueo >= :ahora")
-    int confirmarAsientoSiVigente(@Param("idViaje") Integer idViaje, @Param("idAsiento") Integer idAsiento,
-                                   @Param("token") String token, @Param("idPasajero") Integer idPasajero,
-                                   @Param("ahora") LocalDateTime ahora);
+         + "WHERE va.idViajeAsiento = :idViajeAsiento "
+         + "AND va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' AND va.tokenBloqueo = :token")
+    int ocuparAsientoDeSesion(@Param("idViajeAsiento") Integer idViajeAsiento, @Param("token") String token,
+                              @Param("idPasajero") Integer idPasajero);
+
+    /** Extiende el bloqueo de los asientos vigentes de la sesión mientras se procesa el pago. */
+    @Modifying(flushAutomatically = true)
+    @Query("UPDATE ViajeAsiento va SET va.fechaExpiracionBloqueo = :expiracion "
+         + "WHERE va.idViaje = :idViaje AND va.tokenBloqueo = :token "
+         + "AND va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' AND va.fechaExpiracionBloqueo >= :ahora "
+         + "AND va.fechaExpiracionBloqueo < :expiracion")
+    int extenderBloqueoSesion(@Param("idViaje") Integer idViaje, @Param("token") String token,
+                              @Param("expiracion") LocalDateTime expiracion, @Param("ahora") LocalDateTime ahora);
 
     @Query("SELECT COUNT(va) FROM ViajeAsiento va WHERE va.idViaje = :idViaje "
          + "AND va.tokenBloqueo = :token AND va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL'")
