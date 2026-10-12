@@ -23,16 +23,18 @@ import java.util.List;
 /**
  * Configuracion central de Spring Security para toda la API.
  *
- * <p>Decisiones clave:</p>
+ * <p>
+ * Decisiones clave:
+ * </p>
  * <ul>
- *     <li>API sin estado (stateless): no se usan sesiones HTTP, toda la
- *         autenticacion viaja en el JWT.</li>
- *     <li>CSRF deshabilitado: es irrelevante para una API sin estado
- *         consumida por un frontend SPA con Bearer tokens (no usa
- *         cookies de sesion).</li>
- *     <li>Login y POST /api/usuarios/registro son publicos.
- *         El resto de rutas bajo {@code /api/usuarios/**} y
- *         {@code /api/auth/logout} requieren un JWT valido.</li>
+ * <li>API sin estado (stateless): no se usan sesiones HTTP, toda la
+ * autenticacion viaja en el JWT.</li>
+ * <li>CSRF deshabilitado: es irrelevante para una API sin estado
+ * consumida por un frontend SPA con Bearer tokens (no usa
+ * cookies de sesion).</li>
+ * <li>Login y POST /api/usuarios/registro son publicos.
+ * El resto de rutas bajo {@code /api/usuarios/**} y
+ * {@code /api/auth/logout} requieren un JWT valido.</li>
  * </ul>
  */
 @Configuration
@@ -48,9 +50,9 @@ public class ConfiguracionSeguridad {
     private String origenesPermitidos;
 
     public ConfiguracionSeguridad(JwtService jwtService,
-                                   TokenInvalidadoService tokenInvalidadoService,
-                                   UsuarioService usuarioService,
-                                   PuntoEntradaJwt puntoEntradaJwt) {
+            TokenInvalidadoService tokenInvalidadoService,
+            UsuarioService usuarioService,
+            PuntoEntradaJwt puntoEntradaJwt) {
         this.jwtService = jwtService;
         this.tokenInvalidadoService = tokenInvalidadoService;
         this.usuarioService = usuarioService;
@@ -64,8 +66,8 @@ public class ConfiguracionSeguridad {
 
     @Bean
     public SecurityFilterChain cadenaFiltrosSeguridad(HttpSecurity http) throws Exception {
-        FiltroAutenticacionJwt filtroJwt =
-                new FiltroAutenticacionJwt(jwtService, tokenInvalidadoService, usuarioService);
+        FiltroAutenticacionJwt filtroJwt = new FiltroAutenticacionJwt(jwtService, tokenInvalidadoService,
+                usuarioService);
 
         http
                 .cors(cors -> cors.configurationSource(fuenteConfiguracionCors()))
@@ -73,6 +75,17 @@ public class ConfiguracionSeguridad {
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(manejo -> manejo.authenticationEntryPoint(puntoEntradaJwt))
                 .authorizeHttpRequests(rutas -> rutas
+                        // Documentación Swagger/OpenAPI: acceso público.
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml")
+                        .permitAll()
+
+                        // Crear una cuenta no requiere una sesión previa.
+                        .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
+
                         // Crear una cuenta no requiere una sesion previa.
                         .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
@@ -83,18 +96,19 @@ public class ConfiguracionSeguridad {
                         // codigo enviado al correo (ver RecuperacionContrasenaService).
                         .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/**").permitAll()
                         // Perfil y cierre de sesion: requieren JWT valido.
-                        .requestMatchers("/api/usuarios/**", "/api/auth/logout", "/api/auth/google/vincular").authenticated()
+                        .requestMatchers("/api/usuarios/**", "/api/auth/logout", "/api/auth/google/vincular")
+                        .authenticated()
                         // Consulta de pasajeros por DNI: expone datos personales, exige JWT.
                         .requestMatchers("/api/pasajeros/**").authenticated()
-                        // Webhook de Mercado Pago: publico, pero el controlador exige la firma x-signature.
+                        // Webhook de Mercado Pago: publico, pero el controlador exige la firma
+                        // x-signature.
                         .requestMatchers(HttpMethod.POST, "/api/pagos/webhook").permitAll()
                         // Pagos: la venta se asocia al usuario autenticado.
                         .requestMatchers("/api/pagos/**").authenticated()
                         // Cualquier otra ruta (dominios aun no implementados,
                         // como destinos/servicios/viajes) permanece publica por
                         // ahora, ya que estan fuera del alcance de esta tarea.
-                        .anyRequest().permitAll()
-                )
+                        .anyRequest().permitAll())
                 .addFilterBefore(filtroJwt, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
