@@ -84,7 +84,7 @@ export function BuscadorViajes({ alBuscar, buscando, valoresIniciales, rutasDisp
   }
 
   return (
-    <form className="buscador-viajes" onSubmit={manejarEnvio}>
+    <form className={`buscador-viajes${destinoSugerido ? ' buscador-viajes--destino-fijo' : ''}`} onSubmit={manejarEnvio}>
       <div className="buscador-viajes__campos">
         <SelectorUbicacion
           ciudades={origenes}

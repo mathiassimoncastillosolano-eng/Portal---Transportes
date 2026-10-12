@@ -5,7 +5,7 @@ export const descripcionesDestinos = {
   Chimbote: 'Descubre su bahía y los paisajes marinos que rodean la Isla Blanca.',
   Huaraz: 'Prepárate para conocer las lagunas, nevados y senderos de la Cordillera Blanca.',
   'Jaén': 'Descubre la tradición cafetera local y los paisajes que acompañan la Ruta del Café.',
-  Lima: 'Combina un paseo por su centro histórico con la gastronomía y los barrios frente al mar.',
+  Lima: 'Descubre la historia, la cultura y los sabores de la capital del Perú.',
   'Máncora': 'Disfruta del mar, los paseos por la playa y el ambiente de este balneario del norte.',
   Pacasmayo: 'Pasea junto al mar, conoce su muelle histórico y prueba la cocina marina del norte.',
   Paita: 'Conoce su historia portuaria y explora las playas cercanas, como Colán y Yacila.',

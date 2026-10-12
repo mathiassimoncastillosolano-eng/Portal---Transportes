@@ -55,3 +55,48 @@
 
   .tarjeta-ticket__ruta strong { font-size: 1.3rem; }
 }
+
+/* El detalle usa la lectura de un boleto: ruta, salida y asientos. */
+.tarjeta-ticket {
+  border: 1px solid var(--color-borde);
+  box-shadow: var(--sombra-marcada);
+}
+.tarjeta-ticket__franja { min-height: 4rem; }
+.tarjeta-ticket__cuerpo { gap: 1.75rem; }
+.tarjeta-ticket__sobrelinea { color: var(--color-texto-acento); }
+.tarjeta-ticket__ruta {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px dashed var(--color-borde-fuerte);
+}
+.tarjeta-ticket__ruta strong { font-size: clamp(1.45rem, 3vw, 2.1rem); overflow-wrap: anywhere; }
+.tarjeta-ticket__viaje {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  background: var(--color-superficie-marca);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  padding: 1.25rem;
+}
+.tarjeta-ticket__viaje strong { font-size: 1rem; }
+.tarjeta-ticket__boletos h3 { margin-bottom: 1rem; }
+.tarjeta-ticket__boleto {
+  min-height: 4.5rem;
+  padding: 1rem;
+  margin-bottom: .65rem;
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: var(--radio-sm);
+  background: var(--color-superficie-2);
+}
+.tarjeta-ticket__codigo { overflow-wrap: anywhere; }
+.tarjeta-ticket__total { padding-top: 1.25rem; }
+.tarjeta-ticket__acciones button {
+  min-height: 3rem;
+  background: var(--gradiente-marca);
+  transition: filter var(--transicion-rapida), transform var(--transicion-rapida);
+}
+.tarjeta-ticket__acciones button:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+@media (max-width: 560px) {
+  .tarjeta-ticket__viaje { grid-template-columns: 1fr; }
+  .tarjeta-ticket__boleto { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tarjeta-ticket__boleto > strong:last-child { grid-column: 1 / -1; }
+}

@@ -5,7 +5,7 @@
   border-radius: var(--radio-lg);
   display: grid;
   grid-template-columns: 1fr 200px;
-  box-shadow: var(--sombra-tenue);
+  box-shadow: var(--sombra-tarjeta);
   transition: border-color var(--transicion-base), box-shadow var(--transicion-base), transform var(--transicion-base);
   overflow: hidden;
 }
@@ -42,7 +42,7 @@
   padding: var(--espacio-5) var(--espacio-6);
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-4);
+  gap: var(--espacio-5);
   min-width: 0;
 }
 
@@ -109,7 +109,7 @@
 .tarjeta-resultado-viaje__hora {
   font-family: var(--fuente-titulos);
   font-weight: 700;
-  font-size: var(--tamano-xl);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
   line-height: 1.1;
 }
 
@@ -210,7 +210,7 @@
 
 .tarjeta-resultado-viaje__precio {
   font-family: var(--fuente-titulos);
-  font-size: var(--tamano-xl);
+  font-size: clamp(1.6rem, 2.5vw, 2rem);
   font-weight: 700;
   color: var(--color-texto-marca);
 }

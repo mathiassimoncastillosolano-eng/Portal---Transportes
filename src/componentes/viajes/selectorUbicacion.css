@@ -39,6 +39,13 @@
   color: var(--color-texto-acento);
 }
 
+.selector-ubicacion__texto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .selector-ubicacion__lista {
   position: absolute;
   top: calc(100% + 14px);
