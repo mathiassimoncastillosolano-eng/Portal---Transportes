@@ -521,7 +521,7 @@ public class PagoServicio {
                 log.warn("Webhook de una order inexistente: {}", idOrden);
                 return;
             }
-            throw e; // resultado desconocido: el controlador responde 5xx y Mercado Pago reintenta
+            throw e; // el controlador decide: fallo temporal o de credenciales -> 503 (reintento); rechazo definitivo -> 200
         }
         Optional<OperacionPago> op = operaciones.findByMpOrderId(orden.id());
         if (op.isEmpty() && orden.referenciaExterna() != null) {

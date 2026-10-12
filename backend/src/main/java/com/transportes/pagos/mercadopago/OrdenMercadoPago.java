@@ -1,6 +1,8 @@
 package com.transportes.pagos.mercadopago;
 
 import java.math.BigDecimal;
+import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Vista mínima de una order de Mercado Pago (respuesta de POST/GET /v1/orders). Solo contiene lo necesario
@@ -30,6 +32,24 @@ public record OrdenMercadoPago(
         String estadoPago,
         String estadoDetallePago,
         String urlDesafio3ds) {
+
+    private static final Pattern ID_ORDEN = Pattern.compile("^ORD[A-Z0-9_-]{0,61}$");
+
+    /**
+     * Normaliza el identificador de una order recibido en una notificación. Los ids de order de Mercado Pago
+     * empiezan por {@code ORD} (p. ej. ORD01M28P44G5FG8RJPM579EH56FV) y van en mayúsculas; las pruebas de la
+     * documentación y el botón "Simular" del panel pueden enviar otros valores (p. ej. 123456) que NO son una order:
+     * consultarlos a la API solo produce {@code invalid_path_param}.
+     *
+     * @return el id normalizado, o null si no tiene forma de id de order
+     */
+    public static String normalizarIdOrden(String id) {
+        if (id == null) {
+            return null;
+        }
+        String normalizado = id.trim().toUpperCase(Locale.ROOT);
+        return ID_ORDEN.matcher(normalizado).matches() ? normalizado : null;
+    }
 
     /** Única condición de aprobación: order procesada y acreditada. */
     public boolean aprobada() {

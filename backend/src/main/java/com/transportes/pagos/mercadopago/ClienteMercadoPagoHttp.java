@@ -26,12 +26,18 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Cliente HTTP de la API de Orders de Mercado Pago (https://api.mercadopago.com/v1/orders).
+ * Cliente HTTP de la API de Orders de Mercado Pago
+ * (https://api.mercadopago.com/v1/orders).
  *
- * <p>Usa el {@link HttpClient} del JDK, igual que la integración de correo, para no agregar dependencias.
- * El Access Token llega por la variable de entorno {@code MERCADOPAGO_ACCESS_TOKEN}, solo viaja en la cabecera
- * Authorization y nunca se registra. Los cuerpos de respuesta tampoco se registran completos: pueden traer
- * datos del pagador.</p>
+ * <p>
+ * Usa el {@link HttpClient} del JDK, igual que la integración de correo, para
+ * no agregar dependencias.
+ * El Access Token llega por la variable de entorno
+ * {@code MERCADOPAGO_ACCESS_TOKEN}, solo viaja en la cabecera
+ * Authorization y nunca se registra. Los cuerpos de respuesta tampoco se
+ * registran completos: pueden traer
+ * datos del pagador.
+ * </p>
  */
 @Component
 public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
@@ -46,9 +52,9 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
     private final HttpClient http;
 
     public ClienteMercadoPagoHttp(@Value("${mercadopago.access-token:}") String accessToken,
-                                  @Value("${mercadopago.url-api:https://api.mercadopago.com}") String urlBase,
-                                  @Value("${mercadopago.timeout-segundos:20}") long timeoutSegundos,
-                                  ObjectMapper json) {
+            @Value("${mercadopago.url-api:https://api.mercadopago.com}") String urlBase,
+            @Value("${mercadopago.timeout-segundos:20}") long timeoutSegundos,
+            ObjectMapper json) {
         this.accessToken = accessToken == null ? "" : accessToken.strip();
         this.urlBase = urlBase.replaceAll("/+$", "");
         this.timeout = Duration.ofSeconds(timeoutSegundos);
@@ -72,7 +78,8 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
     }
 
     @Override
-    public Optional<OrdenMercadoPago> buscarPorReferencia(String referencia, OffsetDateTime desde, OffsetDateTime hasta) {
+    public Optional<OrdenMercadoPago> buscarPorReferencia(String referencia, OffsetDateTime desde,
+            OffsetDateTime hasta) {
         String consulta = "?external_reference=" + codificar(referencia)
                 + "&begin_date=" + codificar(desde.withOffsetSameInstant(ZoneOffset.UTC).format(ISO))
                 + "&end_date=" + codificar(hasta.withOffsetSameInstant(ZoneOffset.UTC).format(ISO));
@@ -98,9 +105,13 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         return leerOrden(enviar("POST", "/v1/orders/" + codificar(idOrden) + "/refund", null, claveIdempotencia));
     }
 
-    // ------------------------------------------------------------------ cuerpo de la order
+    // ------------------------------------------------------------------ cuerpo de
+    // la order
 
-    /** Cuerpo de POST /v1/orders según la documentación de Checkout API vía Orders (Perú). */
+    /**
+     * Cuerpo de POST /v1/orders según la documentación de Checkout API vía Orders
+     * (Perú).
+     */
     ObjectNode construirCuerpoOrden(SolicitudOrden s) {
         String monto = s.monto().setScale(2, RoundingMode.UNNECESSARY).toPlainString();
 
@@ -133,9 +144,14 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         metodo.put("id", s.metodoPagoId());
         metodo.put("type", s.metodoPagoTipo());
         metodo.put("token", s.token());
-        metodo.put("installments", s.cuotas());
+        // La documentación de Yape no incluye "installments" (solo id, type y token):
+        // no se envía.
+        if (!"yape".equals(s.metodoPagoId())) {
+            metodo.put("installments", s.cuotas());
+        }
 
-        // 3DS 2.0 (solo tarjetas): on_fraud_risk exige liability_shift=required; con "never" no se envía nada.
+        // 3DS 2.0 (solo tarjetas): on_fraud_risk exige liability_shift=required; con
+        // "never" no se envía nada.
         if (s.validacion3ds() != null && !"never".equals(s.validacion3ds())) {
             ObjectNode seguridad = cuerpo.putObject("config").putObject("online").putObject("transaction_security");
             seguridad.put("validation", s.validacion3ds());
@@ -179,10 +195,15 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
             throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.RESULTADO_DESCONOCIDO,
                     "Consulta a Mercado Pago interrumpida.");
         }
-        return interpretar(metodo, ruta, respuesta.statusCode(), respuesta.body());
+        String idSolicitud = respuesta.headers().firstValue("x-request-id").orElse(null);
+        return interpretar(metodo, ruta, respuesta.statusCode(), respuesta.body(), idSolicitud);
     }
 
     JsonNode interpretar(String metodo, String ruta, int estado, String cuerpo) {
+        return interpretar(metodo, ruta, estado, cuerpo, null);
+    }
+
+    JsonNode interpretar(String metodo, String ruta, int estado, String cuerpo, String idSolicitud) {
         JsonNode raiz = leerJson(cuerpo);
         if (estado >= 200 && estado < 300) {
             if (raiz == null) {
@@ -193,24 +214,52 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         }
 
         String codigo = raiz == null ? null : codigoError(raiz);
-        log.warn("Mercado Pago respondió HTTP {} a {} {} (código: {})", estado, metodo, rutaSegura(ruta), codigo);
+        String detalle = raiz == null ? null : detalleError(raiz);
+        // El detalle (errors[].message/details) indica QUÉ propiedad rechazó Mercado
+        // Pago (p. ej. en un
+        // property_value); sin él solo se ve el código genérico. x-request-id sirve
+        // para soporte de Mercado Pago.
+        log.warn("Mercado Pago respondió HTTP {} a {} {} (código: {}, detalle: {}, x-request-id: {})", estado, metodo,
+                rutaSegura(ruta), codigo, detalle, idSolicitud);
+
+        // 402/422 pueden traer la order fallida en la raíz o dentro de "data".
+        OrdenMercadoPago adjunta = raiz == null ? null : ordenDeError(raiz);
 
         if (estado == 402) {
-            OrdenMercadoPago adjunta = raiz != null && raiz.hasNonNull("id") && raiz.hasNonNull("status") ? convertir(raiz) : null;
             throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.PAGO_RECHAZADO, estado, codigo,
-                    "Mercado Pago no pudo procesar el pago.", adjunta);
+                    "Mercado Pago no pudo procesar el pago.", adjunta, detalle);
         }
         if (estado == 404) {
             throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.NO_ENCONTRADO, estado, codigo,
-                    "La order no existe en Mercado Pago.", null);
+                    "La order no existe en Mercado Pago.", null, detalle);
         }
-        // 423 resource_locked: otra solicitud con la misma clave sigue en curso. 429/5xx: reintentar más tarde.
+        // 423 resource_locked: otra solicitud con la misma clave sigue en curso.
+        // 429/5xx: reintentar más tarde.
         if (estado == 423 || estado == 429 || estado >= 500) {
             throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.RESULTADO_DESCONOCIDO, estado, codigo,
-                    "Mercado Pago no está disponible en este momento.", null);
+                    "Mercado Pago no está disponible en este momento.", null, detalle);
+        }
+        // 422 con una order ya fallida adjunta es un rechazo del medio de pago; sin
+        // ella (o cualquier otro 4xx,
+        // como 400 property_value / invalid_path_param o 401 de credenciales) es un
+        // error de integración.
+        if (estado == 422 && adjunta != null && adjunta.fallidaOCerrada()) {
+            throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.PAGO_RECHAZADO, estado, codigo,
+                    "Mercado Pago no pudo procesar el pago.", adjunta, detalle);
         }
         throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, estado, codigo,
-                "Mercado Pago rechazó la solicitud.", null);
+                "Mercado Pago rechazó la solicitud.", null, detalle);
+    }
+
+    private OrdenMercadoPago ordenDeError(JsonNode raiz) {
+        if (raiz.hasNonNull("id") && raiz.hasNonNull("status")) {
+            return convertir(raiz);
+        }
+        JsonNode datos = raiz.path("data");
+        if (datos.hasNonNull("id") && datos.hasNonNull("status")) {
+            return convertir(datos);
+        }
+        return null;
     }
 
     private OrdenMercadoPago leerOrden(JsonNode raiz) {
@@ -258,6 +307,46 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         return codigo != null ? codigo : texto(raiz, "error");
     }
 
+    private static final int MAX_DETALLE = 300;
+
+    /**
+     * Resume errors[0].message y errors[0].details (cadenas u objetos) para el
+     * registro. Se acota la longitud y se
+     * enmascaran correos y números largos (documentos, teléfonos); las credenciales
+     * y los tokens nunca viajan en la respuesta de error.
+     */
+    static String detalleError(JsonNode raiz) {
+        JsonNode errores = raiz.path("errors");
+        JsonNode primero = errores.isArray() && !errores.isEmpty() ? errores.get(0) : raiz;
+        StringBuilder sb = new StringBuilder();
+        String mensaje = texto(primero, "message");
+        if (mensaje != null) {
+            sb.append(mensaje);
+        }
+        JsonNode detalles = primero.path("details");
+        if (detalles.isArray()) {
+            for (JsonNode d : detalles) {
+                if (sb.length() > 0) {
+                    sb.append(" | ");
+                }
+                sb.append((d.isObject() || d.isArray()) ? d.toString() : d.asText());
+            }
+        } else if (!detalles.isMissingNode() && !detalles.isNull()) {
+            if (sb.length() > 0) {
+                sb.append(" | ");
+            }
+            sb.append((detalles.isObject() || detalles.isArray())
+                ? detalles.toString()
+                : detalles.asText());
+        }
+        if (sb.length() == 0) {
+            return null;
+        }
+        String resumen = sb.toString().replaceAll("[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+", "***@***")
+                .replaceAll("\\d{6,}", "***");
+        return resumen.length() <= MAX_DETALLE ? resumen : resumen.substring(0, MAX_DETALLE);
+    }
+
     static String texto(JsonNode nodo, String campo) {
         JsonNode v = nodo == null ? null : nodo.get(campo);
         return v == null || v.isNull() || v.isMissingNode() ? null : v.asText();
@@ -279,7 +368,10 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         return URLEncoder.encode(valor, StandardCharsets.UTF_8);
     }
 
-    /** Sin parámetros de consulta: pueden contener la referencia y fechas, que no aportan al diagnóstico. */
+    /**
+     * Sin parámetros de consulta: pueden contener la referencia y fechas, que no
+     * aportan al diagnóstico.
+     */
     private static String rutaSegura(String ruta) {
         int i = ruta.indexOf('?');
         return i < 0 ? ruta : ruta.substring(0, i);

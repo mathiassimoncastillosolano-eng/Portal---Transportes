@@ -126,6 +126,8 @@ class ClienteMercadoPagoHttpTest {
         assertEquals("50.00", cuerpo.get("total_amount").asText());
         assertFalse(cuerpo.has("config"));
         assertEquals("yape", cuerpo.get("transactions").get("payments").get(0).get("payment_method").get("id").asText());
+        // Documentación de Yape: payment_method solo lleva id, type y token (sin installments).
+        assertFalse(cuerpo.get("transactions").get("payments").get(0).get("payment_method").has("installments"));
     }
 
     @Test
@@ -199,5 +201,79 @@ class ClienteMercadoPagoHttpTest {
         assertTrue(solicitudes.isEmpty());
         assertNull(new SolicitudOrden("r", BigDecimal.ONE, null, "e", null, null, null, "visa", "credit_card",
                 "tok_secreto", 1, null).toString().contains("tok_secreto") ? "filtra" : null, "toString no expone el token");
+    }
+
+    // ------------------------------------------------------------------ errores: diagnóstico y clasificación
+
+    @Test
+    void propertyValueExponeLaPropiedadSenaladaSinDatosPersonales() {
+        respuestas.put("POST /v1/orders", new Respuesta(400, """
+                {"errors":[{"code":"property_value","message":"The value of the provided property is invalid.",
+                 "details":["payer.email: usuario.real@gmail.com no permitido","payer.identification.number: 123456789"]}]}""", 0));
+        ErrorMercadoPagoException e = assertThrows(ErrorMercadoPagoException.class, () -> cliente.crearOrden(solicitudTarjeta(), "k"));
+        assertEquals(ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, e.getTipo());
+        assertEquals(400, e.getEstadoHttp());
+        assertEquals("property_value", e.getCodigo());
+        assertTrue(e.getDetalle().contains("payer.email"), "indica la propiedad rechazada: " + e.getDetalle());
+        assertTrue(e.getDetalle().contains("payer.identification.number"));
+        assertFalse(e.getDetalle().contains("usuario.real@gmail.com"), "el correo se enmascara");
+        assertFalse(e.getDetalle().contains("123456789"), "los números largos se enmascaran");
+        assertFalse(e.esReintentable());
+    }
+
+    @Test
+    void rechazo402PuedeTraerLaOrderDentroDeData() {
+        respuestas.put("POST /v1/orders", new Respuesta(402, """
+                {"errors":[{"code":"failed","message":"There was an error processing one of the transactions."}],
+                 "data":{"id":"ORD5","status":"failed","status_detail":"failed","external_reference":"RL-1","total_amount":"100.00",
+                 "transactions":{"payments":[{"id":"PAY5","status":"failed","status_detail":"cc_rejected_other_reason"}]}}}""", 0));
+        ErrorMercadoPagoException e = assertThrows(ErrorMercadoPagoException.class, () -> cliente.crearOrden(solicitudTarjeta(), "k"));
+        assertEquals(ErrorMercadoPagoException.Tipo.PAGO_RECHAZADO, e.getTipo());
+        assertEquals("ORD5", e.getOrdenAdjunta().id());
+        assertEquals("cc_rejected_other_reason", e.getOrdenAdjunta().motivo());
+    }
+
+    @Test
+    void error422SinOrderEsDeIntegracionYConOrderFallidaEsRechazo() {
+        respuestas.put("POST /v1/orders", new Respuesta(422, "{\"errors\":[{\"code\":\"unprocessable_content\",\"message\":\"m\"}]}", 0));
+        ErrorMercadoPagoException e = assertThrows(ErrorMercadoPagoException.class, () -> cliente.crearOrden(solicitudTarjeta(), "k"));
+        assertEquals(ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, e.getTipo());
+        assertEquals(422, e.getEstadoHttp());
+        assertNull(e.getOrdenAdjunta());
+
+        respuestas.put("POST /v1/orders", new Respuesta(422, """
+                {"errors":[{"code":"unprocessable_content"}],"data":{"id":"ORD6","status":"failed","status_detail":"failed",
+                 "external_reference":"RL-1","total_amount":"100.00"}}""", 0));
+        ErrorMercadoPagoException rechazo = assertThrows(ErrorMercadoPagoException.class, () -> cliente.crearOrden(solicitudTarjeta(), "k"));
+        assertEquals(ErrorMercadoPagoException.Tipo.PAGO_RECHAZADO, rechazo.getTipo());
+        assertEquals("ORD6", rechazo.getOrdenAdjunta().id());
+    }
+
+    @Test
+    void soloLosFallosTemporalesOdeCredencialesSonReintentablesEnElWebhook() {
+        respuestas.put("GET /v1/orders/123456", new Respuesta(400,
+                "{\"errors\":[{\"code\":\"invalid_path_param\",\"message\":\"Check if the ID provided as a parameter is valid.\"}]}", 0));
+        ErrorMercadoPagoException invalido = assertThrows(ErrorMercadoPagoException.class, () -> cliente.consultarOrden("123456"));
+        assertEquals("invalid_path_param", invalido.getCodigo());
+        assertFalse(invalido.esReintentable(), "repetir una consulta con un id inválido no sirve");
+
+        respuestas.put("GET /v1/orders/ORD9", new Respuesta(401, "{\"errors\":[{\"code\":\"invalid_credentials\"}]}", 0));
+        assertTrue(assertThrows(ErrorMercadoPagoException.class, () -> cliente.consultarOrden("ORD9")).esReintentable(),
+                "credenciales mal configuradas: al corregirlas el reintento funciona");
+        respuestas.put("GET /v1/orders/ORD9", new Respuesta(503, "{}", 0));
+        assertTrue(assertThrows(ErrorMercadoPagoException.class, () -> cliente.consultarOrden("ORD9")).esReintentable());
+        respuestas.put("GET /v1/orders/ORD9", new Respuesta(404, "{\"errors\":[{\"code\":\"order_not_found\"}]}", 0));
+        assertFalse(assertThrows(ErrorMercadoPagoException.class, () -> cliente.consultarOrden("ORD9")).esReintentable());
+    }
+
+    @Test
+    void normalizaElIdDeOrderDeLasNotificaciones() {
+        assertEquals("ORD01M28P44G5FG8RJPM579EH56FV", OrdenMercadoPago.normalizarIdOrden(" ord01m28p44g5fg8rjpm579eh56fv "));
+        assertEquals("ORD-ABC123", OrdenMercadoPago.normalizarIdOrden("ORD-ABC123"));
+        assertNull(OrdenMercadoPago.normalizarIdOrden("123456"));
+        assertNull(OrdenMercadoPago.normalizarIdOrden("PAY01M28P44GDSD4JYTSK5SYZT6BH"));
+        assertNull(OrdenMercadoPago.normalizarIdOrden("ORD/../x"));
+        assertNull(OrdenMercadoPago.normalizarIdOrden(""));
+        assertNull(OrdenMercadoPago.normalizarIdOrden(null));
     }
 }

@@ -436,6 +436,63 @@ class PagoMercadoPagoIntegracionTest {
         assertEquals(200, webhook("ORDY", null).statusCode());
     }
 
+    @Test
+    void webhookConIdQueNoEsDeOrderSeIgnoraSinConsultarLaApi() throws Exception {
+        // El botón "Simular" del panel de Mercado Pago envía 123456 por defecto: no es una order.
+        assertEquals(200, webhook("123456", null).statusCode());
+        assertEquals(200, webhook("PAY01M28P44GDSD4JYTSK5SYZT6BH", null).statusCode());
+        verify(mp, never()).consultarOrden(anyString());
+        assertSinCompra();
+    }
+
+    @Test
+    void webhookDescartaLaConsultaRechazadaParaSiempreYReintentaSiFallanLasCredenciales() throws Exception {
+        // 400 invalid_path_param / 422: repetir la notificación no cambia nada -> 200 (sin reintentos inútiles).
+        when(mp.consultarOrden("ORDZ")).thenThrow(new ErrorMercadoPagoException(
+                ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, 400, "invalid_path_param", "x", null));
+        assertEquals(200, webhook("ORDZ", null).statusCode());
+        // 401 de Mercado Pago = nuestro Access Token mal configurado: al corregirlo, el reintento sí sirve -> 503.
+        when(mp.consultarOrden("ORDW")).thenThrow(new ErrorMercadoPagoException(
+                ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, 401, "invalid_credentials", "x", null));
+        assertEquals(503, webhook("ORDW", null).statusCode());
+        assertSinCompra();
+    }
+
+    @Test
+    void webhookConsultaLaOrderConElIdNormalizadoEnMayusculas() throws Exception {
+        when(mp.consultarOrden("ORDQ")).thenThrow(new ErrorMercadoPagoException(
+                ErrorMercadoPagoException.Tipo.NO_ENCONTRADO, 404, null, "x", null));
+        assertEquals(200, webhook("ordq", null).statusCode());
+        verify(mp).consultarOrden("ORDQ");
+    }
+
+    // ------------------------------------------------------------------ autenticación de POST /api/pagos
+
+    @Test
+    void pagoExigeJwtYNoConfundeElTokenDeSesionDeReservaConLaAutenticacion() throws Exception {
+        String sesion = reservaLista(1);
+        alCrear("processed", "accredited");
+
+        var sinJwt = enviar("POST", "/api/pagos", solicitudTarjeta(sesion, UUID.randomUUID().toString()), null);
+        assertEquals(401, sinJwt.statusCode());
+        assertTrue(sinJwt.body().contains("No autenticado"), sinJwt.body());
+
+        var jwtFalso = enviar("POST", "/api/pagos", solicitudTarjeta(sesion, UUID.randomUUID().toString()), "no.es.un-jwt");
+        assertEquals(401, jwtFalso.statusCode());
+        assertTrue(jwtFalso.body().contains("No autenticado"), jwtFalso.body());
+
+        // Con JWT válido, un token de sesión de RESERVA inválido también es 401, pero con otro mensaje.
+        var sesionFalsa = enviar("POST", "/api/pagos", solicitudTarjeta("no-es-un-token", UUID.randomUUID().toString()), jwt);
+        assertEquals(401, sesionFalsa.statusCode());
+        assertTrue(sesionFalsa.body().contains("Token de sesión inválido"), sesionFalsa.body());
+
+        verify(mp, never()).crearOrden(any(), anyString());
+        assertSinCompra();
+
+        // Con JWT y sesión de reserva válidos el pago procede.
+        assertEquals("APROBADO", pagar(solicitudTarjeta(sesion, UUID.randomUUID().toString())).get("estado").asText());
+    }
+
     // ------------------------------------------------------------------ errores del proveedor
 
     @Test
