@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -128,7 +129,14 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         pagador.put("email", s.emailPagador());
         if (s.tipoDocumentoPagador() != null && s.numeroDocumentoPagador() != null) {
             ObjectNode identificacion = pagador.putObject("identification");
-            identificacion.put("type", s.tipoDocumentoPagador());
+            String tipoDocumento = s.tipoDocumentoPagador().strip()
+                    .toUpperCase(Locale.ROOT);
+
+            if ("C.E".equals(tipoDocumento)) {
+                tipoDocumento = "CE";
+            }
+
+            identificacion.put("type", tipoDocumento);
             identificacion.put("number", s.numeroDocumentoPagador());
         }
         if (s.celularPagador() != null) {
@@ -336,8 +344,8 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
                 sb.append(" | ");
             }
             sb.append((detalles.isObject() || detalles.isArray())
-                ? detalles.toString()
-                : detalles.asText());
+                    ? detalles.toString()
+                    : detalles.asText());
         }
         if (sb.length() == 0) {
             return null;
