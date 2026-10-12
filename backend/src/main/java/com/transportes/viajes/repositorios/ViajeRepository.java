@@ -48,6 +48,7 @@ public class ViajeRepository {
         WHERE LOWER(uo.nombre) = LOWER(:origen)
           AND LOWER(ud.nombre) = LOWER(:destino)
           AND v.fecha_salida = :fecha AND v.estado_viaje = 'PROGRAMADO'
+          AND (v.fecha_salida + v.hora_salida) > LOCALTIMESTAMP
           AND pv.activa AND r.activa AND ao.activa AND ad.activa
           AND uo.activa AND ud.activa AND b.activo
           AND EXTRACT(HOUR FROM v.hora_salida) >= :horaDesde
