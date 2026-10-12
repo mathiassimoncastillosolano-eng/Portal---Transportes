@@ -26,7 +26,8 @@ class BusquedaIntegracionTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
     final HttpClient http = HttpClient.newHttpClient();
-    final String base = "/api/viajes/buscar?origen=Lima&destino=Cusco&fecha=2026-09-23";
+    final LocalDate fechaSalida = LocalDate.now().plusDays(7);
+    final String base = "/api/viajes/buscar?origen=Lima&destino=Cusco&fecha=" + fechaSalida;
 
     @BeforeEach void preparar() {
         for (String tabla : List.of("viaje_asiento", "viaje", "tipo_bus_servicio", "servicio_bus", "bus", "programacion_viaje", "ruta", "agencia", "ubicacion", "tipo_bus")) {
@@ -42,7 +43,7 @@ class BusquedaIntegracionTest {
         jdbc.update("INSERT INTO tipo_bus_servicio VALUES(1,1),(1,2),(1,3)");
         String[] horas = {"00:00:00", "05:59:59", "06:00:00", "11:59:59", "12:00:00", "18:59:59", "19:00:00", "23:59:59"};
         for (int i=0; i<horas.length; i++) {
-            jdbc.update("INSERT INTO viaje VALUES(?,1,1,DATE '2026-09-23',CAST(? AS TIME),'PROGRAMADO')", i+1, horas[i]);
+            jdbc.update("INSERT INTO viaje VALUES(?,1,1,?,CAST(? AS TIME),'PROGRAMADO')", i+1, fechaSalida, horas[i]);
             jdbc.update("INSERT INTO viaje_asiento VALUES(?,?,90,'DISPONIBLE'),(?,?,120,'DISPONIBLE'),(?,?,1,'VENDIDO'),(?,?,2,'BLOQUEADO')",
                     i*4+1,i+1,i*4+2,i+1,i*4+3,i+1,i*4+4,i+1);
         }
@@ -64,7 +65,7 @@ class BusquedaIntegracionTest {
             assertEquals(3,viaje.get("servicios").size());
             assertEquals("pocos-asientos",viaje.get("estado").asText());
         }
-        assertEquals("2026-09-24",datos.get(6).get("fechaLlegada").asText());
+        assertEquals(fechaSalida.plusDays(1).toString(),datos.get(6).get("fechaLlegada").asText());
         assertEquals("16:00",datos.get(6).get("horaLlegada").asText());
     }
 
@@ -82,13 +83,13 @@ class BusquedaIntegracionTest {
     }
 
     @Test void validaParametrosYSinResultados() throws Exception {
-        for (String ruta:List.of(base+"&horario=invalido",base.replace("2026-09-23","no-fecha"),
-                base.replace("&fecha=2026-09-23",""),base.replace("destino=Cusco","destino=LIMA"),
+        for (String ruta:List.of(base+"&horario=invalido",base.replace(fechaSalida.toString(),"no-fecha"),
+                base.replace("&fecha=" + fechaSalida,""),base.replace("destino=Cusco","destino=LIMA"),
                 base.replace("origen=Lima","origen=%20"))) {
             var r=get(ruta); assertEquals(400,r.statusCode(),r.body());
             assertTrue(json.readTree(r.body()).has("mensaje"));
         }
-        var vacio=get(base.replace("2026-09-23","2026-09-24"));
+        var vacio=get(base.replace(fechaSalida.toString(),fechaSalida.plusDays(1).toString()));
         assertEquals(200,vacio.statusCode()); assertEquals("[]",vacio.body());
         assertEquals(get(base).body(),get(base.replace("Lima","%20lImA%20").replace("Cusco","CUSCO")).body());
     }
