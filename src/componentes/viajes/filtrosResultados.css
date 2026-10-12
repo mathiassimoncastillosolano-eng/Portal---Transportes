@@ -7,6 +7,8 @@
   flex-direction: column;
   gap: var(--espacio-6);
   box-shadow: var(--sombra-tenue);
+  position: sticky;
+  top: calc(var(--espacio-7) + 4rem);
 }
 
 .filtros-resultados__fila--encabezado {
@@ -16,8 +18,8 @@
 }
 
 .filtros-resultados__titulo {
-  font-size: var(--tamano-md);
-  font-weight: 600;
+  font-size: var(--tamano-lg);
+  font-weight: 700;
 }
 
 .filtros-resultados__limpiar {
@@ -144,10 +146,7 @@
 }
 
 .filtros-resultados__chips--scroll {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding-bottom: 0.3rem;
-  scrollbar-width: thin;
+  flex-wrap: wrap;
 }
 
 .filtros-resultados__chip {
@@ -177,5 +176,6 @@
 @media (max-width: 900px) {
   .filtros-resultados {
     padding: var(--espacio-4) var(--espacio-5);
+    position: static;
   }
 }

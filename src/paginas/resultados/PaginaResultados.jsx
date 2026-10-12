@@ -8,6 +8,7 @@ import { useBusqueda } from '../../hooks/useBusqueda'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { useModalesAutenticacion } from '../../layouts/LayoutPrincipal'
 import { ModalExpiracionReserva } from '../../componentes/reserva/ModalExpiracionReserva'
+import { formatearFechaLarga } from '../../utilidades/formato'
 import './paginaResultados.css'
 
 export function PaginaResultados() {
@@ -90,10 +91,14 @@ export function PaginaResultados() {
           buscando={buscando} valoresIniciales={{ origen, destino, fecha }} />
       </div>
       <div className="pagina-resultados__cuerpo">
-        <div className="encabezado-seccion">
-          <h1 className="encabezado-seccion__titulo">{origen} → {destino}</h1>
-          <p className="encabezado-seccion__texto" aria-live="polite">
-            {buscando ? 'Consultando viajes disponibles…' : `${resultadosFiltrados.length} viajes encontrados${hayFiltrosActivos ? ' con estos filtros' : ''}`}
+        <div className="pagina-resultados__resumen">
+          <span className="pagina-resultados__sobrelinea">Resultados de búsqueda</span>
+          <div className="pagina-resultados__resumen-fila">
+            <h1>{origen} <span aria-hidden="true">→</span> {destino}</h1>
+            {fecha && <span className="pagina-resultados__fecha">{formatearFechaLarga(fecha)}</span>}
+          </div>
+          <p className="pagina-resultados__conteo" aria-live="polite">
+            {buscando ? 'Consultando viajes disponibles…' : error ? 'No pudimos consultar los viajes' : `${resultadosFiltrados.length} ${resultadosFiltrados.length === 1 ? 'viaje encontrado' : 'viajes encontrados'}${hayFiltrosActivos ? ' con estos filtros' : ''}`}
           </p>
         </div>
         <div className="pagina-resultados__grilla">

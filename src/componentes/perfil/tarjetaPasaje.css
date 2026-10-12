@@ -9,3 +9,45 @@
 .tarjeta-pasaje__resumen strong{font-size:clamp(.75rem,2.5vw,.9rem);color:var(--color-texto-marca);overflow-wrap:anywhere}
 .tarjeta-pasaje__ver-boleto{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;border-radius:10px;padding:.85rem 1rem;background:#167a74;color:#fff;color:#fff;font-weight:700;cursor:pointer}
 .tarjeta-pasaje__ver-boleto:hover{filter:brightness(1.12)}
+
+.tarjeta-pasaje {
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--sombra-tarjeta);
+  transition: transform var(--transicion-base), box-shadow var(--transicion-base), border-color var(--transicion-base);
+}
+.tarjeta-pasaje::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--gradiente-acento);
+}
+.tarjeta-pasaje:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-borde-marca);
+  box-shadow: var(--sombra-marcada);
+}
+.tarjeta-pasaje__ruta {
+  flex-wrap: wrap;
+  row-gap: .15rem;
+  font-size: clamp(1.45rem, 3vw, 1.85rem);
+  line-height: 1.15;
+}
+.tarjeta-pasaje__resumen {
+  background: var(--color-superficie-marca);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  padding: 1rem;
+}
+.tarjeta-pasaje__ver-boleto {
+  min-height: 3rem;
+  background: var(--gradiente-marca);
+  transition: transform var(--transicion-rapida), filter var(--transicion-rapida);
+}
+.tarjeta-pasaje__ver-boleto:hover { transform: translateY(-1px); }
+@media(max-width:480px) {
+  .tarjeta-pasaje { padding: 1.15rem; }
+  .tarjeta-pasaje__resumen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tarjeta-pasaje__resumen div:last-child { grid-column: 1 / -1; border-top: 1px solid var(--color-borde); padding-top: .7rem; }
+}

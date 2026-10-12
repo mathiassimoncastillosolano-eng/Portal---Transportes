@@ -375,7 +375,13 @@
   color: var(--color-texto-secundario);
 }
 
-[data-theme='dark'] .buscador-viajes__intercambiar:hover {
+[data-theme='dark'] .buscador-viajes__intercambiar:not(:disabled) {
+  background: var(--acento-tinte);
+  border-color: var(--acento);
+  color: var(--acento-texto);
+}
+
+[data-theme='dark'] .buscador-viajes__intercambiar:hover:not(:disabled) {
   border-color: var(--acento);
   color: var(--acento-texto);
   background: var(--acento-tinte);
@@ -1062,13 +1068,13 @@
 }
 
 [data-theme='dark'] .tarjeta-ticket__acciones button {
-  background: var(--velo-superficie);
-  border: 1px solid var(--borde-intenso);
-  color: var(--color-texto-principal);
+  background: var(--gradiente-acento);
+  border: 1px solid var(--color-borde-marca);
+  color: #082a33;
 }
 
 [data-theme='dark'] .tarjeta-ticket__acciones button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  filter: brightness(1.08);
 }
 
 [data-theme='dark'] .pasarela-pago__tarjeta-vista {

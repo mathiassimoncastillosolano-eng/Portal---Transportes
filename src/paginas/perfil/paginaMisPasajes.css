@@ -11,3 +11,40 @@
 .pagina-mis-pasajes__volver{justify-self:start;border:0;background:none;color:var(--color-texto-marca);font-weight:700;cursor:pointer;padding:.4rem 0}
 .pagina-mis-pasajes__vacio{color:var(--color-texto-secundario);padding:2rem;text-align:center;background:var(--color-superficie);border:1px dashed var(--color-borde-fuerte);border-radius:var(--radio-lg)}
 @media(max-width:600px){.pagina-mis-pasajes__intro{align-items:start;flex-direction:column}}
+
+/* El encabezado da contexto al listado sin competir con las tarjetas. */
+.pagina-mis-pasajes__intro {
+  position: relative;
+  align-items: center;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  background: var(--gradiente-superficie);
+  box-shadow: var(--sombra-suave);
+  overflow: hidden;
+}
+.pagina-mis-pasajes__intro::after {
+  content: '';
+  position: absolute;
+  right: -3rem;
+  top: -5rem;
+  width: 15rem;
+  height: 15rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2rem var(--color-superficie-marca), 0 0 0 2.05rem var(--color-borde);
+  opacity: .55;
+  pointer-events: none;
+}
+.pagina-mis-pasajes__intro > * { position: relative; z-index: 1; }
+.pagina-mis-pasajes__intro h1 { margin: .35rem 0 .55rem; }
+.pagina-mis-pasajes__intro p:last-child { max-width: 44ch; }
+.pagina-mis-pasajes__contador { border: 1px solid var(--color-borde-marca); }
+.pagina-mis-pasajes__detalle { max-width: 820px; }
+.pagina-mis-pasajes__volver { padding: .6rem .8rem; border-radius: var(--radio-sm); }
+.pagina-mis-pasajes__volver:hover { background: var(--color-superficie-marca); }
+.pagina-mis-pasajes__vacio { padding: clamp(2rem, 5vw, 3.5rem); }
+@media(max-width:600px){
+  .pagina-mis-pasajes__intro { align-items: flex-start; }
+  .pagina-mis-pasajes__intro::after { opacity: .25; }
+}

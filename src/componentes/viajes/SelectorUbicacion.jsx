@@ -22,7 +22,7 @@ export function SelectorUbicacion({ etiqueta, valor, alCambiar, ciudades = [], d
           <path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
           <circle cx="12" cy="9.5" r="2.3" stroke="currentColor" strokeWidth="1.7" />
         </svg>
-        {valor || 'Selecciona una ciudad'}
+        <span className="selector-ubicacion__texto">{valor || 'Selecciona una ciudad'}</span>
       </button>
 
       {abierto && (
