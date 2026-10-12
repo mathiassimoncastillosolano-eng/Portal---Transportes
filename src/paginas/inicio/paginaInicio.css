@@ -112,12 +112,48 @@
 }
 
 @media (max-width: 520px) {
+  .hero-inicio {
+    padding-top: var(--espacio-5);
+    padding-bottom: var(--espacio-6);
+  }
+
+  .hero-inicio__contenido {
+    padding-top: var(--espacio-5);
+  }
+
+  .hero-inicio__insignia {
+    margin-bottom: var(--espacio-4);
+  }
+
   .hero-inicio__titulo {
-    font-size: var(--tamano-2xl);
+    font-size: clamp(1.75rem, 8.2vw, 2.1rem);
+    text-wrap: balance;
+  }
+
+  .hero-inicio__subtitulo {
+    margin-top: var(--espacio-3);
+    font-size: var(--tamano-base);
+    line-height: 1.5;
   }
 
   .hero-inicio__estadisticas {
-    gap: var(--espacio-4);
+    margin-top: var(--espacio-5);
+    gap: var(--espacio-3);
+    justify-content: space-between;
+  }
+
+  .hero-inicio__estadistica-numero {
+    font-size: var(--tamano-lg);
+  }
+
+  .hero-inicio__estadistica-etiqueta {
+    font-size: 0.6875rem;
+  }
+
+  /* El formulario sube: ya no se desplaza hacia el contenido siguiente. */
+  .hero-inicio__buscador {
+    margin-top: var(--espacio-6);
+    transform: none;
   }
 }
 

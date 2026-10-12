@@ -18,7 +18,9 @@ export const EDAD_MINIMA_VIAJE = 16
 export const EDAD_MAYORIA = 18
 export const EDAD_MAXIMA_ANIOS = 120
 export const LONGITUD_MAXIMA_NOMBRE = 100
-export const MENSAJE_DNI_REPETIDO = 'Este DNI ya está en otro pasajero de esta compra.'
+// Un mismo DNI puede ocupar varios asientos de la compra (una persona que compra varios pasajes),
+// siempre que los nombres y apellidos coincidan. Mismo texto que el backend (ValidadorPasajero).
+export const MENSAJE_DNI_DATOS_DISTINTOS = 'Este DNI ya está en otro asiento de esta compra con nombres distintos.'
 export const AVISO_MENORES = [
   'Los menores de edad deben viajar necesariamente acompañados por sus padres.',
   'En caso de viajar sin sus padres, deberán contar con un permiso notarial, el cual será solicitado al momento del embarque.',
@@ -126,18 +128,27 @@ export function pasajeroEstaCompleto(valores, hoy = new Date()) {
   return Object.keys(validarPasajero(valores, hoy)).length === 0
 }
 
+/** Identidad comparable de un pasajero: nombres + apellidos sin distinguir mayúsculas ni espacios repetidos. */
+export function claveIdentidad(nombres, apellidos) {
+  const limpiar = (t) => (t ?? '').trim().replace(/\s+/g, ' ').toLowerCase()
+  return `${limpiar(nombres)}|${limpiar(apellidos)}`
+}
+
 /**
- * DNI repetido en la misma compra. `lista` va en orden: [{ clave, dni }].
- * El error se marca en el 2.º pasajero y siguientes. Devuelve { clave: { dni: mensaje } }.
+ * Consistencia del DNI dentro de la compra. `lista` va en orden: [{ clave, dni, nombres, apellidos }].
+ * Repetir un DNI es válido (la misma persona con varios asientos) si nombres y apellidos coinciden;
+ * si difieren de los del primer asiento con ese DNI, se marca el asiento posterior.
+ * Devuelve { clave: { dni: mensaje } }.
  */
-export function documentosRepetidos(lista) {
-  const vistos = new Set()
+export function dniConDatosDistintos(lista) {
+  const vistos = new Map()
   const errores = {}
-  lista.forEach(({ clave, dni }) => {
+  lista.forEach(({ clave, dni, nombres, apellidos }) => {
     const limpio = (dni ?? '').trim()
     if (!REGEX_DNI.test(limpio)) return
-    if (vistos.has(limpio)) errores[clave] = { dni: MENSAJE_DNI_REPETIDO }
-    else vistos.add(limpio)
+    const identidad = claveIdentidad(nombres, apellidos)
+    if (!vistos.has(limpio)) vistos.set(limpio, identidad)
+    else if (vistos.get(limpio) !== identidad) errores[clave] = { dni: MENSAJE_DNI_DATOS_DISTINTOS }
   })
   return errores
 }

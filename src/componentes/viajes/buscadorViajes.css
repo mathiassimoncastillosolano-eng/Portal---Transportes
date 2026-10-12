@@ -109,60 +109,106 @@
     gap: var(--espacio-4);
   }
 
-  .buscador-viajes__campos {
+  /* Una sola columna. Origen y destino forman una tarjeta unida; el botón de
+     intercambio se superpone a la derecha, sobre la línea que los separa. */
+  .buscador-viajes__campos,
+  .buscador-viajes--destino-fijo .buscador-viajes__campos {
+    position: relative;
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--espacio-3);
+    grid-auto-rows: auto;
+    gap: 0;
+    align-items: stretch;
   }
 
-  .buscador-viajes--destino-fijo .buscador-viajes__campos {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  .buscador-viajes__campos > .selector-ubicacion:nth-of-type(1) { grid-area: 1 / 1; }
+  .buscador-viajes__campos > .selector-ubicacion:nth-of-type(2) { grid-area: 2 / 1; }
+  .buscador-viajes__campos > .selector-fecha { grid-area: 3 / 1; margin-top: var(--espacio-3); }
+
+  .buscador-viajes__separador { display: none; }
 
   .buscador-viajes__intercambiar {
     grid-column: 1;
-    justify-self: center;
-    margin-block: -0.5rem;
-    font-size: 1.25rem;
-    transform: rotate(90deg);
+    grid-row: 1 / span 2;
+    align-self: center;
+    justify-self: end;
+    margin: 0 var(--espacio-3) 0 0;
+    width: 44px;
+    height: 44px;
+    z-index: 2;
+    transform: none;
+    background: var(--color-superficie);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   }
 
-  .buscador-viajes__intercambiar:hover:not(:disabled) {
-    transform: rotate(270deg);
-  }
+  .buscador-viajes__intercambiar-icono { transform: rotate(90deg); transition: transform var(--transicion-base); }
+  .buscador-viajes__intercambiar:hover:not(:disabled) { transform: none; }
+  .buscador-viajes__intercambiar:active:not(:disabled) .buscador-viajes__intercambiar-icono { transform: rotate(270deg); }
 
+  /* Cada campo es una tarjeta: etiqueta visible arriba y valor debajo.
+     Todo el campo es tocable (el botón se extiende con ::after). */
   .buscador-viajes__campos .selector-ubicacion,
   .buscador-viajes__campos .selector-fecha {
-    grid-column: 1;
+    position: relative;
     min-width: 0;
+    gap: 0.15rem;
+    padding: 0.6rem 0.875rem 0.65rem;
+    min-height: 64px;
+    justify-content: center;
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    transition: border-color var(--transicion-rapida), box-shadow var(--transicion-rapida);
+  }
+
+  .buscador-viajes__campos .selector-ubicacion:nth-of-type(1) { border-radius: var(--radio-md) var(--radio-md) 0 0; }
+  .buscador-viajes__campos .selector-ubicacion:nth-of-type(2) { border-radius: 0 0 var(--radio-md) var(--radio-md); margin-top: -1px; }
+  .buscador-viajes__campos .selector-fecha { border-radius: var(--radio-md); }
+
+  .buscador-viajes__campos .selector-ubicacion:nth-of-type(1),
+  .buscador-viajes__campos .selector-ubicacion:nth-of-type(2) { padding-right: 4.25rem; }
+
+  .buscador-viajes__campos .selector-ubicacion:focus-within,
+  .buscador-viajes__campos .selector-fecha:focus-within {
+    border-color: var(--color-borde-marca);
+    box-shadow: 0 0 0 2px var(--color-borde-marca);
+    z-index: 1;
   }
 
   .buscador-viajes__campos .selector-ubicacion__etiqueta,
   .buscador-viajes__campos .selector-fecha__etiqueta {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
   }
 
   .buscador-viajes__campos .selector-ubicacion__control,
   .buscador-viajes__campos .selector-fecha__control {
     width: 100%;
     min-width: 0;
-    min-height: 48px;
-    padding: 0.75rem;
-    border: 1px solid var(--color-borde);
-    border-radius: var(--radio-sm);
-    background: var(--color-superficie);
-    font-size: var(--tamano-sm);
+    min-height: 28px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: var(--tamano-md);
+    font-weight: 600;
+    outline: none;
   }
 
-  .buscador-viajes__campos .selector-ubicacion__control:focus-visible,
-  .buscador-viajes__campos .selector-fecha__control:focus-visible {
-    outline: 2px solid var(--color-borde-marca);
-    outline-offset: 2px;
+  .buscador-viajes__campos .selector-ubicacion__control::after,
+  .buscador-viajes__campos .selector-fecha__control::after {
+    content: '';
+    position: absolute;
+    inset: 0;
   }
+
+  .buscador-viajes__campos .selector-fecha__texto { flex: 1; }
+  .buscador-viajes__campos .selector-fecha__chevron { margin-left: auto; }
 
   .buscador-viajes__campos .selector-ubicacion__lista {
-    top: calc(100% + 6px);
+    top: calc(100% + 4px);
     left: 0;
     width: 100%;
     max-width: 100%;
+    z-index: 30;
   }
+
+  .buscador-viajes > .boton-principal { min-height: 52px; font-size: var(--tamano-md); }
 }

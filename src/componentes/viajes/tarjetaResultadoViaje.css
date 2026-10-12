@@ -16,13 +16,32 @@
   transform: translateY(-3px);
 }
 
-.tarjeta-resultado-viaje--agotado {
-  opacity: 0.6;
+.tarjeta-resultado-viaje--no-reservable {
+  background: var(--color-fondo-alterno);
 }
 
-.tarjeta-resultado-viaje--agotado:hover {
+.tarjeta-resultado-viaje--no-reservable:hover {
   transform: none;
   box-shadow: var(--sombra-tenue);
+}
+
+/* Se atenúa el contenido, pero el estado y el aviso conservan contraste completo. */
+.tarjeta-resultado-viaje--no-reservable .tarjeta-resultado-viaje__empresa,
+.tarjeta-resultado-viaje--no-reservable .tarjeta-resultado-viaje__horario,
+.tarjeta-resultado-viaje--no-reservable .tarjeta-resultado-viaje__servicios,
+.tarjeta-resultado-viaje--no-reservable .tarjeta-resultado-viaje__precio-columna {
+  opacity: 0.68;
+}
+
+.tarjeta-resultado-viaje__aviso {
+  margin: 0;
+  font-size: var(--tamano-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--color-texto-secundario);
+}
+
+.tarjeta-resultado-viaje--no-reservable .boton-principal:disabled {
+  cursor: not-allowed;
 }
 
 .tarjeta-resultado-viaje__insignia {

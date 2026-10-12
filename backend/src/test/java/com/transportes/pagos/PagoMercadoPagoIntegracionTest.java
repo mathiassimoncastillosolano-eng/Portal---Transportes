@@ -22,6 +22,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,10 +39,13 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.transportes.RelojPruebaConfiguracion;
+import com.transportes.RelojPruebaConfiguracion.RelojPrueba;
 import com.transportes.pagos.mercadopago.ClienteMercadoPago;
 import com.transportes.pagos.mercadopago.ErrorMercadoPagoException;
 import com.transportes.pagos.mercadopago.OrdenMercadoPago;
@@ -58,6 +62,7 @@ import tools.jackson.databind.ObjectMapper;
  * Comprueba que solo una order verificada como processed/accredited genera venta, pago y pasajes.
  */
 @ActiveProfiles("test")
+@Import(RelojPruebaConfiguracion.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
     "spring.datasource.url=jdbc:h2:mem:pagos;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE",
     "mercadopago.segundos-entre-consultas=0",
@@ -73,6 +78,7 @@ class PagoMercadoPagoIntegracionTest {
     @Autowired ObjectMapper json;
     @Autowired ValidadorFirmaWebhook validadorFirma;
     @Autowired PagoServicio pagoServicio;
+    @Autowired RelojPrueba reloj;
     @MockitoBean ClienteMercadoPago mp;
     @MockitoBean ClienteDni clienteDni;
     final HttpClient http = HttpClient.newHttpClient();
@@ -80,6 +86,7 @@ class PagoMercadoPagoIntegracionTest {
 
     @BeforeEach
     void preparar() throws Exception {
+        reloj.liberar();
         for (String tabla : List.of("pasaje", "pago", "operacion_pago", "venta", "viaje_asiento", "pasajero",
                 "asiento", "viaje", "bus", "metodo_pago")) {
             jdbc.update("DELETE FROM " + tabla);
@@ -703,5 +710,106 @@ class PagoMercadoPagoIntegracionTest {
         JsonNode r = pagar(yape);
         assertEquals("ERROR", r.get("estado").asText());
         assertSinCompra();
+    }
+
+    // ------------------------------------------------------------------ varios pasajes de una misma persona
+
+    /** Sesión con los asientos indicados y UN SOLO pasajero (mismo DNI y nombres) en todos. */
+    String reservaDeUnaSolaPersona(int... asientos) throws Exception {
+        var sesion = enviar("POST", "/api/viajes/" + VIAJE + "/sesiones", null, null);
+        String token = json.readTree(sesion.body()).get("tokenSesion").asText();
+        List<Map<String, Object>> pasajeros = new java.util.ArrayList<>();
+        for (int asiento : asientos) {
+            var r = enviar("POST", "/api/viajes/" + VIAJE + "/asientos/" + asiento + "/bloquear", Map.of("tokenSesion", token), null);
+            assertEquals(200, r.statusCode(), r.body());
+            pasajeros.add(Map.of("idAsiento", asiento, "tipoDocumento", "DNI", "numeroDocumento", "44444444",
+                    "nombres", "Juan", "apellidos", "Perez Soto", "fechaNacimiento", "1995-05-05", "nroTelefono", "955555555"));
+        }
+        var cont = enviar("POST", "/api/viajes/" + VIAJE + "/pasajeros", Map.of("tokenSesion", token, "pasajeros", pasajeros), null);
+        assertTrue(json.readTree(cont.body()).get("valido").asBoolean(), cont.body());
+        return token;
+    }
+
+    @Test
+    void unaMismaPersonaCompraVariosPasajesYSeRegistraUnSoloPasajero() throws Exception {
+        String sesion = reservaDeUnaSolaPersona(1, 2, 3);
+        alCrear("processed", "accredited");
+        JsonNode r = pagar(solicitudTarjeta(sesion, UUID.randomUUID().toString()));
+        assertEquals("APROBADO", r.get("estado").asText(), r.toString());
+        assertEquals(3, r.get("compra").get("pasajes").size());
+        assertEquals(0, new BigDecimal("150.00").compareTo(r.get("montoTotal").decimalValue()));
+
+        assertEquals(1, cuenta("SELECT COUNT(*) FROM venta WHERE monto_total=150.00"));
+        assertEquals(1, cuenta("SELECT COUNT(*) FROM pago WHERE monto=150.00"));
+        assertEquals(3, cuenta("SELECT COUNT(*) FROM pasaje"));
+        assertEquals(3, cuenta("SELECT COUNT(DISTINCT id_viaje_asiento) FROM pasaje"));
+        assertEquals(1, cuenta("SELECT COUNT(*) FROM pasajero WHERE numero_documento='44444444'"), "una identidad, no tres");
+        assertEquals(1, cuenta("SELECT COUNT(DISTINCT id_pasajero) FROM pasaje"));
+        assertEquals(3, cuenta("SELECT COUNT(*) FROM viaje_asiento WHERE estado_viaje_asiento='OCUPADO'"));
+    }
+
+    @Test
+    void elReintentoConLaMismaClaveNoDuplicaLaCompraMultiple() throws Exception {
+        String sesion = reservaDeUnaSolaPersona(1, 2);
+        alCrear("processed", "accredited");
+        String clave = UUID.randomUUID().toString();
+        pagar(solicitudTarjeta(sesion, clave));
+        pagar(solicitudTarjeta(sesion, clave));
+        verify(mp, times(1)).crearOrden(any(), anyString());
+        assertEquals(1, cuenta("SELECT COUNT(*) FROM venta"));
+        assertEquals(2, cuenta("SELECT COUNT(*) FROM pasaje"));
+        assertEquals(1, cuenta("SELECT COUNT(*) FROM pasajero"));
+    }
+
+    @Test
+    void unaSegundaCompraDeLaMismaPersonaEnElMismoViajeEsValida() throws Exception {
+        alCrear("processed", "accredited");
+        pagar(solicitudTarjeta(reservaDeUnaSolaPersona(1), UUID.randomUUID().toString()));
+        // Antes se rechazaba con "Este DNI ya tiene un pasaje en este viaje."
+        String segunda = reservaDeUnaSolaPersona(2);
+        JsonNode r = pagar(solicitudTarjeta(segunda, UUID.randomUUID().toString()));
+        assertEquals("APROBADO", r.get("estado").asText(), r.toString());
+        assertEquals(2, cuenta("SELECT COUNT(*) FROM pasaje"));
+        assertEquals(2, cuenta("SELECT COUNT(*) FROM venta"));
+        assertEquals(1, cuenta("SELECT COUNT(*) FROM pasajero"));
+    }
+
+    @Test
+    void dosCompradoresNoPuedenTomarElMismoAsiento() throws Exception {
+        reservaDeUnaSolaPersona(1);
+        var sesionB = enviar("POST", "/api/viajes/" + VIAJE + "/sesiones", null, null);
+        String tokenB = json.readTree(sesionB.body()).get("tokenSesion").asText();
+        var r = enviar("POST", "/api/viajes/" + VIAJE + "/asientos/1/bloquear", Map.of("tokenSesion", tokenB), null);
+        assertEquals(409, r.statusCode(), r.body());
+    }
+
+    // ------------------------------------------------------------------ regla de 20 minutos en el pago
+
+    @Test
+    void noSeIniciaElPagoSiElViajeYaCerroLaReserva() throws Exception {
+        reloj.fijar(LocalDateTime.of(2030, 1, 1, 7, 0, 0));
+        String sesion = reservaLista(1);
+        reloj.fijar(LocalDateTime.of(2030, 1, 1, 7, 41, 0));
+        var r = enviar("POST", "/api/pagos", solicitudTarjeta(sesion, UUID.randomUUID().toString()), jwt);
+        assertEquals(409, r.statusCode(), r.body());
+        verify(mp, never()).crearOrden(any(), anyString());
+        assertSinCompra();
+        assertEquals(0, cuenta("SELECT COUNT(*) FROM operacion_pago"));
+    }
+
+    @Test
+    void unPagoIniciadoATiempoSeRegistraAunqueLaAprobacionLlegueDespuesDelLimite() throws Exception {
+        reloj.fijar(LocalDateTime.of(2030, 1, 1, 7, 39, 0));
+        String sesion = reservaLista(1, 2);
+        alCrear("processing", "in_process");
+        JsonNode r = pagar(solicitudTarjeta(sesion, UUID.randomUUID().toString()));
+        String referencia = r.get("referencia").asText();
+        String idOrden = r.get("ordenId").asText();
+
+        reloj.fijar(LocalDateTime.of(2030, 1, 1, 7, 45, 0)); // el webhook llega cuando la reserva ya cerró
+        when(mp.consultarOrden(idOrden)).thenReturn(orden(idOrden, "processed", "accredited", referencia, "100.00"));
+        assertEquals(200, webhook(idOrden, null).statusCode());
+        assertEquals(1, cuenta("SELECT COUNT(*) FROM venta"));
+        assertEquals(2, cuenta("SELECT COUNT(*) FROM pasaje"));
     }
 }

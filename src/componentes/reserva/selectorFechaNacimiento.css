@@ -1,0 +1,91 @@
+/* Selector de fecha de nacimiento. El panel reutiliza selectorFecha.css (cabecera, días, hoja inferior móvil). */
+
+.selector-nacimiento__control {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 0.9rem;
+  border-radius: var(--radio-sm);
+  border: 1.5px solid var(--color-borde-fuerte, var(--color-borde));
+  background: var(--color-superficie);
+  color: var(--color-texto-principal);
+  font-family: var(--fuente-texto);
+  font-size: var(--tamano-md);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transicion-rapida), box-shadow var(--transicion-rapida);
+}
+
+.selector-nacimiento__control svg:first-child { flex-shrink: 0; color: var(--color-texto-acento); }
+.selector-nacimiento__texto { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.selector-nacimiento__control--vacio .selector-nacimiento__texto { color: var(--color-texto-terciario); font-weight: 400; }
+.selector-nacimiento__chevron { flex-shrink: 0; color: var(--color-texto-terciario); transition: transform var(--transicion-base); }
+.selector-nacimiento__control[aria-expanded='true'] .selector-nacimiento__chevron { transform: rotate(180deg); }
+.selector-nacimiento__control:hover:not(:disabled) { border-color: var(--color-borde-marca); }
+.selector-nacimiento__control:focus-visible,
+.selector-nacimiento__control[aria-expanded='true'] {
+  outline: none;
+  border-color: var(--color-borde-marca);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-borde-marca) 28%, transparent);
+}
+.selector-nacimiento__control--error { border-color: var(--color-estado-agotado); }
+.selector-nacimiento__control:disabled { cursor: not-allowed; opacity: 0.6; }
+
+.selector-nacimiento__titulo { display: flex; align-items: center; justify-content: center; gap: 0.35rem; min-width: 0; }
+.selector-nacimiento__rango { font-family: var(--fuente-titulos); font-weight: 700; font-size: var(--tamano-lg); font-variant-numeric: tabular-nums; }
+
+.selector-nacimiento__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 36px;
+  padding: 0 0.7rem;
+  border-radius: var(--radio-pastilla);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-family: var(--fuente-titulos);
+  font-size: var(--tamano-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background var(--transicion-rapida);
+}
+.selector-nacimiento__chip:hover { background: rgba(255, 255, 255, 0.24); }
+.selector-nacimiento__chip:focus-visible { outline: 2.5px solid var(--color-verde-500); outline-offset: 2px; }
+
+.selector-nacimiento__cuerpo { min-height: 268px; }
+
+.selector-nacimiento__rejilla { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+
+.selector-nacimiento__celda {
+  min-height: 56px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: var(--color-celda-tenue);
+  color: var(--color-texto-marca-fuerte);
+  font-family: var(--fuente-texto);
+  font-size: var(--tamano-base);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition: background var(--transicion-rapida), transform var(--transicion-rapida), border-color var(--transicion-rapida);
+}
+.selector-nacimiento__celda:hover:not(:disabled) { background: var(--color-superficie); border-color: rgba(20, 127, 145, 0.45); transform: translateY(-2px); }
+.selector-nacimiento__celda:focus-visible { outline: 2.5px solid var(--color-borde-marca); outline-offset: 2px; }
+.selector-nacimiento__celda--activa { border-color: rgba(16, 185, 129, 0.5); }
+.selector-nacimiento__celda--sel {
+  color: #fff;
+  background: linear-gradient(150deg, #19B386 0%, #0E7A3C 100%);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+}
+.selector-nacimiento__celda:disabled { background: transparent; color: #B3C2CA; font-weight: 500; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+  .selector-nacimiento__celda { min-height: 60px; }
+  .selector-nacimiento__control { min-height: 52px; }
+}

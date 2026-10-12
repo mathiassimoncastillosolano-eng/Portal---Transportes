@@ -77,6 +77,10 @@
   background: var(--color-fondo);
 }
 
+@media (max-width: 640px) {
+  .selector-ubicacion__opcion { min-height: 44px; font-size: var(--tamano-base); }
+}
+
 .selector-ubicacion__opcion--activa {
   background: var(--color-superficie-exito);
   color: var(--color-texto-acento);

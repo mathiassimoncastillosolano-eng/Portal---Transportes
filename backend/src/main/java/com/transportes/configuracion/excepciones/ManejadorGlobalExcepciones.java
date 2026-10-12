@@ -212,4 +212,12 @@ public class ManejadorGlobalExcepciones {
             com.transportes.viajes.excepciones.AsientoNoDisponibleException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request, null);
     }
+
+    @ExceptionHandler(com.transportes.viajes.excepciones.ReservaNoPermitidaException.class)
+    public ResponseEntity<RespuestaError> manejarReservaNoPermitida(
+            com.transportes.viajes.excepciones.ReservaNoPermitidaException excepcion, HttpServletRequest request) {
+        // La marca en «detalles» permite al frontend distinguirlo de «asiento tomado por otro» (también 409).
+        return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request,
+                List.of("RESERVA_NO_PERMITIDA"));
+    }
 }

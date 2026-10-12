@@ -3,10 +3,10 @@ import assert from 'node:assert/strict'
 import {
   combinarErrores,
   construirPasajerosApi,
-  documentosRepetidos,
+  dniConDatosDistintos,
   esMenorDeEdad,
   mapearErroresServidor,
-  MENSAJE_DNI_REPETIDO,
+  MENSAJE_DNI_DATOS_DISTINTOS,
   pasajeroEstaCompleto,
   validarPasajero,
 } from './validarPasajero.js'
@@ -67,13 +67,28 @@ test('esMenorDeEdad: borde de los 18 años', () => {
   assert.equal(esMenorDeEdad('2001-02-31', hoy), false)
 })
 
-test('DNI repetido: error en el 2.º y siguientes, no en el 1.º', () => {
-  const errores = documentosRepetidos([
-    { clave: '1-1A', dni: '12345678' }, { clave: '1-1B', dni: '87654321' },
-    { clave: '1-2A', dni: '12345678' }, { clave: '1-2B', dni: ' 12345678 ' },
+test('un mismo DNI en varios asientos es válido si nombres y apellidos coinciden (sin distinguir mayúsculas ni espacios)', () => {
+  const juan = { nombres: 'Juan', apellidos: 'Pérez Soto' }
+  const errores = dniConDatosDistintos([
+    { clave: '1-1C', dni: '12345678', ...juan },
+    { clave: '1-1D', dni: '12345678', nombres: ' JUAN ', apellidos: 'pérez   soto' },
   ])
-  assert.deepEqual(errores, { '1-2A': { dni: MENSAJE_DNI_REPETIDO }, '1-2B': { dni: MENSAJE_DNI_REPETIDO } })
-  assert.deepEqual(documentosRepetidos([{ clave: 'a', dni: '123' }, { clave: 'b', dni: '123' }]), {})
+  assert.deepEqual(errores, {})
+})
+
+test('el mismo DNI con nombres distintos marca el asiento posterior, no el primero', () => {
+  const errores = dniConDatosDistintos([
+    { clave: '1-1C', dni: '12345678', nombres: 'Juan', apellidos: 'Pérez' },
+    { clave: '1-1D', dni: '87654321', nombres: 'Ana', apellidos: 'Díaz' },
+    { clave: '1-2C', dni: '12345678', nombres: 'Pedro', apellidos: 'Pérez' },
+  ])
+  assert.deepEqual(errores, { '1-2C': { dni: MENSAJE_DNI_DATOS_DISTINTOS } })
+})
+
+test('DNI incompletos no se comparan', () => {
+  assert.deepEqual(dniConDatosDistintos([
+    { clave: 'a', dni: '123', nombres: 'A', apellidos: 'B' }, { clave: 'b', dni: '123', nombres: 'C', apellidos: 'D' },
+  ]), {})
 })
 
 test('combinarErrores: une por asiento y gana el primero en un mismo campo', () => {

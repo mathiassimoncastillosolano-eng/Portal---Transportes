@@ -53,6 +53,7 @@ public class ViajeAsientoServicio {
     private final TokenSesionServicio tokenSesionServicio;
     private final PasajeroRepositorio pasajeroRepositorio;
     private final ApplicationEventPublisher publicador;
+    private final ValidadorReservaViaje validadorReserva;
 
     @Value("${reserva.max-asientos:6}")
     private int maxAsientos;
@@ -62,19 +63,22 @@ public class ViajeAsientoServicio {
                                  AsientoServicio asientoServicio,
                                  TokenSesionServicio tokenSesionServicio,
                                  PasajeroRepositorio pasajeroRepositorio,
-                                 ApplicationEventPublisher publicador) {
+                                 ApplicationEventPublisher publicador,
+                                 ValidadorReservaViaje validadorReserva) {
         this.viajeAsientoRepositorio = viajeAsientoRepositorio;
         this.viajeRepositorio = viajeRepositorio;
         this.asientoServicio = asientoServicio;
         this.tokenSesionServicio = tokenSesionServicio;
         this.pasajeroRepositorio = pasajeroRepositorio;
         this.publicador = publicador;
+        this.validadorReserva = validadorReserva;
     }
 
     public SesionReservaResponseDTO crearSesion(Long idViaje) {
         if (!viajeRepositorio.existsById(idViaje)) {
             throw new ViajeNoEncontradoException(idViaje);
         }
+        validadorReserva.exigirReservable(idViaje); // no salió y faltan >= 20 min (409 si no)
         SesionReserva s = tokenSesionServicio.crear(idViaje);
         return new SesionReservaResponseDTO(s.tokenSesion(), s.fechaExpiracion(), s.segundosRestantes());
     }
@@ -108,6 +112,7 @@ public class ViajeAsientoServicio {
     @Transactional
     public BloqueoAsientoResponseDTO bloquearAsiento(Long idViaje, Integer idAsiento, BloqueoAsientoRequest request) {
         SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);
+        validadorReserva.exigirReservable(idViaje); // revalida en cada asiento: la sesión pudo abrirse hace minutos
         Integer idViajeInt = Math.toIntExact(idViaje);
 
         viajeAsientoRepositorio.bloquearSesion(sesion.idSesion());

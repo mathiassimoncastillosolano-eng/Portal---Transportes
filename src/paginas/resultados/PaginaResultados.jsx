@@ -9,6 +9,7 @@ import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { useModalesAutenticacion } from '../../layouts/LayoutPrincipal'
 import { ModalExpiracionReserva } from '../../componentes/reserva/ModalExpiracionReserva'
 import { formatearFechaLarga } from '../../utilidades/formato'
+import { calcularDesfaseServidor, estadoReservaActual, ESTADOS_RESERVA } from '../../utilidades/estadoReserva'
 import './paginaResultados.css'
 
 export function PaginaResultados() {
@@ -23,6 +24,18 @@ export function PaginaResultados() {
   const horario = parametrosUrl.get('horario') ?? 'cualquiera'
   const [serviciosSeleccionados, setServiciosSeleccionados] = useState(new Set())
   const buscadorRef = useRef(null)
+  // Reloj del servidor: se re-evalúa cada 30 s para que una tarjeta pase a
+  // "reserva cerrada" / "salida realizada" sin recargar la página.
+  const [ahoraServidorMs, setAhoraServidorMs] = useState(() => Date.now())
+  const desfaseRef = useRef(0)
+  useEffect(() => {
+    desfaseRef.current = calcularDesfaseServidor(resultados)
+    setAhoraServidorMs(Date.now() + desfaseRef.current)
+  }, [resultados])
+  useEffect(() => {
+    const id = setInterval(() => setAhoraServidorMs(Date.now() + desfaseRef.current), 30_000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     if (!origen && !destino && !fecha) { navegar('/', { replace: true }); return }
@@ -43,6 +56,8 @@ export function PaginaResultados() {
     setParametrosUrl({ origen, destino, fecha, horario: nuevoHorario })
   }
   function manejarSeleccion(resultado) {
+    // Defensa en profundidad: el botón ya está deshabilitado y el backend vuelve a validar.
+    if (estadoReservaActual(resultado, Date.now() + desfaseRef.current) !== ESTADOS_RESERVA.DISPONIBLE) return
     if (!estaAutenticado) { abrirInicioSesion(); return }
     navegar('/reservar', { state: { resultado, fecha: resultado.fechaSalida } })
   }
@@ -73,7 +88,8 @@ export function PaginaResultados() {
     () => resultados.filter((r) => serviciosSeleccionados.size === 0 || serviciosSeleccionados.has(r.tipoBus)),
     [resultados, serviciosSeleccionados],
   )
-  const disponibles = resultadosFiltrados.filter((r) => r.estado !== 'agotado' && r.precio != null)
+  const disponibles = resultadosFiltrados.filter((r) =>
+    estadoReservaActual(r, ahoraServidorMs) === ESTADOS_RESERVA.DISPONIBLE && r.precio != null)
   const idMasEconomico = disponibles.length
     ? disponibles.reduce((menor, r) => r.precio < menor.precio ? r : menor).id : null
   const hayFiltrosActivos = horario !== 'cualquiera' || serviciosSeleccionados.size > 0
@@ -127,7 +143,8 @@ export function PaginaResultados() {
             <div className="resultados-busqueda__lista">
               {resultadosFiltrados.map((resultado) => (
                 <TarjetaResultadoViaje key={resultado.id} resultado={resultado}
-                  esMasEconomico={resultado.id === idMasEconomico} alSeleccionar={manejarSeleccion} />
+                  esMasEconomico={resultado.id === idMasEconomico} alSeleccionar={manejarSeleccion}
+                  estadoReserva={estadoReservaActual(resultado, ahoraServidorMs)} />
               ))}
             </div>
           </PanelAsincrono>

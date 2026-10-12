@@ -32,7 +32,7 @@ import {
 import { MODO_SANDBOX, crearTokenYape } from '../../servicios/mercadoPagoSdk'
 import { useTema } from '../../hooks/useTema'
 import {
-  MENSAJE_DNI_REPETIDO,
+  dniConDatosDistintos,
   construirPasajerosApi,
   mapearErroresServidor,
 } from '../../utilidades/validarPasajero'
@@ -50,6 +50,7 @@ import {
   guardarSesionAsientos,
 } from '../../servicios/viajesServicio'
 import { formatearPrecio } from '../../utilidades/formato'
+import { TEXTOS_ESTADO_RESERVA, esReservaNoPermitida } from '../../utilidades/estadoReserva'
 import './paginaReserva.css'
 import { Contador } from '../../componentes/reserva/Contador'
 import { CargadorRutaLibre, EstadoRuta, useFaseCarga } from '../../componentes/carga'
@@ -125,6 +126,9 @@ export function PaginaReserva() {
   }, [state, criterios])
 
   const idViaje = contexto?.resultado?.id
+  // Si la búsqueda ya marcó el viaje como no reservable no se abre sesión: el backend lo rechazaría igual.
+  const estadoReservaContexto = contexto?.resultado?.estadoReserva
+  const viajeNoReservable = Boolean(estadoReservaContexto) && estadoReservaContexto !== 'DISPONIBLE'
 
   useEffect(() => {
     if (contexto) guardarContexto(contexto)
@@ -294,7 +298,7 @@ export function PaginaReserva() {
 
   // Sesión + mapa + tiempo real
   useEffect(() => {
-    if (!idViaje) return undefined
+    if (!idViaje || viajeNoReservable) return undefined
     let cancelado = false
     let cerrarEventos = () => {}
 
@@ -328,7 +332,7 @@ export function PaginaReserva() {
       cancelado = true
       cerrarEventos()
     }
-  }, [idViaje, intentosMapa])
+  }, [idViaje, intentosMapa, viajeNoReservable])
 
   // Al vencer la sesión: liberar (lo hace el backend) y redirigir a resultados.
   // Si el pago ya se completó, o hay un pago en curso, no se agenda (o se cancela) el vencimiento:
@@ -364,25 +368,16 @@ export function PaginaReserva() {
     setErroresServidor(limpiar)
   }, [asientosSeleccionados, compraConfirmada])
 
-  // DNI repetido entre los pasajeros de esta compra. Se marca en TODOS los que comparten el mismo DNI
-  // (no solo del 2.º en adelante), para que se vea cuáles chocan sin importar el orden en que se escribieron.
-  const erroresDniRepetido = useMemo(() => {
-    const clavesPorDni = {}
-    asientosSeleccionados.forEach((asiento) => {
-      const dni = pasajeros[asiento.clave]?.dni ?? ''
-      if (!/^\d{8}$/.test(dni)) return
-      if (!clavesPorDni[dni]) clavesPorDni[dni] = []
-      clavesPorDni[dni].push(asiento.clave)
-    })
-    const resultado = {}
-    Object.values(clavesPorDni).forEach((claves) => {
-      if (claves.length < 2) return
-      claves.forEach((clave) => {
-        resultado[clave] = { dni: MENSAJE_DNI_REPETIDO }
-      })
-    })
-    return resultado
-  }, [asientosSeleccionados, pasajeros])
+  // Un mismo DNI puede repetirse en la compra (una persona con varios asientos) si los nombres coinciden;
+  // se marca el asiento posterior cuyo DNI ya está usado con otros nombres (igual que el backend).
+  const erroresDniRepetido = useMemo(() => dniConDatosDistintos(
+    asientosSeleccionados.map((asiento) => ({
+      clave: asiento.clave,
+      dni: pasajeros[asiento.clave]?.dni ?? '',
+      nombres: pasajeros[asiento.clave]?.nombres ?? '',
+      apellidos: pasajeros[asiento.clave]?.apellidos ?? '',
+    })),
+  ), [asientosSeleccionados, pasajeros])
 
   const hayDniRepetido = Object.keys(erroresDniRepetido).length > 0
 
@@ -399,6 +394,23 @@ export function PaginaReserva() {
 
     if (!contexto) {
     return <Navigate to="/" replace />
+  }
+
+  if (viajeNoReservable) {
+    // Navegación directa con un viaje que la búsqueda ya marcó como no reservable.
+    const textos = TEXTOS_ESTADO_RESERVA[contexto.resultado.estadoReserva]
+    return (
+      <section className="pagina-reserva seccion contenedor">
+        <IndicadorProgreso pasoActual="asiento" />
+        <EstadoRuta
+          tipo="vacio"
+          entrando={contenidoEntrando}
+          titulo={textos?.insignia ?? 'Viaje no disponible'}
+          texto={textos?.detalle ?? 'Este viaje no está disponible para reservas.'}
+          accion={{ texto: 'Volver a los resultados', alClick: () => irAResultados() }}
+        />
+      </section>
+    )
   }
 
   // Mientras carga (o se desvanece el cargador) se conserva la estructura de la
@@ -528,6 +540,9 @@ export function PaginaReserva() {
     } catch (error) {
       if (error.status === 410 || error.status === 401) {
         manejarSesionVencida()
+      } else if (esReservaNoPermitida(error)) {
+        setErrorBloqueo(error.message)
+        cargarMapaAsientos(true)
       } else if (error.status === 409) {
         setErrorBloqueo(
           estoyLiberando
@@ -675,6 +690,8 @@ export function PaginaReserva() {
     } catch (error) {
       if (error.status === 410 || error.status === 401) {
         manejarSesionVencida()
+      } else if (esReservaNoPermitida(error)) {
+        setErrorBloqueo(error.message)
       } else if (error.status === 409) {
         setErrorBloqueo(error.message || 'Alguno de tus asientos ya no está reservado para ti. Revisa tu selección e inténtalo de nuevo.')
         cargarMapaAsientos(true)
@@ -823,6 +840,8 @@ export function PaginaReserva() {
       })
     } else if (error.status === 410 || error.status === 401) {
       manejarSesionVencida()
+    } else if (esReservaNoPermitida(error)) {
+      setErrorPago(error.message)
     } else if (error.status === 409) {
       setErrorPago(error.message || 'Tu reserva cambió. Revisa tus asientos e inténtalo de nuevo.')
       cargarMapaAsientos(true)
@@ -912,7 +931,7 @@ export function PaginaReserva() {
     textoBoton = !pasajerosCompletos
       ? 'Completa los datos de todos los pasajeros'
       : hayDniRepetido
-        ? 'Corrige los DNI repetidos'
+        ? 'Corrige los DNI con nombres distintos'
         : 'Continuar al pago →'
     deshabilitadoBoton = !pasajerosCompletos || hayDniRepetido || guardandoPasajeros
   } else if (pasoActual === 'pago') {

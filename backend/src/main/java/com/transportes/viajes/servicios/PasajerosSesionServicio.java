@@ -22,7 +22,6 @@ import com.transportes.viajes.dto.PasajeroAsientoRequest;
 import com.transportes.viajes.dto.ResultadoPasajerosDTO;
 import com.transportes.viajes.entidades.ViajeAsiento;
 import com.transportes.viajes.excepciones.AsientoNoDisponibleException;
-import com.transportes.viajes.repositorios.PasajeroRepositorio;
 import com.transportes.viajes.repositorios.ViajeAsientoRepositorio;
 import com.transportes.viajes.servicios.TokenSesionServicio.SesionReserva;
 
@@ -40,17 +39,17 @@ public class PasajerosSesionServicio {
 
     private final TokenSesionServicio tokenSesionServicio;
     private final ViajeAsientoRepositorio viajeAsientoRepositorio;
-    private final PasajeroRepositorio pasajeroRepositorio;
     private final PasajerosSesionCache cache;
+    private final ValidadorReservaViaje validadorReserva;
 
     public PasajerosSesionServicio(TokenSesionServicio tokenSesionServicio,
                                    ViajeAsientoRepositorio viajeAsientoRepositorio,
-                                   PasajeroRepositorio pasajeroRepositorio,
-                                   PasajerosSesionCache cache) {
+                                   PasajerosSesionCache cache,
+                                   ValidadorReservaViaje validadorReserva) {
         this.tokenSesionServicio = tokenSesionServicio;
         this.viajeAsientoRepositorio = viajeAsientoRepositorio;
-        this.pasajeroRepositorio = pasajeroRepositorio;
         this.cache = cache;
+        this.validadorReserva = validadorReserva;
     }
 
     /**
@@ -61,6 +60,7 @@ public class PasajerosSesionServicio {
     @Transactional(readOnly = true)
     public ResultadoPasajerosDTO guardar(Long idViaje, GuardarPasajerosRequest request) {
         SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);
+        validadorReserva.exigirReservable(idViaje); // "Continuar al pago" también exige >= 20 min de anticipación
         Integer idViajeInt = Math.toIntExact(idViaje);
         LocalDateTime ahora = LocalDateTime.now();
 
@@ -91,7 +91,7 @@ public class PasajerosSesionServicio {
         for (ValidadorPasajero.ErrorCampo e : ValidadorPasajero.validarLote(pasajeros, LocalDate.now(ZONA_PERU))) {
             errores.add(new ErrorPasajeroDTO(e.idAsiento(), e.campo(), e.mensaje()));
         }
-        validarContraSesion(idViajeInt, asientosPropios, pasajeros, errores);
+        validarContraSesion(asientosPropios, pasajeros, errores);
 
         if (!errores.isEmpty()) {
             cache.eliminar(sesion.idSesion()); // datos inválidos: no queda nada guardado de esta sesión
@@ -114,7 +114,7 @@ public class PasajerosSesionServicio {
         cache.eliminar(idSesion);
     }
 
-    private void validarContraSesion(Integer idViaje, Set<Integer> asientosPropios,
+    private void validarContraSesion(Set<Integer> asientosPropios,
                                      List<PasajeroAsientoRequest> pasajeros, List<ErrorPasajeroDTO> errores) {
         Set<Integer> atendidos = new HashSet<>();
         for (PasajeroAsientoRequest p : pasajeros) {
@@ -124,14 +124,9 @@ public class PasajerosSesionServicio {
             } else if (!atendidos.add(p.idAsiento())) {
                 errores.add(new ErrorPasajeroDTO(p.idAsiento(), CAMPO_PASAJERO,
                         "Este asiento tiene más de un pasajero."));
-            } else if (p.numeroDocumento() != null && p.numeroDocumento().matches("\\d{8}")
-                    && "DNI".equals(p.tipoDocumento())
-                    && !tieneError(errores, p.idAsiento(), ValidadorPasajero.CAMPO_NUMERO_DOCUMENTO)
-                    && pasajeroRepositorio.contarAsientosOcupadosDelDocumento(
-                            idViaje, p.tipoDocumento(), p.numeroDocumento()) > 0) {
-                errores.add(new ErrorPasajeroDTO(p.idAsiento(), ValidadorPasajero.CAMPO_NUMERO_DOCUMENTO,
-                        "Este DNI ya tiene un pasaje en este viaje."));
             }
+            // Un mismo DNI puede tener varios asientos en el viaje (en esta compra o en compras anteriores): la
+            // unicidad que importa es la del ASIENTO, que garantizan el bloqueo atómico y uq_pasaje_viaje_asiento.
         }
         for (Integer idAsiento : asientosPropios) {
             if (!atendidos.contains(idAsiento)) {
@@ -146,7 +141,4 @@ public class PasajerosSesionServicio {
         return token == null ? "null" : token.substring(0, Math.min(8, token.length()));
     }
 
-    private boolean tieneError(List<ErrorPasajeroDTO> errores, Integer idAsiento, String campo) {
-        return errores.stream().anyMatch(e -> Objects.equals(e.idAsiento(), idAsiento) && campo.equals(e.campo()));
-    }
 }

@@ -32,6 +32,11 @@
   background: var(--color-error-fondo);
 }
 
+.estado-disponibilidad--cerrado {
+  color: var(--color-aviso-texto);
+  background: var(--color-aviso-fondo-2);
+}
+
 .estado-disponibilidad--completado {
   color: var(--color-texto-secundario);
   background: var(--color-superficie-neutra);

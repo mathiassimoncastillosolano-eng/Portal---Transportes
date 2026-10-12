@@ -14,6 +14,7 @@ export function BotonPrincipal({
   onClick,
   ancho,
   cargando = false,
+  descritoPor,
 }) {
   return (
     <button
@@ -22,6 +23,7 @@ export function BotonPrincipal({
       disabled={deshabilitado}
       onClick={onClick}
       aria-busy={cargando ? 'true' : undefined}
+      aria-describedby={descritoPor}
       style={ancho ? { width: ancho } : undefined}
     >
       {cargando && <span className="boton-principal__girador" aria-hidden="true" />}

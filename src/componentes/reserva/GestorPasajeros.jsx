@@ -3,6 +3,9 @@ import { FormularioPasajero, pasajeroEstaCompleto } from './FormularioPasajero'
 import { BotonSecundario } from '../comunes/BotonSecundario'
 import './gestorPasajeros.css'
 
+// Campos que se copian al reutilizar los datos de otro asiento (una misma persona con varios asientos).
+const CAMPOS_COPIABLES = ['dni', 'nombres', 'apellidos', 'fechaNacimiento', 'celular', 'origenDni', 'fechaBloqueada']
+
 function nombreCorto(datos) {
   if (!datos?.apellidos?.trim()) return datos?.nombres?.trim() ? datos.nombres.trim().split(' ')[0] : null
   const primerNombre = datos.nombres?.trim()?.split(' ')?.[0]
@@ -33,6 +36,14 @@ export function GestorPasajeros({
     pasajeroEstaCompleto(pasajeros[clave]) && Object.keys(erroresExternos[clave] ?? {}).length === 0
   const completos = asientos.filter((asiento) => estaListo(asiento.clave)).length
   const asientoActivo = asientos.find((asiento) => asiento.clave === claveActiva) ?? asientos[0]
+  // Otros asientos con datos ya escritos: se pueden reutilizar para el asiento activo.
+  const origenesCopia = asientos.filter((asiento) =>
+    asiento.clave !== asientoActivo?.clave && /^\d{8}$/.test(pasajeros[asiento.clave]?.dni ?? ''))
+
+  function copiarDatos(claveOrigen) {
+    const origen = pasajeros[claveOrigen] ?? {}
+    CAMPOS_COPIABLES.forEach((campo) => alCambiarCampo(asientoActivo.clave, campo, origen[campo] ?? ''))
+  }
 
   return (
     <div className="gestor-pasajeros">
@@ -75,6 +86,21 @@ export function GestorPasajeros({
             Datos del pasajero · Asiento {asientoActivo.numero}
             {mostrarPiso && ` · Piso ${asientoActivo.piso}`}
           </p>
+          {origenesCopia.length > 0 && (
+            <div className="gestor-pasajeros__copiar" role="group" aria-label="Reutilizar datos de otro asiento">
+              <span className="gestor-pasajeros__copiar-texto">¿Viaja la misma persona? Usar los datos del asiento:</span>
+              {origenesCopia.map((asiento) => (
+                <button
+                  key={asiento.clave}
+                  type="button"
+                  className="gestor-pasajeros__copiar-boton"
+                  onClick={() => copiarDatos(asiento.clave)}
+                >
+                  {asiento.numero}{pasajeros[asiento.clave]?.nombres?.trim() ? ` · ${pasajeros[asiento.clave].nombres.trim().split(' ')[0]}` : ''}
+                </button>
+              ))}
+            </div>
+          )}
           <FormularioPasajero
             key={asientoActivo.clave}
             valores={pasajeros[asientoActivo.clave]}

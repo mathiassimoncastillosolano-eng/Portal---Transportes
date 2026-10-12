@@ -2,9 +2,9 @@ package com.transportes.viajes.servicios;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import com.transportes.viajes.dto.PasajeroAsientoRequest;
@@ -25,7 +25,13 @@ public final class ValidadorPasajero {
 
     public static final int EDAD_MAXIMA_ANIOS = 120;
     public static final int LONGITUD_MAXIMA_NOMBRE = 100;
-    public static final String MENSAJE_DNI_REPETIDO = "Este DNI ya está en otro pasajero de esta compra.";
+    /**
+     * Un mismo DNI PUEDE repetirse en una compra (una persona que compra varios asientos, p. ej. para ella y un
+     * acompañante, o dos asientos para sí misma), pero entonces debe ser la misma persona: mismos nombres y
+     * apellidos. Así se evita que un DNI quede asociado a dos identidades distintas.
+     */
+    public static final String MENSAJE_DNI_DATOS_DISTINTOS =
+            "Este DNI ya está en otro asiento de esta compra con nombres distintos.";
 
     private static final Pattern DNI = Pattern.compile("^\\d{8}$");
     private static final Pattern CELULAR = Pattern.compile("^9\\d{8}$");
@@ -83,21 +89,37 @@ public final class ValidadorPasajero {
         return errores;
     }
 
-    /** Valida cada pasajero y además que el DNI no se repita en la compra (el error va al 2.º y siguientes). */
+    /**
+     * Valida cada pasajero y la coherencia de los DNI repetidos de la compra. Repetir un DNI es válido (varios
+     * asientos de la misma persona); solo se rechaza si el 2.º o siguientes traen nombres/apellidos distintos a los
+     * del primer asiento con ese DNI (el error va a ese asiento).
+     */
     public static List<ErrorCampo> validarLote(List<PasajeroAsientoRequest> lista, LocalDate hoy) {
         List<ErrorCampo> errores = new ArrayList<>();
-        Set<String> vistos = new HashSet<>();
+        Map<String, String> identidadPorDocumento = new HashMap<>();
         for (PasajeroAsientoRequest original : lista) {
             List<ErrorCampo> propios = validar(original, hoy);
             errores.addAll(propios);
 
             PasajeroAsientoRequest p = normalizar(original);
             boolean dniYaConError = propios.stream().anyMatch(e -> CAMPO_NUMERO_DOCUMENTO.equals(e.campo()));
-            if (!dniYaConError && !vistos.add(p.tipoDocumento() + ":" + p.numeroDocumento())) {
-                errores.add(new ErrorCampo(p.idAsiento(), CAMPO_NUMERO_DOCUMENTO, MENSAJE_DNI_REPETIDO));
+            if (dniYaConError) continue;
+            String identidad = claveIdentidad(p.nombres(), p.apellidos());
+            String previa = identidadPorDocumento.putIfAbsent(p.tipoDocumento() + ":" + p.numeroDocumento(), identidad);
+            if (previa != null && !previa.equals(identidad)) {
+                errores.add(new ErrorCampo(p.idAsiento(), CAMPO_NUMERO_DOCUMENTO, MENSAJE_DNI_DATOS_DISTINTOS));
             }
         }
         return errores;
+    }
+
+    /** Nombres + apellidos sin diferencias de mayúsculas ni de espacios, para comparar identidades. */
+    static String claveIdentidad(String nombres, String apellidos) {
+        return normalizarParte(nombres) + "|" + normalizarParte(apellidos);
+    }
+
+    private static String normalizarParte(String texto) {
+        return texto == null ? "" : texto.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT);
     }
 
     private static void validarNombre(List<ErrorCampo> errores, Integer id, String campo, String valor,

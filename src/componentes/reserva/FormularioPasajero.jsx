@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { CampoTexto } from '../comunes/CampoTexto'
+import { SelectorFechaNacimiento } from './SelectorFechaNacimiento'
 import './formularioPasajero.css'
 import { consultarDni } from '../../servicios/dniServicio'
 import {
@@ -158,10 +159,10 @@ export function FormularioPasajero({ valores, alCambiarCampo, erroresExternos })
             autoComplete="off"
           />
         </div>
-        <div onBlur={() => marcarTocado('fechaNacimiento')}>
-          <CampoTexto
+        <div>
+          <SelectorFechaNacimiento
+            alCerrar={() => marcarTocado('fechaNacimiento')}
             etiqueta="Fecha de nacimiento"
-            tipo="date"
             valor={datos.fechaNacimiento}
             alCambiar={(valor) => alCambiarCampo('fechaNacimiento', valor)}
             requerido

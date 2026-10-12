@@ -99,8 +99,11 @@ export function BuscadorViajes({ alBuscar, buscando, valoresIniciales, rutasDisp
           onClick={intercambiarCiudades}
           disabled={!puedeIntercambiar}
           aria-label="Intercambiar origen y destino"
+          title="Intercambiar origen y destino"
         >
-          ⇄
+          <svg className="buscador-viajes__intercambiar-icono" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 4 3.5 7.5 7 11M3.5 7.5H18M17 13l3.5 3.5L17 20M20.5 16.5H6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
 
         <SelectorUbicacion

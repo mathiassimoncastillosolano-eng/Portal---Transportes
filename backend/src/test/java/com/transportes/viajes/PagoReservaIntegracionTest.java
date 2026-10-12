@@ -11,6 +11,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,10 +23,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.transportes.RelojPruebaConfiguracion;
+import com.transportes.RelojPruebaConfiguracion.RelojPrueba;
 import com.transportes.viajes.servicios.ClienteDni;
 
 import tools.jackson.databind.JsonNode;
@@ -37,6 +41,7 @@ import tools.jackson.databind.ObjectMapper;
  * de Mercado Pago (ver com.transportes.pagos.PagoMercadoPagoIntegracionTest).
  */
 @ActiveProfiles("test")
+@Import(RelojPruebaConfiguracion.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
     "spring.datasource.url=jdbc:h2:mem:reserva;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE",
     "spring.sql.init.schema-locations=classpath:schema-test.sql,classpath:schema-reserva-test.sql",
@@ -50,11 +55,13 @@ class PagoReservaIntegracionTest {
     @LocalServerPort int port;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
+    @Autowired RelojPrueba reloj;
     @MockitoBean ClienteDni clienteDni;
     final HttpClient http = HttpClient.newHttpClient();
 
     @BeforeEach
     void preparar() {
+        reloj.liberar();
         for (String tabla : List.of("pasaje", "pago", "operacion_pago", "venta", "viaje_asiento", "pasajero", "asiento", "viaje", "bus")) {
             jdbc.update("DELETE FROM " + tabla);
         }
@@ -215,5 +222,80 @@ class PagoReservaIntegracionTest {
                 Map.of("tokenSesion", "token-falso", "pasajeros", dosPasajeros()), null);
         assertEquals(401, falsa.statusCode());
         assertNadaPersistido();
+    }
+
+    // ---------- una misma persona puede reservar varios asientos ----------
+
+    @Test
+    void unaMismaPersonaPuedeContinuarAlPagoConVariosAsientos() throws Exception {
+        String token = sesionConAsientos(1, 2, 3);
+        var mismaPersona = List.of(
+                pasajero(1, "44444444", "Juan", "Perez Soto", "955555555"),
+                pasajero(2, "44444444", "Juan", "Perez Soto", "955555555"),
+                pasajero(3, "44444444", "JUAN", "perez soto", "955555555"));
+        assertTrue(continuar(token, mismaPersona).get("valido").asBoolean());
+        assertNadaPersistido();
+    }
+
+    @Test
+    void elMismoDniNoPuedeUsarseConOtraIdentidadEnLaMismaCompra() throws Exception {
+        String token = sesionConAsientos(1, 2);
+        var resultado = continuar(token, List.of(
+                pasajero(1, "44444444", "Juan", "Perez Soto", "955555555"),
+                pasajero(2, "44444444", "Pedro", "Gomez", "955555555")));
+        assertFalse(resultado.get("valido").asBoolean());
+        assertEquals(2, resultado.get("errores").get(0).get("idAsiento").asInt());
+        assertEquals("numeroDocumento", resultado.get("errores").get(0).get("campo").asText());
+    }
+
+    // ---------- regla de 20 minutos de anticipación (la hora la pone el servidor) ----------
+
+    private void ahoraEs(int hora, int minuto, int segundo) {
+        reloj.fijar(LocalDateTime.of(2030, 1, 1, hora, minuto, segundo)); // el viaje sale 2030-01-01 08:00
+    }
+
+    @Test
+    void hastaLas0740EnPuntoSePuedeAbrirSesionYBloquear() throws Exception {
+        ahoraEs(7, 40, 0);
+        String token = sesionConAsientos(1);
+        assertTrue(continuar(token, List.of(pasajero(1, "44444444", "Juan", "Perez Soto", "955555555"))).get("valido").asBoolean());
+    }
+
+    @Test
+    void despuesDeLas0740NoSePuedeAbrirSesion() throws Exception {
+        ahoraEs(7, 40, 1);
+        var r = enviar("POST", "/api/viajes/" + VIAJE + "/sesiones", null, null);
+        assertEquals(409, r.statusCode(), r.body());
+        assertTrue(r.body().contains("20 minutos"), r.body());
+        assertEquals(0, cuenta("SELECT COUNT(*) FROM viaje_asiento WHERE estado_viaje_asiento<>'DISPONIBLE'"));
+    }
+
+    @Test
+    void siElViajeYaSalioNoSePuedeAbrirSesion() throws Exception {
+        ahoraEs(8, 0, 0);
+        var r = enviar("POST", "/api/viajes/" + VIAJE + "/sesiones", null, null);
+        assertEquals(409, r.statusCode(), r.body());
+        assertTrue(r.body().contains("ya salió"), r.body());
+    }
+
+    @Test
+    void sesionAbiertaATiempoNoPermiteBloquearNiContinuarCuandoLaReservaCierra() throws Exception {
+        ahoraEs(7, 0, 0);
+        String token = sesionConAsientos(1);
+        ahoraEs(7, 41, 0);
+        var bloqueo = enviar("POST", "/api/viajes/" + VIAJE + "/asientos/2/bloquear", Map.of("tokenSesion", token), null);
+        assertEquals(409, bloqueo.statusCode(), bloqueo.body());
+        assertEquals(0, cuenta("SELECT COUNT(*) FROM viaje_asiento WHERE id_asiento=2 AND estado_viaje_asiento<>'DISPONIBLE'"));
+        var continuar = enviar("POST", "/api/viajes/" + VIAJE + "/pasajeros", Map.of("tokenSesion", token,
+                "pasajeros", List.of(pasajero(1, "44444444", "Juan", "Perez Soto", "955555555"))), null);
+        assertEquals(409, continuar.statusCode(), continuar.body());
+        assertNadaPersistido();
+    }
+
+    @Test
+    void viajeCanceladoNoPermiteReservar() throws Exception {
+        jdbc.update("UPDATE viaje SET estado_viaje='CANCELADO' WHERE id_viaje=1");
+        var r = enviar("POST", "/api/viajes/" + VIAJE + "/sesiones", null, null);
+        assertEquals(409, r.statusCode(), r.body());
     }
 }

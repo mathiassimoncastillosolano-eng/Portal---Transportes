@@ -38,6 +38,37 @@
   color: var(--color-texto-principal);
 }
 
+/* Reutilizar los datos de otro asiento (misma persona con varios pasajes) */
+.gestor-pasajeros__copiar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.gestor-pasajeros__copiar-texto {
+  font-size: var(--tamano-xs);
+  font-weight: 600;
+  color: var(--color-texto-secundario);
+}
+
+.gestor-pasajeros__copiar-boton {
+  min-height: 36px;
+  padding: 0 0.85rem;
+  border-radius: var(--radio-pastilla);
+  border: 1.5px solid var(--color-borde-marca);
+  background: transparent;
+  color: var(--color-texto-marca);
+  font-family: var(--fuente-texto);
+  font-size: var(--tamano-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transicion-rapida);
+}
+
+.gestor-pasajeros__copiar-boton:hover { background: var(--color-celda-tenue); }
+.gestor-pasajeros__copiar-boton:focus-visible { outline: 2.5px solid var(--color-borde-marca); outline-offset: 2px; }
+
 @media (max-width: 560px) {
   .gestor-pasajeros__tickets {
     margin-inline: calc(var(--espacio-4) * -1);

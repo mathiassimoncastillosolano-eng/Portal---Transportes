@@ -2,7 +2,9 @@ package com.transportes.viajes.servicios;
 
 import com.transportes.viajes.dto.ViajeResumenDto;
 import com.transportes.viajes.repositorios.ViajeRepository;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.http.HttpStatus;
@@ -13,7 +15,8 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ViajeService {
     private final ViajeRepository viajes;
-    public ViajeService(ViajeRepository viajes) { this.viajes = viajes; }
+    private final Clock reloj;
+    public ViajeService(ViajeRepository viajes, Clock relojNegocio) { this.viajes = viajes; this.reloj = relojNegocio; }
 
     @Transactional(readOnly = true)
     public List<ViajeResumenDto> buscar(String origen, String destino, LocalDate fecha, String horario) {
@@ -32,7 +35,7 @@ public class ViajeService {
             case "noche" -> new int[]{19, 24};
             default -> throw invalido("Horario no válido. Usa madrugada, mañana, tarde, noche o cualquiera.");
         };
-        return viajes.buscar(origen, destino, fecha, horas[0], horas[1]);
+        return viajes.buscar(origen, destino, fecha, horas[0], horas[1], LocalDateTime.now(reloj));
     }
 
     private ResponseStatusException invalido(String mensaje) {

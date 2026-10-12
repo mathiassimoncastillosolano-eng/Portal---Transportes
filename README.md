@@ -46,7 +46,18 @@ GET /api/viajes/buscar?origen=Lima&destino=Cusco&fecha=2026-09-23&horario=mañan
 
 Una búsqueda sin coincidencias devuelve `200` y `[]`. Parámetros incompletos, fechas inválidas y horarios desconocidos devuelven `400` con `mensaje`. La API de consulta permite fechas históricas; el formulario ofrece fechas desde hoy. La consulta considera viajes `PROGRAMADO` y ubicaciones, agencias, rutas, programaciones y buses activos.
 
+**Viajes ya salidos o llenos:** la búsqueda ya no oculta los viajes cuya hora de salida pasó ni los llenos; los devuelve con su estado para que la interfaz los muestre bloqueados. Los viajes cancelados/suspendidos (`estado_viaje` distinto de `PROGRAMADO`) siguen sin aparecer.
+
 La respuesta contiene `id`, `empresa`, `origen`, `destino`, `fechaSalida`, `horaSalida`, `horaLlegada`, `fechaLlegada`, `duracion`, `tipoBus`, `servicios`, `asientosDisponibles`, `precio` y `estado`. `empresa` conserva la marca del portal, RutaLibre: la base no contiene una entidad de empresa transportista. Los asientos se cuentan desde `viaje_asiento`, solo en estado `DISPONIBLE`; los bloqueados no se liberan desde esta consulta. El precio es el menor de los asientos disponibles. Si no hay cupos, `precio` es `null` y el viaje queda `agotado`. Una duración no informada no genera una hora de llegada ficticia.
+
+Campos añadidos para la regla de reserva: `estadoReserva` (`DISPONIBLE`, `RESERVA_CERRADA`, `SALIDA_REALIZADA`, `LLENO`, `SIN_INFORMACION`, `NO_DISPONIBLE`), `reservable`, `salidaMs`, `limiteReservaMs`, `ahoraServidorMs` y `minutosAnticipacion`. El campo `estado` anterior se conserva.
+
+## Regla de reserva (20 minutos) y compra de varios pasajes
+
+- **Regla única en el backend** (`viajes/reglas/PoliticaReservaViaje`, hora de Perú `America/Lima`): se puede reservar hasta `salida − 20 min` **inclusive**. Un viaje a las 08:00 se puede reservar hasta las 07:40:00; desde las 07:40:01 queda «Reserva cerrada»; desde las 08:00:00, «Salida realizada». Se valida al crear la sesión de asientos, al bloquear un asiento, al guardar pasajeros y al iniciar el pago (`409` con el motivo). No se vuelve a validar al registrar una compra cuyo pago se inició a tiempo.
+- **Interfaz:** las tarjetas muestran Salida realizada / Reserva cerrada / Bus lleno con texto y botón realmente deshabilitado; el estado se refresca cada 30 s con el reloj del servidor (`ahoraServidorMs`), sin recargar.
+- **Varios pasajes por persona:** la restricción «un pasaje por DNI y viaje» solo existía en validadores (no en la base). Se eliminó; un mismo DNI puede ocupar varios asientos si nombres y apellidos coinciden (si difieren, se rechaza). La unicidad real —un asiento no se vende dos veces (`uq_pasaje_viaje_asiento`)— se conserva. No hay migraciones. El tope de 6 asientos por compra (`reserva.max-asientos`) y el cálculo del total se mantienen.
+- **Fecha de nacimiento:** selector propio (`SelectorFechaNacimiento`) con vistas de año → mes → día, rango de hoy−120 años a hoy, formato `YYYY-MM-DD` sin pasar por UTC; la edad mínima de 16 años se sigue validando en `validarPasajero.js`.
 
 ## Pruebas
 
@@ -62,6 +73,8 @@ Desde `backend/`:
 ```
 
 Las pruebas Java usan H2 y el perfil `test`, sin escribir en Supabase. Incluyen las pruebas previas de registro y seis pruebas de búsqueda: conteos con varios servicios por bus, extremos de horarios, validaciones, exclusión de inactivos/cancelados, ausencia de asientos/duración y CORS.
+
+Pruebas añadidas con esta versión: `PoliticaReservaViajeTest` y `ValidadorPasajeroTest` (unitarias, sin Spring), integración en `BusquedaIntegracionTest`, `PagoReservaIntegracionTest` y `PagoMercadoPagoIntegracionTest` (reloj controlable con `RelojPruebaConfiguracion`), y en JavaScript `estadoReserva`, `fechaNacimiento` y `validarPasajero`. Las de integración requieren `mvnw test` (Maven) en una máquina con acceso a Maven Central.
 
 Validación del 22/09/2026: 15 pruebas Java y 8 JavaScript aprobadas, compilación de producción completada y comprobación de solo lectura contra Supabase. El esquema de pruebas refleja `ubicacion.id_ubicacion` como `bigint`, igual que la base real.
 

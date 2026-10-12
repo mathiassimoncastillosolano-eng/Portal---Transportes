@@ -52,6 +52,7 @@ import com.transportes.viajes.repositorios.ViajeAsientoRepositorio;
 import com.transportes.viajes.servicios.PasajerosSesionCache;
 import com.transportes.viajes.servicios.TokenSesionServicio;
 import com.transportes.viajes.servicios.TokenSesionServicio.SesionReserva;
+import com.transportes.viajes.servicios.ValidadorReservaViaje;
 import com.transportes.viajes.servicios.ViajeAsientoServicio;
 
 /**
@@ -90,6 +91,7 @@ public class PagoServicio {
     private final PagoRepositorio pagoRepositorio;
     private final PasajeroRepositorio pasajeroRepositorio;
     private final AsientoServicio asientoServicio;
+    private final ValidadorReservaViaje validadorReserva;
     private final TransactionTemplate tx;
 
     public PagoServicio(OperacionPagoRepositorio operaciones, ViajeAsientoRepositorio viajeAsientoRepositorio,
@@ -99,6 +101,7 @@ public class PagoServicio {
                         PropiedadesPago propiedades, VentaRepositorio ventaRepositorio,
                         PasajeRepositorio pasajeRepositorio, PagoRepositorio pagoRepositorio,
                         PasajeroRepositorio pasajeroRepositorio, AsientoServicio asientoServicio,
+                        ValidadorReservaViaje validadorReserva,
                         PlatformTransactionManager transactionManager) {
         this.operaciones = operaciones;
         this.viajeAsientoRepositorio = viajeAsientoRepositorio;
@@ -114,6 +117,7 @@ public class PagoServicio {
         this.pagoRepositorio = pagoRepositorio;
         this.pasajeroRepositorio = pasajeroRepositorio;
         this.asientoServicio = asientoServicio;
+        this.validadorReserva = validadorReserva;
         this.tx = new TransactionTemplate(transactionManager);
     }
 
@@ -139,6 +143,9 @@ public class PagoServicio {
         }
 
         SesionReserva sesion = tokenSesionServicio.validar(req.tokenSesion(), req.idViaje());
+        // Antes de cobrar: el viaje debe seguir reservable (no salió, >= 20 min). Un reintento del mismo intento ya
+        // se devolvió arriba; y una compra cuyo pago se inició a tiempo se registra aunque Mercado Pago tarde.
+        validadorReserva.exigirReservable(req.idViaje());
         try {
             registroCompra.idMetodoPago(req.medioPago());
         } catch (IllegalStateException e) {

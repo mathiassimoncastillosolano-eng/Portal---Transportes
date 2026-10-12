@@ -1,6 +1,7 @@
 import { EstadoDisponibilidad } from '../comunes/EstadoDisponibilidad'
 import { BotonPrincipal } from '../comunes/BotonPrincipal'
 import { formatearPrecio, formatearFechaCorta } from '../../utilidades/formato'
+import { ESTADOS_RESERVA, TEXTOS_ESTADO_RESERVA, estadoReservaActual } from '../../utilidades/estadoReserva'
 import './tarjetaResultadoViaje.css'
 
 const ICONOS_SERVICIO = {
@@ -47,12 +48,19 @@ const ICONOS_SERVICIO = {
  * (empresa, horario, comodidades) y una franja de precio + CTA, similar en
  * jerarquía a la referencia pero con la identidad visual de RutaLibre.
  */
-export function TarjetaResultadoViaje({ resultado, esMasEconomico, alSeleccionar }) {
-  const agotado = resultado.estado === 'agotado'
+export function TarjetaResultadoViaje({ resultado, esMasEconomico, alSeleccionar, estadoReserva }) {
+  // La página pasa el estado ya refrescado con el reloj del servidor; sin él se calcula aquí.
+  const estadoActual = estadoReserva ?? estadoReservaActual(resultado, Date.now())
+  const reservable = estadoActual === ESTADOS_RESERVA.DISPONIBLE
+  const textos = TEXTOS_ESTADO_RESERVA[estadoActual]
+  const idAviso = `aviso-viaje-${resultado.id}`
 
   return (
-    <article className={`tarjeta-resultado-viaje ${agotado ? 'tarjeta-resultado-viaje--agotado' : ''}`}>
-      {esMasEconomico && !agotado && (
+    <article
+      className={`tarjeta-resultado-viaje ${reservable ? '' : `tarjeta-resultado-viaje--no-reservable tarjeta-resultado-viaje--${estadoActual.toLowerCase().replace(/_/g, '-')}`}`}
+      data-estado-reserva={estadoActual}
+    >
+      {esMasEconomico && reservable && (
         <span className="tarjeta-resultado-viaje__insignia">Más económico</span>
       )}
 
@@ -103,8 +111,15 @@ export function TarjetaResultadoViaje({ resultado, esMasEconomico, alSeleccionar
               </span>
             ))}
           </div>
-          <EstadoDisponibilidad estado={resultado.estado} asientosDisponibles={resultado.asientosDisponibles} />
+          {reservable ? (
+            <EstadoDisponibilidad estado={resultado.estado} asientosDisponibles={resultado.asientosDisponibles} />
+          ) : (
+            <EstadoDisponibilidad estado={estadoActual} />
+          )}
         </div>
+        {!reservable && textos && (
+          <p className="tarjeta-resultado-viaje__aviso" id={idAviso}>{textos.detalle}</p>
+        )}
       </div>
 
       <div className="tarjeta-resultado-viaje__lateral">
@@ -112,8 +127,13 @@ export function TarjetaResultadoViaje({ resultado, esMasEconomico, alSeleccionar
           <span className="tarjeta-resultado-viaje__precio-etiqueta">Desde, por persona</span>
           <span className="tarjeta-resultado-viaje__precio">{resultado.precio == null ? 'No disponible' : formatearPrecio(resultado.precio)}</span>
         </div>
-        <BotonPrincipal deshabilitado={agotado} onClick={() => alSeleccionar(resultado)} ancho="100%">
-          {agotado ? 'Sin cupo' : 'Elegir asientos →'}
+        <BotonPrincipal
+          deshabilitado={!reservable}
+          onClick={() => { if (reservable) alSeleccionar(resultado) }}
+          ancho="100%"
+          descritoPor={reservable ? undefined : idAviso}
+        >
+          {reservable ? 'Elegir asientos →' : textos?.boton ?? 'No disponible'}
         </BotonPrincipal>
       </div>
     </article>

@@ -1,7 +1,10 @@
 package com.transportes.viajes.repositorios;
 
 import com.transportes.viajes.dto.ViajeResumenDto;
+import com.transportes.viajes.reglas.PoliticaReservaViaje;
+import com.transportes.viajes.reglas.PoliticaReservaViaje.EstadoReserva;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -17,13 +20,18 @@ public class ViajeRepository {
 
     public ViajeRepository(NamedParameterJdbcTemplate jdbc) { this.jdbc = jdbc; }
 
+    // La búsqueda LISTA todos los viajes PROGRAMADOS de la fecha, incluidos los que ya salieron, los que cierran
+    // la reserva (menos de 20 min) y los llenos: si se pueden reservar o no lo decide PoliticaReservaViaje, no el
+    // WHERE. Los viajes cancelados u otros estados siguen sin aparecer. Se quitó el filtro por LOCALTIMESTAMP,
+    // que además usaba la zona de la base de datos y no la de Perú.
+    //
     // Se agregan asientos y servicios por separado: unir ambas colecciones antes
     // del COUNT multiplica cada asiento por el número de servicios del bus.
     private static final String BUSQUEDA = """
         SELECT v.id_viaje, uo.nombre AS origen, ud.nombre AS destino,
                v.fecha_salida, v.hora_salida, r.duracion_estimada_min,
-               tb.nombre_tipo, COALESCE(a.disponibles, 0) AS disponibles,
-               a.precio, COALESCE(s.servicios, '') AS servicios
+               v.estado_viaje, tb.nombre_tipo, COALESCE(a.total, 0) AS total_asientos,
+               COALESCE(a.disponibles, 0) AS disponibles, a.precio, COALESCE(s.servicios, '') AS servicios
         FROM viaje v
         JOIN programacion_viaje pv ON pv.id_programacion = v.id_programacion
         JOIN ruta r ON r.id_ruta = pv.id_ruta
@@ -34,7 +42,7 @@ public class ViajeRepository {
         JOIN bus b ON b.id_bus = v.id_bus
         JOIN tipo_bus tb ON tb.id_tipo_bus = b.id_tipo_bus
         LEFT JOIN (
-            SELECT id_viaje,
+            SELECT id_viaje, COUNT(*) AS total,
                    SUM(CASE WHEN estado_viaje_asiento = 'DISPONIBLE' THEN 1 ELSE 0 END) AS disponibles,
                    MIN(CASE WHEN estado_viaje_asiento = 'DISPONIBLE' THEN precio END) AS precio
             FROM viaje_asiento GROUP BY id_viaje
@@ -48,7 +56,6 @@ public class ViajeRepository {
         WHERE LOWER(uo.nombre) = LOWER(:origen)
           AND LOWER(ud.nombre) = LOWER(:destino)
           AND v.fecha_salida = :fecha AND v.estado_viaje = 'PROGRAMADO'
-          AND (v.fecha_salida + v.hora_salida) > LOCALTIMESTAMP
           AND pv.activa AND r.activa AND ao.activa AND ad.activa
           AND uo.activa AND ud.activa AND b.activo
           AND EXTRACT(HOUR FROM v.hora_salida) >= :horaDesde
@@ -56,7 +63,8 @@ public class ViajeRepository {
         ORDER BY v.hora_salida, v.id_viaje
         """;
 
-    public List<ViajeResumenDto> buscar(String origen, String destino, LocalDate fecha, int desde, int hasta) {
+    public List<ViajeResumenDto> buscar(String origen, String destino, LocalDate fecha, int desde, int hasta,
+            LocalDateTime ahora) {
         return jdbc.query(BUSQUEDA, Map.of("origen", origen, "destino", destino,
                 "fecha", fecha, "horaDesde", desde, "horaHasta", hasta), (rs, fila) -> {
             LocalDate salida = rs.getObject("fecha_salida", LocalDate.class);
@@ -66,13 +74,19 @@ public class ViajeRepository {
             String duracion = minutos == null ? "Por confirmar" : minutos / 60 + " h"
                     + (minutos % 60 == 0 ? "" : " " + minutos % 60 + " min");
             int disponibles = rs.getInt("disponibles");
+            EstadoReserva reserva = PoliticaReservaViaje.evaluar(rs.getString("estado_viaje"), salida, hora,
+                    rs.getInt("total_asientos"), disponibles, ahora);
             return new ViajeResumenDto(rs.getLong("id_viaje"), "RutaLibre",
                     rs.getString("origen"), rs.getString("destino"), salida, hora.format(HORA),
                     llegada == null ? null : llegada.format(HORA), llegada == null ? null : llegada.toLocalDate(),
                     duracion, rs.getString("nombre_tipo"),
                     Arrays.stream(rs.getString("servicios").split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList(),
                     disponibles, rs.getBigDecimal("precio"),
-                    disponibles == 0 ? "agotado" : disponibles <= 4 ? "pocos-asientos" : "disponible");
+                    disponibles == 0 ? "agotado" : disponibles <= 4 ? "pocos-asientos" : "disponible",
+                    reserva.name(), reserva.reservable(),
+                    PoliticaReservaViaje.aEpochMs(salida.atTime(hora)),
+                    PoliticaReservaViaje.aEpochMs(PoliticaReservaViaje.limiteReserva(salida, hora)),
+                    PoliticaReservaViaje.aEpochMs(ahora), PoliticaReservaViaje.MINUTOS_ANTICIPACION);
         });
     }
 }
