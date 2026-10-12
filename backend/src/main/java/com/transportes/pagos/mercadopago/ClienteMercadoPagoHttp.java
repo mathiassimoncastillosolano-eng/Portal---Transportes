@@ -133,7 +133,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
                     .toUpperCase(Locale.ROOT);
 
             if ("C.E".equals(tipoDocumento)) {
-                tipoDocumento = "CE";
+                tipoDocumento = "CI";
             }
 
             identificacion.put("type", tipoDocumento);
