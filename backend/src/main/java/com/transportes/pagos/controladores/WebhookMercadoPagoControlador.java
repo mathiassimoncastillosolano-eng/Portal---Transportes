@@ -64,8 +64,9 @@ public class WebhookMercadoPagoControlador {
         if (!validador.esValida(firma, idSolicitud, dataIdConsulta)) {
             // Solo se indica qué datos llegaron (nunca la clave ni la firma): ayuda a distinguir una clave secreta
             // equivocada (p. ej. la del modo productivo) de una llamada que no viene de Mercado Pago.
-            log.warn("Webhook con firma inválida rechazado (x-request-id={}, x-signature presente={}, data.id en la URL={})",
-                    idSolicitud, firma != null && !firma.isBlank(), dataIdConsulta != null);
+            log.warn("Webhook con firma inválida rechazado (x-request-id={}, x-signature presente={}, data.id en la URL={}, diagnóstico: {})",
+                    idSolicitud, firma != null && !firma.isBlank(), dataIdConsulta != null,
+                    validador.diagnosticar(firma, idSolicitud, dataIdConsulta));
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 

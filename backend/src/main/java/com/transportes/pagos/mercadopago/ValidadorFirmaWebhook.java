@@ -85,6 +85,48 @@ public class ValidadorFirmaWebhook {
         return true;
     }
 
+    /**
+     * Clasifica por qué se rechazó una firma, SIN revelar firma ni clave (solo para el log). Distingue una
+     * petición sin firma o con firma mal formada (típico de llamadas que no vienen de Mercado Pago) de una
+     * firma bien formada que no coincide (clave de otro modo/aplicación, o id / x-request-id distintos).
+     */
+    public String diagnosticar(String xSignature, String xRequestId, String dataId) {
+        if (!configurado()) {
+            return "clave secreta de Webhooks no configurada en el servidor";
+        }
+        String firma = normalizar(xSignature);
+        if (firma == null) {
+            return "sin cabecera x-signature";
+        }
+        String ts = null;
+        String v1 = null;
+        for (String parte : firma.split(",")) {
+            int igual = parte.indexOf('=');
+            if (igual > 0 && igual < parte.length() - 1) {
+                String clave = parte.substring(0, igual).trim().toLowerCase(Locale.ROOT);
+                if ("ts".equals(clave)) {
+                    ts = parte.substring(igual + 1).trim();
+                } else if ("v1".equals(clave)) {
+                    v1 = parte.substring(igual + 1).trim();
+                }
+            }
+        }
+        if (ts == null || v1 == null) {
+            return "x-signature mal formada (falta ts o v1)";
+        }
+        if (!ts.matches("\\d+")) {
+            return "x-signature mal formada (ts no numérico)";
+        }
+        if (!v1.matches("(?i)[0-9a-f]{64}")) {
+            return "x-signature mal formada (v1 no es HMAC-SHA256 hexadecimal)";
+        }
+        if (normalizar(xRequestId) == null || normalizar(dataId) == null) {
+            return "firma bien formada pero faltan x-request-id o data.id (el manifiesto no coincidiría)";
+        }
+        return "firma bien formada que no coincide: clave de otro modo (prueba/producción) o de otra aplicación, "
+                + "id/x-request-id distintos, o petición no originada en Mercado Pago";
+    }
+
     static String manifiesto(String dataId, String requestId, String ts) {
         StringBuilder sb = new StringBuilder();
         if (dataId != null) {

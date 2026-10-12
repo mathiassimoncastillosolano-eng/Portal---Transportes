@@ -35,6 +35,7 @@ import com.transportes.pagos.entidades.Pasaje;
 import com.transportes.pagos.entidades.Venta;
 import com.transportes.pagos.excepciones.PagoException;
 import com.transportes.pagos.mercadopago.ClienteMercadoPago;
+import com.transportes.pagos.mercadopago.DocumentoPagador;
 import com.transportes.pagos.mercadopago.ErrorMercadoPagoException;
 import com.transportes.pagos.mercadopago.OrdenMercadoPago;
 import com.transportes.pagos.mercadopago.SolicitudOrden;
@@ -73,7 +74,6 @@ public class PagoServicio {
     static final Set<EstadoOperacion> ACTIVOS =
             EnumSet.of(EstadoOperacion.CREANDO, EstadoOperacion.EN_PROCESO, EstadoOperacion.ACCION_REQUERIDA);
     private static final Set<String> TIPOS_TARJETA = Set.of("credit_card", "debit_card", "prepaid_card");
-    private static final Set<String> DOCUMENTOS_MP = Set.of("DNI", "C.E", "RUC", "Otro");
     private static final String ESTADO_BLOQUEADO = "BLOQUEADO_TEMPORAL";
 
     private final OperacionPagoRepositorio operaciones;
@@ -253,9 +253,16 @@ public class PagoServicio {
     SolicitudOrden construirSolicitud(IniciarPagoRequest req, OperacionPago op) {
         String email = propiedades.getEmailPagadorPrueba().isEmpty()
                 ? req.emailPagador().trim() : propiedades.getEmailPagadorPrueba();
-        String tipoDoc = req.tipoDocumento() != null && DOCUMENTOS_MP.contains(req.tipoDocumento()) ? req.tipoDocumento() : null;
-        String numDoc = tipoDoc != null && req.numeroDocumento() != null && !req.numeroDocumento().isBlank()
-                ? req.numeroDocumento().trim() : null;
+        DocumentoPagador.Resultado doc = DocumentoPagador.evaluar(req.tipoDocumento(), req.numeroDocumento(),
+                propiedades.getTiposIdentificacion(), propiedades.getMapeoTiposIdentificacion());
+        String tipoDoc = doc.enviar() ? doc.tipo() : null;
+        String numDoc = doc.enviar() ? doc.numero() : null;
+        if (!doc.enviar()) {
+            // Sin datos personales: solo el motivo y el tipo elegido (valor del catálogo).
+            log.info("Se omite payer.identification en {}: {} (tipo recibido: {})", op.getReferenciaExterna(),
+                    DocumentoPagador.descripcion(doc).orElse(""), req.tipoDocumento() != null
+                            && DocumentoPagador.TIPOS_CATALOGO.contains(req.tipoDocumento()) ? req.tipoDocumento() : "fuera de catálogo");
+        }
         String descripcion = "RutaLibre - pasajes de bus";
 
         if ("YAPE".equals(req.medioPago())) {

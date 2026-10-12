@@ -276,4 +276,82 @@ class ClienteMercadoPagoHttpTest {
         assertNull(OrdenMercadoPago.normalizarIdOrden(""));
         assertNull(OrdenMercadoPago.normalizarIdOrden(null));
     }
+
+    @Test
+    void laIdentificacionSeEnviaExactamenteComoSeDecidioSinCambiarElTipo() {
+        for (String tipo : new String[] {"DNI", "C.E", "RUC", "Otro", "CE"}) {
+            SolicitudOrden s = new SolicitudOrden("RL-1", new BigDecimal("100.00"), null, "t@testuser.com", tipo, "12345678",
+                    null, "visa", "credit_card", "tok", 1, null);
+            JsonNode id = cliente.construirCuerpoOrden(s).get("payer").get("identification");
+            assertEquals(tipo, id.get("type").asText(), "el cliente no debe alterar mayúsculas ni puntos");
+            assertEquals("12345678", id.get("number").asText());
+        }
+    }
+
+    @Test
+    void sinDocumentoNoSeEnviaIdentificacion() {
+        SolicitudOrden s = new SolicitudOrden("RL-1", new BigDecimal("100.00"), null, "t@testuser.com", null, null,
+                null, "visa", "credit_card", "tok", 1, null);
+        assertFalse(cliente.construirCuerpoOrden(s).get("payer").has("identification"));
+    }
+
+    @Test
+    void yapeEnviaEntityTypeTelefonoYNingunaIdentificacion() {
+        SolicitudOrden yape = new SolicitudOrden("RL-2", new BigDecimal("75.00"), null, "a@testuser.com", null, null, "111111111",
+                "yape", "debit_card", "tok_yape", 1, null);
+        JsonNode pagador = cliente.construirCuerpoOrden(yape).get("payer");
+        assertEquals("individual", pagador.get("entity_type").asText());
+        assertFalse(pagador.has("identification"));
+    }
+
+    @Test
+    void errorGenericoSinErrorsDejaEstructuraDiagnosticable() {
+        String cuerpo = "{\"status\":422,\"error\":\"unprocessable_content\",\"message\":\"Unprocessable Entity\"}";
+        JsonNode raiz = json.readTree(cuerpo);
+        String estructura = ClienteMercadoPagoHttp.estructuraRespuesta(raiz, cuerpo);
+        assertTrue(estructura.contains("status") && estructura.contains("message") && estructura.contains("error=unprocessable_content"), estructura);
+        assertFalse(estructura.contains("Unprocessable Entity"), "la estructura no incluye valores");
+        assertTrue(ClienteMercadoPagoHttp.estructuraRespuesta(null, "<html>").contains("no JSON"));
+    }
+
+    @Test
+    void propertyValueDeTipoDeDocumentoNoExponeNumeroNiCorreo() {
+        respuestas.put("POST /v1/orders", new Respuesta(400, """
+                {"errors":[{"code":"property_value","message":"Invalid value",
+                 "details":["$.payer.identification.type - value must be one of 'DNI', 'CE', 'RUC'","user@mail.com 12345678"]}]}""", 0));
+        ErrorMercadoPagoException e = assertThrows(ErrorMercadoPagoException.class, () -> cliente.crearOrden(solicitudTarjeta(), "k"));
+        assertEquals(ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, e.getTipo());
+        assertEquals("property_value", e.getCodigo());
+        assertTrue(e.getDetalle().contains("$.payer.identification.type"));
+        assertFalse(e.getDetalle().contains("user@mail.com"));
+        assertFalse(e.getDetalle().contains("12345678"));
+    }
+
+    @Test
+    void matrizDeEstadosHttpDeCrearOrden() {
+        Object[][] casos = {
+            {400, ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA}, {401, ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA},
+            {402, ErrorMercadoPagoException.Tipo.PAGO_RECHAZADO}, {403, ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA},
+            {404, ErrorMercadoPagoException.Tipo.NO_ENCONTRADO}, {409, ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA},
+            {422, ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA}, {423, ErrorMercadoPagoException.Tipo.RESULTADO_DESCONOCIDO},
+            {429, ErrorMercadoPagoException.Tipo.RESULTADO_DESCONOCIDO}, {500, ErrorMercadoPagoException.Tipo.RESULTADO_DESCONOCIDO},
+            {502, ErrorMercadoPagoException.Tipo.RESULTADO_DESCONOCIDO}, {503, ErrorMercadoPagoException.Tipo.RESULTADO_DESCONOCIDO}};
+        for (Object[] c : casos) {
+            respuestas.put("POST /v1/orders", new Respuesta((Integer) c[0], "{\"message\":\"x\"}", 0));
+            ErrorMercadoPagoException e = assertThrows(ErrorMercadoPagoException.class, () -> cliente.crearOrden(solicitudTarjeta(), "k"));
+            assertEquals(c[1], e.getTipo(), "HTTP " + c[0]);
+        }
+        // Un 4xx/5xx nunca devuelve una order aprobada.
+        respuestas.put("POST /v1/orders", new Respuesta(422, "{\"id\":\"ORD1\",\"status\":\"processed\",\"status_detail\":\"accredited\"}", 0));
+        assertThrows(ErrorMercadoPagoException.class, () -> cliente.crearOrden(solicitudTarjeta(), "k"));
+    }
+
+    @Test
+    void respuestasMalformadasSeTratanComoResultadoDesconocido() {
+        for (String cuerpo : new String[] {"", "[]", "null", "{", "<html>502</html>"}) {
+            respuestas.put("POST /v1/orders", new Respuesta(200, cuerpo, 0));
+            ErrorMercadoPagoException e = assertThrows(ErrorMercadoPagoException.class, () -> cliente.crearOrden(solicitudTarjeta(), "k"), cuerpo);
+            assertEquals(ErrorMercadoPagoException.Tipo.RESULTADO_DESCONOCIDO, e.getTipo(), cuerpo);
+        }
+    }
 }

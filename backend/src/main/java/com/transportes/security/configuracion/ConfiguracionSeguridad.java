@@ -41,89 +41,93 @@ import java.util.List;
 @EnableWebSecurity
 public class ConfiguracionSeguridad {
 
-    private final JwtService jwtService;
-    private final TokenInvalidadoService tokenInvalidadoService;
-    private final UsuarioService usuarioService;
-    private final PuntoEntradaJwt puntoEntradaJwt;
+        private final JwtService jwtService;
+        private final TokenInvalidadoService tokenInvalidadoService;
+        private final UsuarioService usuarioService;
+        private final PuntoEntradaJwt puntoEntradaJwt;
 
-    @Value("${seguridad.cors.origenes-permitidos}")
-    private String origenesPermitidos;
+        @Value("${seguridad.cors.origenes-permitidos}")
+        private String origenesPermitidos;
 
-    public ConfiguracionSeguridad(JwtService jwtService,
-            TokenInvalidadoService tokenInvalidadoService,
-            UsuarioService usuarioService,
-            PuntoEntradaJwt puntoEntradaJwt) {
-        this.jwtService = jwtService;
-        this.tokenInvalidadoService = tokenInvalidadoService;
-        this.usuarioService = usuarioService;
-        this.puntoEntradaJwt = puntoEntradaJwt;
-    }
+        public ConfiguracionSeguridad(JwtService jwtService,
+                        TokenInvalidadoService tokenInvalidadoService,
+                        UsuarioService usuarioService,
+                        PuntoEntradaJwt puntoEntradaJwt) {
+                this.jwtService = jwtService;
+                this.tokenInvalidadoService = tokenInvalidadoService;
+                this.usuarioService = usuarioService;
+                this.puntoEntradaJwt = puntoEntradaJwt;
+        }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    @Bean
-    public SecurityFilterChain cadenaFiltrosSeguridad(HttpSecurity http) throws Exception {
-        FiltroAutenticacionJwt filtroJwt = new FiltroAutenticacionJwt(jwtService, tokenInvalidadoService,
-                usuarioService);
+        @Bean
+        public SecurityFilterChain cadenaFiltrosSeguridad(HttpSecurity http) throws Exception {
+                FiltroAutenticacionJwt filtroJwt = new FiltroAutenticacionJwt(jwtService, tokenInvalidadoService,
+                                usuarioService);
 
-        http
-                .cors(cors -> cors.configurationSource(fuenteConfiguracionCors()))
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(manejo -> manejo.authenticationEntryPoint(puntoEntradaJwt))
-                .authorizeHttpRequests(rutas -> rutas
-                        // Documentación Swagger/OpenAPI: acceso público.
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/v3/api-docs.yaml")
-                        .permitAll()
+                http
+                                .cors(cors -> cors.configurationSource(fuenteConfiguracionCors()))
+                                .csrf(csrf -> csrf.disable())
+                                .sessionManagement(
+                                                sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .exceptionHandling(manejo -> manejo.authenticationEntryPoint(puntoEntradaJwt))
+                                .authorizeHttpRequests(rutas -> rutas
+                                                // Documentación Swagger/OpenAPI: acceso público.
+                                                .requestMatchers(
+                                                                "/swagger-ui/**",
+                                                                "/swagger-ui.html",
+                                                                "/v3/api-docs/**",
+                                                                "/v3/api-docs.yaml")
+                                                .permitAll()
 
-                        // Crear una cuenta no requiere una sesión previa.
-                        .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
+                                                // Crear una cuenta no requiere una sesión previa.
+                                                .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
 
-                        // Crear una cuenta no requiere una sesion previa.
-                        .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
-                        .requestMatchers("/api/auth/login").permitAll()
-                        // Inicio de sesion/registro con Google: la identidad se
-                        // comprueba validando el ID token de Google en el servicio.
-                        .requestMatchers(HttpMethod.POST, "/api/auth/google").permitAll()
-                        // Recuperacion de contrasena: se usa sin sesion; la autorizacion la da el
-                        // codigo enviado al correo (ver RecuperacionContrasenaService).
-                        .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/**").permitAll()
-                        // Perfil y cierre de sesion: requieren JWT valido.
-                        .requestMatchers("/api/usuarios/**", "/api/auth/logout", "/api/auth/google/vincular")
-                        .authenticated()
-                        // Consulta de pasajeros por DNI: expone datos personales, exige JWT.
-                        .requestMatchers("/api/pasajeros/**").authenticated()
-                        // Webhook de Mercado Pago: publico, pero el controlador exige la firma
-                        // x-signature.
-                        .requestMatchers(HttpMethod.POST, "/api/pagos/webhook").permitAll()
-                        // Pagos: la venta se asocia al usuario autenticado.
-                        .requestMatchers("/api/pagos/**").authenticated()
-                        // Cualquier otra ruta (dominios aun no implementados,
-                        // como destinos/servicios/viajes) permanece publica por
-                        // ahora, ya que estan fuera del alcance de esta tarea.
-                        .anyRequest().permitAll())
-                .addFilterBefore(filtroJwt, UsernamePasswordAuthenticationFilter.class);
+                                                // Crear una cuenta no requiere una sesion previa.
+                                                .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
+                                                .requestMatchers("/api/auth/login").permitAll()
+                                                // Inicio de sesion/registro con Google: la identidad se
+                                                // comprueba validando el ID token de Google en el servicio.
+                                                .requestMatchers(HttpMethod.POST, "/api/auth/google").permitAll()
+                                                // Recuperacion de contrasena: se usa sin sesion; la autorizacion la da
+                                                // el
+                                                // codigo enviado al correo (ver RecuperacionContrasenaService).
+                                                .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/**")
+                                                .permitAll()
+                                                // Perfil y cierre de sesion: requieren JWT valido.
+                                                .requestMatchers("/api/usuarios/**", "/api/auth/logout",
+                                                                "/api/auth/google/vincular")
+                                                .authenticated()
+                                                // Consulta de pasajeros por DNI: expone datos personales, exige JWT.
+                                                .requestMatchers("/api/pasajeros/**").authenticated()
+                                                // Webhook de Mercado Pago: publico, pero el controlador exige la firma
+                                                // x-signature.
+                                                .requestMatchers(HttpMethod.POST, "/api/pagos/webhook").permitAll()
+                                                // Pagos: la venta se asocia al usuario autenticado.
+                                                .requestMatchers("/api/pagos/**").authenticated()
+                                                // Cualquier otra ruta (dominios aun no implementados,
+                                                // como destinos/servicios/viajes) permanece publica por
+                                                // ahora, ya que estan fuera del alcance de esta tarea.
+                                                .anyRequest().permitAll())
+                                .addFilterBefore(filtroJwt, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    private CorsConfigurationSource fuenteConfiguracionCors() {
-        CorsConfiguration configuracion = new CorsConfiguration();
-        configuracion.setAllowedOrigins(List.of(origenesPermitidos.split(",")).stream()
-                .map(String::trim).filter(origen -> !origen.isEmpty() && !"*".equals(origen)).toList());
-        configuracion.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuracion.setAllowCredentials(true);
+        private CorsConfigurationSource fuenteConfiguracionCors() {
+                CorsConfiguration configuracion = new CorsConfiguration();
+                configuracion.setAllowedOrigins(List.of(origenesPermitidos.split(",")).stream()
+                                .map(String::trim).filter(origen -> !origen.isEmpty() && !"*".equals(origen)).toList());
+                configuracion.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+                configuracion.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();
-        fuente.registerCorsConfiguration("/**", configuracion);
-        return fuente;
-    }
+                UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();
+                fuente.registerCorsConfiguration("/**", configuracion);
+                return fuente;
+        }
 }

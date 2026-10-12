@@ -654,4 +654,54 @@ class PagoMercadoPagoIntegracionTest {
         verify(mp).cancelarOrden(eq(idOrden), eq("cancel-" + referencia));
         assertSinCompra();
     }
+
+    // ------------------------------------------------------------------ documento del pagador
+
+    SolicitudOrden pagarCapturando(Map<String, Object> solicitud) throws Exception {
+        alCrear("processed", "accredited");
+        assertEquals("APROBADO", pagar(solicitud).get("estado").asText());
+        ArgumentCaptor<SolicitudOrden> enviada = ArgumentCaptor.forClass(SolicitudOrden.class);
+        verify(mp).crearOrden(enviada.capture(), anyString());
+        return enviada.getValue();
+    }
+
+    @Test
+    void dniValidoViajaTalCualYElTipoDelUsuarioNoSeAltera() throws Exception {
+        SolicitudOrden s = pagarCapturando(solicitudTarjeta(reservaLista(1), UUID.randomUUID().toString()));
+        assertEquals("DNI", s.tipoDocumentoPagador());
+        assertEquals("12345678", s.numeroDocumentoPagador());
+    }
+
+    @Test
+    void carnetDeExtranjeriaNoSeConvierteEnOtroTipoYSeOmiteSiNoEstaHabilitado() throws Exception {
+        Map<String, Object> m = solicitudTarjeta(reservaLista(1), UUID.randomUUID().toString());
+        m.put("tipoDocumento", "C.E");
+        m.put("numeroDocumento", "123456789");
+        SolicitudOrden s = pagarCapturando(m);
+        assertNull(s.tipoDocumentoPagador());
+        assertNull(s.numeroDocumentoPagador());
+    }
+
+    @Test
+    void documentoConLongitudInvalidaSeOmiteSinRellenarNiRechazarLaCompra() throws Exception {
+        Map<String, Object> m = solicitudTarjeta(reservaLista(1), UUID.randomUUID().toString());
+        m.put("numeroDocumento", "1234567");
+        SolicitudOrden s = pagarCapturando(m);
+        assertNull(s.tipoDocumentoPagador());
+        assertNull(s.numeroDocumentoPagador());
+    }
+
+    @Test
+    void yape422SinDetalleNoApruebaNiGeneraCompra() throws Exception {
+        String sesion = reservaLista(1);
+        doThrow(new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, 422,
+                "unprocessable_content", "Mercado Pago rechazó la solicitud.", null, null)).when(mp).crearOrden(any(), anyString());
+        Map<String, Object> yape = solicitudTarjeta(sesion, UUID.randomUUID().toString());
+        yape.put("medioPago", "YAPE");
+        yape.put("celular", "111111111");
+        yape.remove("metodoPagoId");
+        JsonNode r = pagar(yape);
+        assertEquals("ERROR", r.get("estado").asText());
+        assertSinCompra();
+    }
 }

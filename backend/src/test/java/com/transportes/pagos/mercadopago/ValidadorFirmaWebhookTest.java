@@ -68,4 +68,32 @@ class ValidadorFirmaWebhookTest {
         assertTrue(conTolerancia.esValida("ts=1704908010,v1=" + v1, "r", "ORD1", Instant.ofEpochSecond(1704908100)));
         assertFalse(conTolerancia.esValida("ts=1704908010,v1=" + v1, "r", "ORD1", Instant.ofEpochSecond(1704909000)));
     }
+
+    @Test
+    void diagnosticaElMotivoDelRechazoSinRevelarFirmaNiClave() throws Exception {
+        String v1 = hmac("id:ORD01ABC;request-id:req-1;ts:1704908010;");
+        assertTrue(validador.diagnosticar(null, "r", "ORD1").contains("sin cabecera"));
+        assertTrue(validador.diagnosticar("basura", "r", "ORD1").contains("mal formada"));
+        assertTrue(validador.diagnosticar("ts=abc,v1=" + v1, "r", "ORD1").contains("ts no numérico"));
+        assertTrue(validador.diagnosticar("ts=1,v1=1234", "r", "ORD1").contains("v1 no es HMAC"));
+        assertTrue(validador.diagnosticar("ts=1,v1=" + v1, null, "ORD1").contains("faltan"));
+        String noCoincide = validador.diagnosticar("ts=1,v1=" + v1, "req-1", "ORD01ABC");
+        assertTrue(noCoincide.contains("no coincide"));
+        assertFalse(noCoincide.contains(v1));
+        assertFalse(noCoincide.contains(SECRETO));
+        assertTrue(new ValidadorFirmaWebhook("", 0).diagnosticar("ts=1,v1=" + v1, "r", "i").contains("no configurada"));
+    }
+
+    @Test
+    void sinClaveConfiguradaNingunaFirmaEsValida() throws Exception {
+        String v1 = hmac("id:ORD01ABC;request-id:req-1;ts:1704908010;");
+        assertFalse(new ValidadorFirmaWebhook("", 0).esValida("ts=1704908010,v1=" + v1, "req-1", "ORD01ABC"));
+    }
+
+    @Test
+    void firmaMalformadaOVaciaNuncaEsValida() {
+        for (String f : new String[] {null, "", "   ", "ts=", "v1=", "ts=1", "v1=abc", "ts=x,v1=y", ",,,", "ts=1,v1="}) {
+            assertFalse(validador.esValida(f, "r", "ORD1"), String.valueOf(f));
+        }
+    }
 }

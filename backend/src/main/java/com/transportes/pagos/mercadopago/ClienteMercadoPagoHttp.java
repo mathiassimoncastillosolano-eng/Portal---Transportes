@@ -13,7 +13,6 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -129,19 +128,13 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         pagador.put("email", s.emailPagador());
         if (s.tipoDocumentoPagador() != null && s.numeroDocumentoPagador() != null) {
             ObjectNode identificacion = pagador.putObject("identification");
-            String tipoDocumento = s.tipoDocumentoPagador().strip()
-                    .toUpperCase(Locale.ROOT);
-
-            if ("C.E".equals(tipoDocumento)) {
-                tipoDocumento = "CE";
-            }
-
-            log.info("Tipo de documento enviado a Mercado Pago: {}", tipoDocumento);
-
-            identificacion.put("type", tipoDocumento);
+            // El tipo ya fue validado/decidido por DocumentoPagador: se envía tal cual, sin cambios.
+            identificacion.put("type", s.tipoDocumentoPagador());
             identificacion.put("number", s.numeroDocumentoPagador());
         }
         if (s.celularPagador() != null) {
+            // Ejemplo de la documentación de Yape en Orders (no verificado que sea obligatorio).
+            pagador.put("entity_type", "individual");
             ObjectNode telefono = pagador.putObject("phone");
             telefono.put("area_code", "51");
             telefono.put("number", s.celularPagador());
@@ -229,8 +222,8 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         // Pago (p. ej. en un
         // property_value); sin él solo se ve el código genérico. x-request-id sirve
         // para soporte de Mercado Pago.
-        log.warn("Mercado Pago respondió HTTP {} a {} {} (código: {}, detalle: {}, x-request-id: {})", estado, metodo,
-                rutaSegura(ruta), codigo, detalle, idSolicitud);
+        log.warn("Mercado Pago respondió HTTP {} a {} {} (código: {}, detalle: {}, estructura: {}, x-request-id: {})",
+                estado, metodo, rutaSegura(ruta), codigo, detalle, estructuraRespuesta(raiz, cuerpo), idSolicitud);
 
         // 402/422 pueden traer la order fallida en la raíz o dentro de "data".
         OrdenMercadoPago adjunta = raiz == null ? null : ordenDeError(raiz);
@@ -325,6 +318,51 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
      * enmascaran correos y números largos (documentos, teléfonos); las credenciales
      * y los tokens nunca viajan en la respuesta de error.
      */
+    /**
+     * Forma de la respuesta de error SIN valores: nombres de campos de primer nivel, cantidad de errors[] y
+     * sus códigos. Sirve cuando el mensaje es genérico (p. ej. 422 "Unprocessable Entity") y no se sabe qué
+     * campo trajo Mercado Pago; nunca incluye datos del pagador.
+     */
+    private static final String[] CAMPOS_CONOCIDOS = { "status", "error", "message", "cause", "errors", "data",
+            "id", "code", "type", "details" };
+
+    static String estructuraRespuesta(JsonNode raiz, String cuerpo) {
+        if (raiz == null) {
+            return "cuerpo no JSON o vacío (" + (cuerpo == null ? 0 : cuerpo.length()) + " caracteres)";
+        }
+        if (!raiz.isObject()) {
+            return "JSON no objeto";
+        }
+        // Solo se consultan nombres conocidos (evita depender de la API de iteración de Jackson).
+        StringBuilder sb = new StringBuilder("campos=[");
+        boolean primero = true;
+        for (String nombre : CAMPOS_CONOCIDOS) {
+            if (raiz.has(nombre)) {
+                sb.append(primero ? "" : ",").append(nombre);
+                primero = false;
+            }
+        }
+        sb.append(']');
+        JsonNode errores = raiz.path("errors");
+        if (errores.isArray()) {
+            sb.append(", errors=").append(errores.size()).append(" códigos=[");
+            boolean p = true;
+            for (JsonNode e : errores) {
+                String c = texto(e, "code");
+                if (c != null) {
+                    sb.append(p ? "" : ",").append(c.replaceAll("[^\\w.-]", "_"));
+                    p = false;
+                }
+            }
+            sb.append(']');
+        }
+        String causa = texto(raiz, "error");
+        if (causa != null) {
+            sb.append(", error=").append(causa.replaceAll("[^\\w. -]", "_"));
+        }
+        return sb.toString();
+    }
+
     static String detalleError(JsonNode raiz) {
         JsonNode errores = raiz.path("errors");
         JsonNode primero = errores.isArray() && !errores.isEmpty() ? errores.get(0) : raiz;
