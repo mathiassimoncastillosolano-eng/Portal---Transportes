@@ -32,6 +32,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Documentación de la API: Swagger UI y OpenAPI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>3.1.1</version>
+        </dependency>
+
         <!-- REST / Spring MVC -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
