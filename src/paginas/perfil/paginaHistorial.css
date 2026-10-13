@@ -1,68 +1,44 @@
-.pagina-historial {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-3);
-}
+/* Historial: filtros + filas legibles. Estados con el mismo componente que Mis pasajes. */
+.pagina-historial { display: flex; flex-direction: column; gap: var(--espacio-4); }
 
+.pagina-historial__filtros { display: flex; flex-wrap: wrap; gap: var(--espacio-2); }
+.pagina-historial__filtro {
+  display: inline-flex; align-items: center; gap: .45rem; padding: .5rem .95rem;
+  font-size: var(--tamano-xs); font-weight: 700; color: var(--color-texto-secundario);
+  background: var(--color-superficie); border: 1px solid var(--color-borde); border-radius: var(--radio-pastilla);
+  cursor: pointer; transition: color var(--transicion-rapida), border-color var(--transicion-rapida), background var(--transicion-rapida);
+}
+.pagina-historial__filtro span { font-variant-numeric: tabular-nums; opacity: .75; }
+.pagina-historial__filtro:hover { color: var(--color-texto-marca); border-color: var(--color-borde-marca); }
+.pagina-historial__filtro--activo { color: var(--color-texto-marca); background: var(--color-superficie-marca); border-color: var(--color-borde-marca); }
+.pagina-historial__filtro:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+
+.pagina-historial__lista { display: flex; flex-direction: column; gap: var(--espacio-3); margin: 0; padding: 0; list-style: none; }
 .pagina-historial__fila {
-  display: grid;
-  grid-template-columns: 100px 1.2fr 1fr 1fr 90px auto;
-  align-items: center;
-  gap: var(--espacio-4);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-md);
+  display: grid; grid-template-columns: 110px 1.3fr 1.1fr 90px auto auto; align-items: center; gap: var(--espacio-4);
+  background: var(--color-superficie); border: 1px solid var(--color-borde); border-radius: var(--radio-md);
   padding: var(--espacio-4) var(--espacio-5);
   transition: box-shadow var(--transicion-base), border-color var(--transicion-base);
 }
-
-.pagina-historial__fila:hover {
-  box-shadow: var(--sombra-suave);
-  border-color: transparent;
-}
-
-.pagina-historial__dia {
-  font-size: var(--tamano-sm);
-  font-weight: 600;
-  color: var(--color-texto-secundario);
-}
-
-.pagina-historial__ruta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-}
-
-.pagina-historial__flecha {
-  color: var(--color-texto-acento);
-}
-
-.pagina-historial__empresa,
-.pagina-historial__servicio {
-  font-size: var(--tamano-sm);
-  color: var(--color-texto-secundario);
-}
-
-.pagina-historial__precio {
-  font-family: var(--fuente-titulos);
-  font-weight: 700;
-  color: var(--color-texto-marca);
-}
-
+.pagina-historial__fila:hover { box-shadow: var(--sombra-suave); border-color: var(--color-borde-marca); }
+.pagina-historial__dia { display: grid; gap: .1rem; font-size: var(--tamano-sm); font-weight: 600; color: var(--color-texto-secundario); }
+.pagina-historial__dia small { font-weight: 500; font-variant-numeric: tabular-nums; }
+.pagina-historial__ruta { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .5rem; font-weight: 700; color: var(--color-texto-marca); }
+.pagina-historial__flecha { color: var(--color-texto-acento); }
+.pagina-historial__servicio { display: grid; gap: .1rem; font-size: var(--tamano-sm); color: var(--color-texto-principal); }
+.pagina-historial__servicio small { color: var(--color-texto-secundario); }
+.pagina-historial__precio { font-family: var(--fuente-titulos); font-weight: 700; color: var(--color-texto-marca); white-space: nowrap; }
+.pagina-historial__detalle { font-size: var(--tamano-xs); font-weight: 700; color: var(--color-texto-marca); text-decoration: none; white-space: nowrap; }
+.pagina-historial__detalle:hover { text-decoration: underline; }
+.pagina-historial__detalle:focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; border-radius: 4px; }
+.pagina-historial__solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .pagina-historial__vacio {
-  color: var(--color-texto-secundario);
-  padding: var(--espacio-6);
-  text-align: center;
-  background: var(--color-superficie);
-  border: 1px dashed var(--color-borde-fuerte);
-  border-radius: var(--radio-lg);
-  display: block;
+  display: block; padding: var(--espacio-6); text-align: center; color: var(--color-texto-secundario);
+  background: var(--color-superficie); border: 1px dashed var(--color-borde-fuerte); border-radius: var(--radio-lg);
 }
 
-@media (max-width: 860px) {
-  .pagina-historial__fila {
-    grid-template-columns: 1fr 1fr;
-    row-gap: var(--espacio-2);
-  }
+@media (max-width: 960px) {
+  .pagina-historial__fila { grid-template-columns: 1fr 1fr; row-gap: var(--espacio-3); }
+  .pagina-historial__ruta { grid-column: 1 / -1; order: -1; font-size: 1.1rem; }
+  .pagina-historial__detalle { justify-self: end; }
 }

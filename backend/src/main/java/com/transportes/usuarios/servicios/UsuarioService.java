@@ -1,7 +1,6 @@
 package com.transportes.usuarios.servicios;
 
 import com.transportes.usuarios.dto.ActualizarPerfilRequest;
-import com.transportes.usuarios.dto.EstadisticasUsuarioResponse;
 import com.transportes.usuarios.dto.PerfilUsuarioResponse;
 import com.transportes.usuarios.entidades.Usuario;
 import com.transportes.usuarios.excepciones.UsuarioNoEncontradoException;
@@ -39,9 +38,10 @@ public class UsuarioService {
     }
 
     /**
-     * Devuelve los datos publicos del perfil del usuario autenticado,
-     * incluyendo las estadisticas temporales de pasajes/viajes/tickets
-     * (siempre en cero, ver {@link EstadisticasUsuarioResponse}).
+     * Devuelve los datos publicos del perfil del usuario autenticado. Las
+     * estadisticas NO se calculan aqui (se evita ejecutar consultas de compras
+     * dentro de esta transaccion): las agrega {@code UsuarioController} despues,
+     * con {@link com.transportes.usuarios.dto.PerfilUsuarioResponse#conEstadisticas}.
      */
     @Transactional(readOnly = true)
     public PerfilUsuarioResponse obtenerPerfil(Integer idUsuario) {
@@ -79,7 +79,7 @@ public class UsuarioService {
                 usuario.getApellidos(),
                 usuario.getCorreo(),
                 usuario.getNroTelefono(),
-                EstadisticasUsuarioResponse.temporal()
+                null // las estadisticas las agrega el controlador, fuera de la transaccion
         );
     }
 }

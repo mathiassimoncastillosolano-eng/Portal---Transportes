@@ -2,7 +2,7 @@
 
 React + Vite → API Spring Boot → PostgreSQL en Supabase.
 
-La búsqueda por origen, destino, fecha y horario consulta la base real. También están integrados registro/login/perfil, destinos y tipos de bus. El mapa de asientos, la compra, los pagos y los pasajes de demostración siguen pendientes de integración; esta entrega cubre las dos tareas de búsqueda de Karina y Lucas.
+La búsqueda por origen, destino, fecha y horario consulta la base real. También están integrados registro/login/perfil, destinos y tipos de bus. El mapa de asientos, la compra y el pago con Mercado Pago están integrados. Perfil, **Mis pasajes, detalle de compra, boletos, historial y resumen** leen la base real (ver sección «Perfil, Mis pasajes e historial»).
 
 ## Ejecutar
 
@@ -58,6 +58,36 @@ Campos añadidos para la regla de reserva: `estadoReserva` (`DISPONIBLE`, `RESER
 - **Interfaz:** las tarjetas muestran Salida realizada / Reserva cerrada / Bus lleno con texto y botón realmente deshabilitado; el estado se refresca cada 30 s con el reloj del servidor (`ahoraServidorMs`), sin recargar.
 - **Varios pasajes por persona:** la restricción «un pasaje por DNI y viaje» solo existía en validadores (no en la base). Se eliminó; un mismo DNI puede ocupar varios asientos si nombres y apellidos coinciden (si difieren, se rechaza). La unicidad real —un asiento no se vende dos veces (`uq_pasaje_viaje_asiento`)— se conserva. No hay migraciones. El tope de 6 asientos por compra (`reserva.max-asientos`) y el cálculo del total se mantienen.
 - **Fecha de nacimiento:** selector propio (`SelectorFechaNacimiento`) con vistas de año → mes → día, rango de hoy−120 años a hoy, formato `YYYY-MM-DD` sin pasar por UTC; la edad mínima de 16 años se sigue validando en `validarPasajero.js`.
+
+## Perfil, Mis pasajes e historial
+
+Todos los endpoints exigen JWT (`/api/usuarios/**` ya es privado) y toman el usuario **del token**, nunca de la URL ni del cuerpo.
+
+| Endpoint | Devuelve |
+| --- | --- |
+| `GET /api/usuarios/perfil/resumen` | `{pasajes, viajesCompletados, tickets, comprasVigentes}` |
+| `GET /api/usuarios/perfil/pasajes` | `{comprasVigentes, compras[]}`: vigentes primero (salida más próxima), luego el resto |
+| `GET /api/usuarios/perfil/pasajes/{idVenta}` | Detalle de una compra propia con un boleto por `pasaje`. **404** si no existe o es de otra cuenta (misma respuesta) |
+| `GET /api/usuarios/perfil/historial` | Compras no vigentes, de la más reciente a la más antigua |
+| `GET /api/usuarios/perfil` | Se mantiene; `estadisticas` ahora son reales (`null` si fallara el cálculo, nunca ceros inventados) |
+
+**Datos.** Una consulta JDBC parametrizada por compra (`CompraRepositorio`): `venta` → `pago`/`operacion_pago`/`comprobante` (1:1 por restricciones UNIQUE) y `pasaje` → `pasajero`, `viaje_asiento` → `asiento`, `viaje` → `programacion_viaje` → `ruta` → `agencia` → `ubicacion` (origen/destino) y `bus` → `tipo_bus`. Una fila por pasaje; sin consultas N+1. El total mostrado es `venta.monto_total`; se compara con la suma de los pasajes y, si difieren, la interfaz lo avisa.
+
+**Criterios (`ReglasCompra`, hora de Perú con el mismo reloj que la regla de reserva):**
+
+- *Estado de la compra*: `CONFIRMADA` solo si `venta.estado_venta='PAGADA'` **y** `pago.estado_pago='APROBADO'` y la operación no es `REEMBOLSADO`; `REEMBOLSADA`; cualquier otra combinación es `SIN_CONFIRMAR`.
+- *Fase del viaje*: `PROXIMO` / `REALIZADO` si `viaje.estado_viaje='PROGRAMADO'` y la salida es futura / pasada; `NO_REALIZADO` si el estado es otro (p. ej. `CANCELADO`); `SIN_INFORMACION` si faltan datos.
+- *Vigente* = confirmada + próxima. *Documento descargable* = confirmada + viaje no cancelado.
+- *Indicadores*: `pasajes` = pasajes de compras confirmadas; `viajesCompletados` = viajes distintos realizados; `tickets` = pasajes con documento descargable; ninguno multiplica filas por joins.
+
+**Limitaciones del modelo (no se alteró el esquema):**
+
+- La base no guarda un estado «viaje realizado»: se considera realizado un viaje `PROGRAMADO` cuya hora de salida ya pasó. Conviene confirmar los valores reales con `SELECT DISTINCT estado_viaje FROM viaje`.
+- No existen tickets, QR ni códigos de boleto persistidos. `RL-B-######` / `RL-C-######` son referencias derivadas del id del pasaje/venta (únicas y estables), **no** códigos de validación. El PDF se genera en el navegador (jsPDF) con los datos autorizados de la compra, sin QR.
+- No se pagina: se devuelven todas las compras del usuario (volumen bajo por cuenta).
+- La moneda sale de `operacion_pago.moneda` (PEN por defecto); `venta` no tiene columna de moneda.
+
+**Pruebas nuevas:** `ReglasCompraTest`, `ConstructorComprasTest` (unitarias, sin Spring), `ComprasIntegracionTest` (H2: propiedad de compras, 404 en compras ajenas, 401 sin token, resumen, historial; usa `schema-compras-test.sql`) y, en JS, `pasajesVista`, `comprasServicio`, `pdfBoleto` y `formato`.
 
 ## Pruebas
 

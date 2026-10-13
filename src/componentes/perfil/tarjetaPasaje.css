@@ -1,18 +1,13 @@
-.tarjeta-pasaje{background:var(--color-superficie-elevada);border:1px solid var(--color-borde);border-radius:20px;padding:1.5rem;display:grid;gap:1.2rem;box-shadow:0 8px 26px rgba(18,49,59,.06)}
-.tarjeta-pasaje__cabecera{display:flex;align-items:center;justify-content:space-between;gap:.7rem}
-.tarjeta-pasaje__codigo{color:var(--color-texto-secundario);font-size:.75rem;font-weight:700;letter-spacing:.04em}
-.tarjeta-pasaje__ruta{display:flex;align-items:center;gap:.7rem;color:var(--color-texto-marca);font-family:var(--fuente-titulos);font-size:1.4rem;font-weight:800}
-.tarjeta-pasaje__ruta span:nth-child(2){color:var(--color-texto-acento);font-size:1.1rem}
-.tarjeta-pasaje__fecha{color:var(--color-texto-secundario);font-size:.9rem;margin-top:-1rem}
-.tarjeta-pasaje__resumen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(.3rem,2vw,.8rem);border-block:1px solid var(--color-borde);padding:1rem 0}
-.tarjeta-pasaje__resumen div{display:grid;min-width:0;gap:.2rem}.tarjeta-pasaje__resumen small{color:var(--color-texto-secundario)}
-.tarjeta-pasaje__resumen strong{font-size:clamp(.75rem,2.5vw,.9rem);color:var(--color-texto-marca);overflow-wrap:anywhere}
-.tarjeta-pasaje__ver-boleto{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;border-radius:10px;padding:.85rem 1rem;background:#167a74;color:#fff;color:#fff;font-weight:700;cursor:pointer}
-.tarjeta-pasaje__ver-boleto:hover{filter:brightness(1.12)}
-
+/* Tarjeta de compra: jerarquía trayecto → fecha → datos → acción. La vigente lleva acento verde. */
 .tarjeta-pasaje {
   position: relative;
   overflow: hidden;
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.4rem 1.5rem 1.4rem 1.7rem;
+  background: var(--color-superficie-elevada);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
   box-shadow: var(--sombra-tarjeta);
   transition: transform var(--transicion-base), box-shadow var(--transicion-base), border-color var(--transicion-base);
 }
@@ -21,33 +16,65 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;
-  background: var(--gradiente-acento);
+  background: var(--color-borde-fuerte);
 }
+.tarjeta-pasaje--vigente::before { background: var(--gradiente-acento); }
 .tarjeta-pasaje:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   border-color: var(--color-borde-marca);
   box-shadow: var(--sombra-marcada);
 }
+
+.tarjeta-pasaje__cabecera { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.tarjeta-pasaje__codigo { color: var(--color-texto-secundario); font-size: .72rem; font-weight: 700; letter-spacing: .08em; }
+
+.tarjeta-pasaje__trayecto { display: grid; gap: .3rem; }
 .tarjeta-pasaje__ruta {
-  flex-wrap: wrap;
-  row-gap: .15rem;
-  font-size: clamp(1.45rem, 3vw, 1.85rem);
-  line-height: 1.15;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .65rem; margin: 0;
+  color: var(--color-texto-marca);
+  font-family: var(--fuente-titulos); font-weight: 800; line-height: 1.15;
+  font-size: clamp(1.4rem, 3vw, 1.8rem);
 }
+.tarjeta-pasaje__ruta span[aria-hidden] { color: var(--color-texto-acento); font-size: .85em; }
+.tarjeta-pasaje__ruta--pendiente { color: var(--color-texto-secundario); font-size: 1.15rem; }
+.tarjeta-pasaje__fecha { margin: 0; color: var(--color-texto-secundario); font-size: .92rem; font-variant-numeric: tabular-nums; }
+
 .tarjeta-pasaje__resumen {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem 1rem; margin: 0;
+  padding: .9rem 1rem;
   background: var(--color-superficie-marca);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-md);
-  padding: 1rem;
 }
+.tarjeta-pasaje__resumen > div { display: grid; gap: .2rem; min-width: 0; }
+.tarjeta-pasaje__resumen dt { font-size: .76rem; color: var(--color-texto-secundario); }
+.tarjeta-pasaje__resumen dd { margin: 0; font-weight: 700; font-size: .92rem; color: var(--color-texto-marca); overflow-wrap: anywhere; }
+.tarjeta-pasaje__resumen > div:last-child dd { font-family: var(--fuente-titulos); font-size: 1.02rem; }
+
+.tarjeta-pasaje__aviso {
+  margin: 0; padding: .65rem .85rem; font-size: .82rem;
+  background: var(--color-aviso-fondo); color: var(--color-aviso-texto);
+  border: 1px solid var(--color-aviso-borde); border-radius: var(--radio-sm);
+}
+
 .tarjeta-pasaje__ver-boleto {
-  min-height: 3rem;
-  background: var(--gradiente-marca);
+  display: flex; justify-content: space-between; align-items: center; gap: .75rem;
+  min-height: 3rem; padding: .8rem 1.05rem;
+  border-radius: var(--radio-sm);
+  background: var(--gradiente-marca); color: #fff; font-weight: 700; text-decoration: none;
   transition: transform var(--transicion-rapida), filter var(--transicion-rapida);
 }
-.tarjeta-pasaje__ver-boleto:hover { transform: translateY(-1px); }
-@media(max-width:480px) {
-  .tarjeta-pasaje { padding: 1.15rem; }
+.tarjeta-pasaje__ver-boleto span[aria-hidden] { transition: transform var(--transicion-rapida); }
+.tarjeta-pasaje__ver-boleto:hover { filter: brightness(1.1); }
+.tarjeta-pasaje__ver-boleto:hover span[aria-hidden] { transform: translateX(3px); }
+.tarjeta-pasaje__ver-boleto:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+
+@media (max-width: 480px) {
+  .tarjeta-pasaje { padding: 1.1rem 1.1rem 1.1rem 1.3rem; }
   .tarjeta-pasaje__resumen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .tarjeta-pasaje__resumen div:last-child { grid-column: 1 / -1; border-top: 1px solid var(--color-borde); padding-top: .7rem; }
+  .tarjeta-pasaje__resumen > div:last-child { grid-column: 1 / -1; padding-top: .6rem; border-top: 1px solid var(--color-borde); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-pasaje, .tarjeta-pasaje__ver-boleto, .tarjeta-pasaje__ver-boleto span[aria-hidden] { transition: none; }
+  .tarjeta-pasaje:hover, .tarjeta-pasaje__ver-boleto:hover span[aria-hidden] { transform: none; }
 }

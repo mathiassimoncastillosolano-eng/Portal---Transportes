@@ -17,7 +17,7 @@ function adaptarUsuario(perfil) {
     apellidos: perfil.apellidos,
     correo: perfil.correo,
     telefono: perfil.nroTelefono ?? '',
-    estadisticas: perfil.estadisticas ?? { pasajes: 0, viajes: 0, tickets: 0 },
+    estadisticas: perfil.estadisticas ?? null,
   }
 }
 

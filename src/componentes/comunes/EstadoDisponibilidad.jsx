@@ -13,6 +13,9 @@ const CONFIGURACION_ESTADOS = {
   LLENO: { etiqueta: 'Bus lleno', clase: 'estado-disponibilidad--agotado' },
   SIN_INFORMACION: { etiqueta: 'Sin información', clase: 'estado-disponibilidad--completado' },
   NO_DISPONIBLE: { etiqueta: 'No disponible', clase: 'estado-disponibilidad--completado' },
+  // Estado de una compra (pago): no es lo mismo que el estado del viaje.
+  REEMBOLSADO: { etiqueta: 'Reembolsado', clase: 'estado-disponibilidad--completado' },
+  PAGO_SIN_CONFIRMAR: { etiqueta: 'Pago sin confirmar', clase: 'estado-disponibilidad--cerrado' },
 }
 
 function etiquetaAsientos(estado, asientosDisponibles) {
@@ -24,9 +27,9 @@ function etiquetaAsientos(estado, asientosDisponibles) {
   return `${asientosDisponibles} asientos disponibles`
 }
 
-export function EstadoDisponibilidad({ estado, asientosDisponibles }) {
+export function EstadoDisponibilidad({ estado, asientosDisponibles, etiqueta: etiquetaPropia }) {
   const configuracion = CONFIGURACION_ESTADOS[estado] ?? CONFIGURACION_ESTADOS.disponible
-  const etiqueta = etiquetaAsientos(estado, asientosDisponibles) ?? configuracion.etiqueta
+  const etiqueta = etiquetaPropia ?? etiquetaAsientos(estado, asientosDisponibles) ?? configuracion.etiqueta
   return (
     <span className={`estado-disponibilidad ${configuracion.clase}`}>
       <span className="estado-disponibilidad__punto" />

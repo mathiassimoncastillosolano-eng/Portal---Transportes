@@ -1,12 +1,7 @@
-import { generarPasajesDemo } from '../datos/pasajes.js'
 import { solicitarApi, URL_BASE_API } from './httpCliente.js'
 
-// La búsqueda consulta la base real. Las funciones de asientos y compra
-// que siguen pertenecen a los módulos de demostración pendientes de integrar.
-const CLAVE_PASAJES = 'rutalibre:pasajes:'
-function retrasoSimulado(ms = 620) {
-  return new Promise((resolver) => setTimeout(resolver, ms))
-}
+// Búsqueda de viajes y asientos: consultan el backend real. Las compras del usuario
+// (Mis pasajes, historial, resumen) viven en comprasServicio.js.
 
 export async function buscarViajes({ origen, destino, fecha, horario = 'cualquiera' }) {
   if (!origen?.trim() || !destino?.trim() || !fecha) {
@@ -147,54 +142,6 @@ export function generarMapaAsientos(resultado) {
   })
 
   return { pisos: configuracionPisos.length, mapaPorPiso }
-}
-
-function claveUsuario(usuarioId) {
-  return `${CLAVE_PASAJES}${usuarioId}`
-}
-
-/**
- * Obtiene los pasajes del usuario, sembrando datos de ejemplo la
- * primera vez que se consulta una cuenta nueva.
- */
-export function obtenerPasajesDeUsuario(usuarioId) {
-  const crudo = localStorage.getItem(claveUsuario(usuarioId))
-  if (!crudo) {
-    const semilla = generarPasajesDemo(usuarioId)
-    localStorage.setItem(claveUsuario(usuarioId), JSON.stringify(semilla))
-    return semilla
-  }
-  return JSON.parse(crudo)
-}
-
-/**
- * Simula la compra de un resultado de búsqueda, generando un pasaje
- * confirmado y guardándolo en la cuenta del usuario.
- */
-export async function comprarPasaje(usuarioId, resultadoViaje, fecha) {
-  await retrasoSimulado(500)
-
-  const numeroAsiento = `${Math.floor(Math.random() * 30) + 1}${['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)]}`
-
-  const nuevoPasaje = {
-    codigo: `RL-${Math.floor(10000 + Math.random() * 89999)}`,
-    origen: resultadoViaje.origen,
-    destino: resultadoViaje.destino,
-    fecha,
-    hora: resultadoViaje.horaSalida,
-    empresa: resultadoViaje.empresa,
-    tipoBus: resultadoViaje.tipoBus,
-    asiento: numeroAsiento,
-    precio: resultadoViaje.precio,
-    estado: 'confirmado',
-    usuarioId,
-  }
-
-  const pasajesActuales = obtenerPasajesDeUsuario(usuarioId)
-  const actualizados = [nuevoPasaje, ...pasajesActuales]
-  localStorage.setItem(claveUsuario(usuarioId), JSON.stringify(actualizados))
-
-  return nuevoPasaje
 }
 
 // ---------------------------------------------------------------------------

@@ -1,9 +1,21 @@
-export function formatearPrecio(valor) {
-  return `S/ ${valor.toFixed(2)}`
+const SIN_DATO = '—'
+
+export function formatearPrecio(valor, moneda = 'PEN') {
+  const numero = typeof valor === 'number' ? valor : Number(valor)
+  if (valor === null || valor === undefined || valor === '' || !Number.isFinite(numero)) return SIN_DATO
+  const simbolo = !moneda || moneda === 'PEN' ? 'S/' : moneda
+  return `${simbolo} ${numero.toFixed(2)}`
+}
+
+function fechaDesdeIso(fechaIso) {
+  if (typeof fechaIso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fechaIso)) return null
+  const fecha = new Date(`${fechaIso}T00:00:00`)
+  return Number.isNaN(fecha.getTime()) ? null : fecha
 }
 
 export function formatearFechaLarga(fechaIso) {
-  const fecha = new Date(`${fechaIso}T00:00:00`)
+  const fecha = fechaDesdeIso(fechaIso)
+  if (!fecha) return SIN_DATO
   return fecha.toLocaleDateString('es-PE', {
     weekday: 'long',
     day: 'numeric',
@@ -13,7 +25,8 @@ export function formatearFechaLarga(fechaIso) {
 }
 
 export function formatearFechaCorta(fechaIso) {
-  const fecha = new Date(`${fechaIso}T00:00:00`)
+  const fecha = fechaDesdeIso(fechaIso)
+  if (!fecha) return SIN_DATO
   return fecha.toLocaleDateString('es-PE', {
     day: '2-digit',
     month: 'short',

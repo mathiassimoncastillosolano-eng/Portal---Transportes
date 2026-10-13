@@ -24,6 +24,11 @@ public class PerfilUsuarioResponse {
         this.estadisticas = estadisticas;
     }
 
+    /** Copia del perfil con las estadisticas indicadas (null = no disponibles). */
+    public PerfilUsuarioResponse conEstadisticas(EstadisticasUsuarioResponse nuevasEstadisticas) {
+        return new PerfilUsuarioResponse(idUsuario, nombres, apellidos, correo, nroTelefono, nuevasEstadisticas);
+    }
+
     public Integer getIdUsuario() {
         return idUsuario;
     }

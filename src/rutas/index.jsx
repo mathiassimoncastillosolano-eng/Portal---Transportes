@@ -15,22 +15,14 @@ import { PaginaCrearCuenta } from '../paginas/autenticacion/PaginaCrearCuenta'
 import { PaginaPerfil } from '../paginas/perfil/PaginaPerfil'
 import { PaginaMisPasajes } from '../paginas/perfil/PaginaMisPasajes'
 import { PaginaHistorial } from '../paginas/perfil/PaginaHistorial'
+import { PaginaDetalleCompra } from '../paginas/perfil/PaginaDetalleCompra'
 import { PaginaNoEncontrada } from '../paginas/PaginaNoEncontrada'
-
-function VistaPreviaBoletos() {
-  return (
-    <section className="seccion contenedor">
-      <PaginaMisPasajes />
-    </section>
-  )
-}
 
 export function RutasApp() {
   return (
     <Routes>
       <Route element={<LayoutPrincipal />}>
         <Route path="/" element={<PaginaInicio />} />
-        {import.meta.env.DEV && <Route path="/vista-previa/boletos" element={<VistaPreviaBoletos />} />}
         <Route path="/resultados" element={<PaginaResultados />} />
         <Route
           path="/reservar"
@@ -57,6 +49,7 @@ export function RutasApp() {
         >
           <Route index element={<PaginaPerfil />} />
           <Route path="pasajes" element={<PaginaMisPasajes />} />
+          <Route path="pasajes/:idVenta" element={<PaginaDetalleCompra />} />
           <Route path="historial" element={<PaginaHistorial />} />
         </Route>
 

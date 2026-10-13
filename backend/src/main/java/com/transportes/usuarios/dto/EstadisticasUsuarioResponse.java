@@ -1,17 +1,12 @@
 package com.transportes.usuarios.dto;
 
+import com.transportes.compras.dto.ResumenPerfilDto;
+
 /**
- * Contador de pasajes, viajes y tickets asociados al usuario autenticado.
+ * Contadores de pasajes, viajes y tickets del usuario autenticado, calculados a partir de sus compras reales
+ * (ver {@link ResumenPerfilDto} para el criterio de cada indicador).
  *
- * <p>Las funcionalidades de compra de pasajes, historial de viajes y
- * emision de tickets todavia no estan implementadas en el sistema. Por lo
- * tanto, estos valores son actualmente FIJOS en cero: no se realiza ninguna
- * consulta a la base de datos para calcularlos, ya que las tablas
- * correspondientes (viajes, ventas, tickets) aun no existen.</p>
- *
- * <p>Cuando esas funcionalidades se implementen en el futuro, esta clase
- * debera pasar a calcular los valores reales a partir de los repositorios
- * correspondientes.</p>
+ * <p>Se conserva la forma {@code {pasajes, viajes, tickets}} que ya consume el frontend dentro del perfil.
  */
 public class EstadisticasUsuarioResponse {
 
@@ -25,12 +20,8 @@ public class EstadisticasUsuarioResponse {
         this.tickets = tickets;
     }
 
-    /**
-     * Valores temporales (0, 0, 0) mientras no exista una implementacion
-     * real de pasajes, viajes y tickets.
-     */
-    public static EstadisticasUsuarioResponse temporal() {
-        return new EstadisticasUsuarioResponse(0, 0, 0);
+    public static EstadisticasUsuarioResponse de(ResumenPerfilDto resumen) {
+        return new EstadisticasUsuarioResponse(resumen.pasajes(), resumen.viajesCompletados(), resumen.tickets());
     }
 
     public int getPasajes() {

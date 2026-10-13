@@ -1,38 +1,61 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { comprasVigentes, nombreDelPasajero, pasajesVigentes, salidaDePasaje } from './pasajesVista.js'
+import {
+  agruparPasajes, avisoTotal, contarPorFiltro, datosFaltantes, estadoVisible, filtrarHistorial, textoAsientos,
+} from './pasajesVista.js'
 
-test('muestra solo pasajes confirmados con salida futura y los ordena por salida', () => {
-  const ahora = new Date(2026, 9, 3, 10, 0)
-  const pasajes = [
-    { codigo: 'B', estado: 'confirmado', fecha: '2026-10-05', hora: '08:00' },
-    { codigo: 'C', estado: 'cancelado', fecha: '2026-10-04', hora: '08:00' },
-    { codigo: 'D', estado: 'confirmado', fecha: '2026-10-02', hora: '08:00' },
-    { codigo: 'A', estado: 'confirmado', fecha: '2026-10-04', hora: '08:00' },
+const base = { estado: 'CONFIRMADA', fase: 'PROXIMO', estadoViaje: 'PROGRAMADO', vigente: true, origen: 'Lima', destino: 'Cusco',
+  fechaSalida: '2026-10-19', horaSalida: '08:00', tipoBus: 'Bus Cama', totalConsistente: true,
+  boletos: [{ asiento: '12A', pasajero: 'Ana' }, { asiento: '12B', pasajero: 'Luis' }] }
+
+test('el estado visible no confunde el pago con el viaje', () => {
+  assert.deepEqual(estadoVisible(base), { clave: 'confirmado', etiqueta: 'Confirmado' })
+  assert.equal(estadoVisible({ ...base, fase: 'REALIZADO', vigente: false }).etiqueta, 'Viaje realizado')
+  assert.equal(estadoVisible({ ...base, fase: 'NO_REALIZADO', estadoViaje: 'CANCELADO' }).etiqueta, 'Viaje cancelado')
+  assert.equal(estadoVisible({ ...base, fase: 'NO_REALIZADO', estadoViaje: 'SUSPENDIDO' }).etiqueta, 'Viaje no realizado')
+  assert.equal(estadoVisible({ ...base, estado: 'SIN_CONFIRMAR' }).etiqueta, 'Pago sin confirmar')
+  assert.equal(estadoVisible({ ...base, estado: 'REEMBOLSADA' }).etiqueta, 'Reembolsado')
+  assert.equal(estadoVisible({ ...base, fase: 'SIN_INFORMACION' }).etiqueta, 'Sin información')
+  assert.equal(estadoVisible(null).etiqueta, 'Sin información')
+})
+
+test('separa vigentes de anteriores sin reordenar lo que entrega el backend', () => {
+  const compras = [{ idVenta: 1, vigente: false }, { idVenta: 2, vigente: true }, { idVenta: 3, vigente: false }, { idVenta: 4, vigente: true }]
+  const { vigentes, anteriores } = agruparPasajes(compras)
+  assert.deepEqual(vigentes.map((c) => c.idVenta), [2, 4])
+  assert.deepEqual(anteriores.map((c) => c.idVenta), [1, 3])
+  assert.deepEqual(agruparPasajes(undefined), { vigentes: [], anteriores: [] })
+})
+
+test('los filtros del historial reparten cada compra en una sola categoría', () => {
+  const compras = [
+    { idVenta: 1, estado: 'CONFIRMADA', fase: 'REALIZADO' },
+    { idVenta: 2, estado: 'CONFIRMADA', fase: 'NO_REALIZADO' },
+    { idVenta: 3, estado: 'REEMBOLSADA', fase: 'NO_REALIZADO' },
+    { idVenta: 4, estado: 'SIN_CONFIRMAR', fase: 'PROXIMO' },
   ]
-  assert.deepEqual(pasajesVigentes(pasajes, ahora).map((p) => p.codigo), ['A', 'B'])
-  assert.equal(pasajes[0].codigo, 'B')
+  assert.deepEqual(filtrarHistorial(compras, 'realizados').map((c) => c.idVenta), [1])
+  assert.deepEqual(filtrarHistorial(compras, 'cancelados').map((c) => c.idVenta), [2])
+  assert.deepEqual(filtrarHistorial(compras, 'otros').map((c) => c.idVenta), [3, 4])
+  assert.equal(filtrarHistorial(compras, 'todos').length, 4)
+  assert.deepEqual(contarPorFiltro(compras), { todos: 4, realizados: 1, cancelados: 1, otros: 2 })
 })
 
-test('rechaza fechas imposibles y conserva el pasajero del boleto', () => {
-  assert.equal(salidaDePasaje({ fecha: '2026-02-30', hora: '08:00' }), null)
-  assert.equal(nombreDelPasajero({ pasajero: { nombres: 'Ana', apellidos: 'Pérez' } }), 'Ana Pérez')
-  assert.equal(nombreDelPasajero({ pasajero: 'Luis Gómez' }), 'Luis Gómez')
-  assert.equal(nombreDelPasajero({}), '')
+test('lista los asientos reales y no inventa los que faltan', () => {
+  assert.equal(textoAsientos(base), '12A, 12B')
+  assert.equal(textoAsientos({ boletos: [] }), null)
+  assert.equal(textoAsientos({ boletos: [{ asiento: null }] }), null)
 })
 
-test('agrupa asientos de una compra y calcula el total sin copiar nombres', () => {
-  const ahora = new Date(2026, 9, 3, 10, 0)
-  const base = { estado: 'confirmado', fecha: '2026-10-05', hora: '08:00', origen: 'Lima', destino: 'Cusco' }
-  const compras = comprasVigentes([
-    { ...base, compraId: 'C1', codigo: 'A', asiento: '12A', precio: 95, pasajero: 'Ana' },
-    { ...base, compraId: 'C1', codigo: 'B', asiento: '12B', precio: 95 },
-    { ...base, compraId: 'C2', codigo: 'C', asiento: '13A', precio: 80 },
-  ], ahora)
-  assert.equal(compras.length, 2)
-  assert.deepEqual(compras[0].boletos.map((b) => b.asiento), ['12A', '12B'])
-  assert.equal(compras[0].total, 190)
-  assert.equal(Object.hasOwn(compras[0], 'pasajero'), false)
-  assert.equal(Object.hasOwn(compras[0].boletos[0], 'pasajero'), false)
-  assert.equal(compras[1].total, 80)
+test('indica qué datos faltan en una compra incompleta', () => {
+  assert.deepEqual(datosFaltantes(base), [])
+  const f = datosFaltantes({ boletos: [] })
+  assert.ok(f.includes('el trayecto') && f.includes('la fecha u hora de salida') && f.includes('los boletos'))
+  assert.ok(datosFaltantes({ ...base, boletos: [{ asiento: null, pasajero: 'x' }] }).includes('el asiento o el pasajero de algún boleto'))
+})
+
+test('avisa cuando el total no coincide con los boletos, pero no si no hay boletos', () => {
+  assert.equal(avisoTotal(base), null)
+  assert.match(avisoTotal({ ...base, totalConsistente: false }), /no coincide/)
+  assert.equal(avisoTotal({ ...base, totalConsistente: false, boletos: [] }), null)
 })
