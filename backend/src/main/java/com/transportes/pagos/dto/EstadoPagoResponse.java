@@ -13,6 +13,7 @@ import java.util.List;
  * @param reintentable true si el comprador puede intentar pagar de nuevo (los asientos siguen reservados)
  * @param sesion      token de sesión reemitido cuando el servidor extendió la reserva (null si no cambió)
  * @param compra      datos de la compra registrada; solo con estado APROBADO
+ * @param entorno     SANDBOX | PRODUCTION: entorno con el que se procesó (y se verificó) la operación
  */
 public record EstadoPagoResponse(
         String referencia,
@@ -24,7 +25,8 @@ public record EstadoPagoResponse(
         BigDecimal montoTotal,
         String urlDesafio3ds,
         SesionRenovada sesion,
-        CompraConfirmada compra) {
+        CompraConfirmada compra,
+        String entorno) {
 
     public record SesionRenovada(String tokenSesion, long segundosRestantes) {
     }

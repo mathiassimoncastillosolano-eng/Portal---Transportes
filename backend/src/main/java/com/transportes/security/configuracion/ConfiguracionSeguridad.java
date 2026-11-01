@@ -113,7 +113,9 @@ public class ConfiguracionSeguridad {
                                                 .requestMatchers("/api/pasajeros/**").authenticated()
                                                 // Webhook de Mercado Pago: publico, pero el controlador exige la firma
                                                 // x-signature.
-                                                .requestMatchers(HttpMethod.POST, "/api/pagos/webhook").permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/api/pagos/webhook",
+                                                                "/api/pagos/webhook/*")
+                                                .permitAll()
                                                 // Pagos: la venta se asocia al usuario autenticado.
                                                 .requestMatchers("/api/pagos/**").authenticated()
                                                 // Cualquier otra ruta (dominios aun no implementados,

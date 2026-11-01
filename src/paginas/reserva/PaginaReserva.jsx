@@ -19,6 +19,14 @@ import {
   validarPagoYape,
 } from '../../utilidades/pagoMercadoPago'
 import {
+  ENTORNO_PRODUCCION,
+  ENTORNO_SANDBOX,
+  entornoInicial,
+  entornoUtilizable,
+  normalizarConfiguracion,
+  publicKeyDe,
+} from '../../utilidades/entornoPago'
+import {
   ESTADOS_ACTIVOS,
   borrarPagoEnCurso,
   consultarPago,
@@ -28,8 +36,9 @@ import {
   iniciarPago,
   leerPagoEnCurso,
   nuevaClaveIdempotencia,
+  obtenerConfiguracionPago,
 } from '../../servicios/pagosServicio'
-import { MODO_SANDBOX, crearTokenYape } from '../../servicios/mercadoPagoSdk'
+import { PUBLIC_KEY_SANDBOX_RESPALDO, crearTokenYape } from '../../servicios/mercadoPagoSdk'
 import { useTema } from '../../hooks/useTema'
 import {
   dniConDatosDistintos,
@@ -55,7 +64,8 @@ import './paginaReserva.css'
 import { Contador } from '../../componentes/reserva/Contador'
 import { CargadorRutaLibre, EstadoRuta, useFaseCarga } from '../../componentes/carga'
 
-const validarYape = (valores) => validarPagoYape(valores, { sandbox: MODO_SANDBOX })
+// En Sandbox se aceptan los celulares de prueba de Yape (11111111x); en Producción solo celulares reales.
+const validarYape = (valores, entorno) => validarPagoYape(valores, { sandbox: entorno === ENTORNO_SANDBOX })
 
 // Polling del estado: hasta 2 min en general y hasta 15 min durante el desafío 3DS del banco.
 const ESPERA_MAXIMA_MS = 120000
@@ -139,6 +149,10 @@ export function PaginaReserva() {
   const [claveActivaPasajero, setClaveActivaPasajero] = useState(null)
 
   const [metodoPago, setMetodoPago] = useState('tarjeta')
+  // Entornos que el BACKEND permite a este usuario (Producción siempre; Sandbox solo si está autorizado) y el elegido.
+  const [configPago, setConfigPago] = useState(null)
+  const [errorConfigPago, setErrorConfigPago] = useState(null)
+  const [entornoPago, setEntornoPago] = useState(ENTORNO_PRODUCCION)
   const [datosYape, setDatosYape] = useState(() => ({ ...VALORES_YAPE_INICIALES }))
   const [erroresPago, setErroresPago] = useState({})
   const [camposTocadosPago, setCamposTocadosPago] = useState({})
@@ -160,6 +174,10 @@ export function PaginaReserva() {
   // Última solicitud enviada: si se perdió la respuesta, se reenvía IGUAL (misma clave de idempotencia).
   const solicitudPendienteRef = useRef(null)
   const desmontadoRef = useRef(false)
+  useEffect(() => {
+    if (pasoActual === 'pago' && !configPago && !errorConfigPago) cargarConfiguracionPago()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pasoActual])
   useEffect(() => {
     desmontadoRef.current = false
     return () => {
@@ -477,6 +495,9 @@ export function PaginaReserva() {
   const precioTotal = asientosSeleccionados.reduce((total, asiento) => total + (asiento.precio ?? 0), 0)
 
   const excedeTopeYape = metodoPago === 'yape' && precioTotal > TOPE_MAXIMO_YAPE
+  // Public Key del entorno elegido (la entrega el backend; Producción nunca usa la clave de respaldo de Sandbox).
+  const publicKeyPago = publicKeyDe(configPago, entornoPago, { respaldoSandbox: PUBLIC_KEY_SANDBOX_RESPALDO })
+  const entornoListo = entornoUtilizable(configPago, entornoPago, { respaldoSandbox: PUBLIC_KEY_SANDBOX_RESPALDO })
   const correoComprador = usuario?.correo ?? ''
 
 
@@ -649,6 +670,31 @@ export function PaginaReserva() {
     setErrorPago(null)
   }
 
+  // Solo SOLICITA el entorno: el backend vuelve a validar la autorización al cobrar.
+  function manejarCambiarEntornoPago(entorno) {
+    if (pagoActivo || entorno === entornoPago) return
+    setEntornoPago(entorno)
+    setErroresPago({})
+    setCamposTocadosPago({})
+    setErrorPago(null)
+    setPago(null)
+  }
+
+  function cargarConfiguracionPago() {
+    setErrorConfigPago(null)
+    obtenerConfiguracionPago()
+      .then((respuesta) => {
+        if (desmontadoRef.current) return
+        const config = normalizarConfiguracion(respuesta)
+        setConfigPago(config)
+        setEntornoPago(entornoInicial(config))
+      })
+      .catch((error) => {
+        if (desmontadoRef.current) return
+        setErrorConfigPago(error?.message || 'No pudimos cargar la configuración de pagos.')
+      })
+  }
+
   // Lleva al primer asiento (en orden de selección) que tenga algún error.
   function activarPrimerAsientoConError(mapaErrores) {
     const primero = asientosSeleccionados.find((asiento) => mapaErrores[asiento.clave])
@@ -707,12 +753,12 @@ export function PaginaReserva() {
   function manejarCambiarCampoPago(campo, valor) {
     const valores = { ...datosYape, [campo]: valor }
     setDatosYape(valores)
-    setErroresPago(validarYape(valores))
+    setErroresPago(validarYape(valores, entornoPago))
   }
 
   function manejarTocarCampoPago(campo) {
     setCamposTocadosPago((anterior) => ({ ...anterior, [campo]: true }))
-    setErroresPago(validarYape(datosYape))
+    setErroresPago(validarYape(datosYape, entornoPago))
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -780,13 +826,18 @@ export function PaginaReserva() {
 
   async function obtenerSolicitudPago(tokenSesion) {
     const claveIdempotencia = nuevaClaveIdempotencia()
+    if (!entornoUtilizable(configPago, entornoPago, { respaldoSandbox: PUBLIC_KEY_SANDBOX_RESPALDO })) {
+      throw new Error('El entorno de pago elegido no está disponible. Elige otro o inténtalo más tarde.')
+    }
     if (metodoPago === 'yape') {
-      const errores = validarYape(datosYape)
+      const errores = validarYape(datosYape, entornoPago)
       setErroresPago(errores)
       setCamposTocadosPago(Object.fromEntries(Object.keys(datosYape).map((campo) => [campo, true])))
       if (Object.keys(errores).length > 0) return null
-      const token = await crearTokenYape(datosYape)
-      return construirSolicitudPagoYape({ idViaje, tokenSesion, claveIdempotencia, token, valores: datosYape })
+      const token = await crearTokenYape({ ...datosYape, publicKey: publicKeyPago })
+      return construirSolicitudPagoYape({
+        idViaje, tokenSesion, claveIdempotencia, token, valores: datosYape, entorno: entornoPago,
+      })
     }
 
     const controlador = refControladorTarjeta.current
@@ -801,7 +852,9 @@ export function PaginaReserva() {
       throw new Error('Revisa los datos de la tarjeta marcados en el formulario.')
     }
     const datosAdicionales = await Promise.resolve(controlador.getAdditionalData?.()).catch(() => null)
-    return construirSolicitudPagoTarjeta({ idViaje, tokenSesion, claveIdempotencia, datosTarjeta, datosAdicionales })
+    return construirSolicitudPagoTarjeta({
+      idViaje, tokenSesion, claveIdempotencia, datosTarjeta, datosAdicionales, entorno: entornoPago,
+    })
   }
 
   async function manejarPago() {
@@ -945,13 +998,15 @@ export function PaginaReserva() {
       { etiqueta: 'Pasajeros', valor: resumenNombres || `${asientosSeleccionados.length}` },
     ]
     filasDetalle.push({ etiqueta: 'Medio de pago', valor: metodoPago === 'yape' ? 'Yape' : 'Tarjeta' })
+    if (entornoPago === ENTORNO_SANDBOX) filasDetalle.push({ etiqueta: 'Entorno', valor: 'Prueba (sin cobro real)' })
     const reservaVencida = pago?.respuesta?.estado === 'EXPIRADO'
     if (compraConfirmada) textoBoton = 'Compra confirmada ✓'
     else if (pago?.fase === 'accion') textoBoton = 'Esperando a tu banco…'
     else if (pago?.fase === 'pendiente' || pago?.fase === 'procesando') textoBoton = 'Pago en revisión'
     else if (pago?.fase === 'rechazado' && !reservaVencida) textoBoton = `Reintentar pago de ${formatearPrecio(precioTotal)}`
     else textoBoton = `Pagar ${formatearPrecio(precioTotal)}`
-    deshabilitadoBoton = compraConfirmada || pagoActivo || excedeTopeYape || pago?.fase === 'reembolso' || reservaVencida
+    deshabilitadoBoton =
+      compraConfirmada || pagoActivo || excedeTopeYape || !entornoListo || pago?.fase === 'reembolso' || reservaVencida
   }
 
   return (
@@ -1037,20 +1092,42 @@ export function PaginaReserva() {
                   consultando={consultandoPago}
                 />
               )}
-              <PasarelaPago
-                metodo={metodoPago}
-                alCambiarMetodo={manejarCambiarMetodoPago}
-                valoresYape={datosYape}
-                errores={erroresPago}
-                camposTocados={camposTocadosPago}
-                alCambiarCampo={manejarCambiarCampoPago}
-                alTocarCampo={manejarTocarCampoPago}
-                total={precioTotal}
-                correoInicial={correoComprador}
-                tema={tema}
-                bloqueado={pagoActivo}
-                refControladorTarjeta={refControladorTarjeta}
-              />
+              {configPago ? (
+                <PasarelaPago
+                  metodo={metodoPago}
+                  alCambiarMetodo={manejarCambiarMetodoPago}
+                  valoresYape={datosYape}
+                  errores={erroresPago}
+                  camposTocados={camposTocadosPago}
+                  alCambiarCampo={manejarCambiarCampoPago}
+                  alTocarCampo={manejarTocarCampoPago}
+                  total={precioTotal}
+                  correoInicial={correoComprador}
+                  tema={tema}
+                  bloqueado={pagoActivo}
+                  refControladorTarjeta={refControladorTarjeta}
+                  entorno={entornoPago}
+                  publicKey={publicKeyPago}
+                  entornos={configPago?.entornos}
+                  alCambiarEntorno={manejarCambiarEntornoPago}
+                />
+              ) : (
+                <div className="pasarela-pago" aria-busy={!errorConfigPago}>
+                  {errorConfigPago ? (
+                    <div className="pasarela-pago__aviso" role="alert">
+                      {errorConfigPago}{' '}
+                      <button type="button" className="pasarela-pago__reintentar" onClick={cargarConfiguracionPago}>
+                        Reintentar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="pasarela-pago__brick-cargando" role="status">
+                      <span className="pasarela-pago__spinner" aria-hidden="true" />
+                      Preparando el pago seguro…
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 

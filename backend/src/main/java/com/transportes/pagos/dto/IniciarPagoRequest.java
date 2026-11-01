@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Size;
  * Solicitud del navegador para iniciar el pago. A propósito NO tiene importe: el total lo calcula el backend
  * con los precios de los asientos bloqueados. Cualquier campo extra (p. ej. "monto") se ignora.
  * Tampoco hay datos de tarjeta: solo el token de un solo uso generado por MercadoPago.js.
+ * {@code entorno} (SANDBOX/PRODUCTION) es solo una SOLICITUD: el backend decide si el usuario puede usarlo.
  */
 public record IniciarPagoRequest(
         @NotNull(message = "El viaje es obligatorio") Long idViaje,
@@ -29,10 +30,13 @@ public record IniciarPagoRequest(
         @Size(max = 150) String emailPagador,
         @Size(max = 10) String tipoDocumento,
         @Size(max = 20) @Pattern(regexp = "^[A-Za-z0-9]*$", message = "Documento no válido") String numeroDocumento,
-        @Size(max = 9) @Pattern(regexp = "^\\d*$", message = "Celular no válido") String celular) {
+        @Size(max = 9) @Pattern(regexp = "^\\d*$", message = "Celular no válido") String celular,
+        @Size(max = 12) @Pattern(regexp = "^(SANDBOX|PRODUCTION)?$", message = "Entorno de pago no válido")
+        String entorno) {
 
     @Override
     public String toString() {
-        return "IniciarPagoRequest[idViaje=" + idViaje + ", medio=" + medioPago + ", metodo=" + metodoPagoId + "]";
+        return "IniciarPagoRequest[idViaje=" + idViaje + ", medio=" + medioPago + ", metodo=" + metodoPagoId
+                + ", entorno=" + entorno + "]";
     }
 }

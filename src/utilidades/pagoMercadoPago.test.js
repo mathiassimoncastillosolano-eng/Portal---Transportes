@@ -88,3 +88,22 @@ test('solo APROBADO del backend se muestra como pago aprobado', () => {
   assert.equal(describirEstadoPago({ estado: 'approved' }).fase, 'procesando')
   assert.equal(describirEstadoPago(null).fase, 'procesando')
 })
+
+test('la solicitud lleva el entorno SOLICITADO solo cuando se indica (el backend lo valida)', () => {
+  const tarjeta = construirSolicitudPagoTarjeta({
+    idViaje: 7, tokenSesion: 'ses', claveIdempotencia: 'clave-1234567890ab', datosTarjeta, entorno: 'SANDBOX',
+  })
+  assert.equal(tarjeta.entorno, 'SANDBOX')
+  const yape = construirSolicitudPagoYape({
+    idViaje: 7, tokenSesion: 'ses', claveIdempotencia: 'clave-abcdefabcdef', token: 't',
+    valores: { celular: '987654321', codigoAprobacion: '123456', correo: 'a@b.com' }, entorno: 'PRODUCTION',
+  })
+  assert.equal(yape.entorno, 'PRODUCTION')
+  // Ninguna solicitud lleva credenciales: ni Access Token, ni claves, ni la Public Key.
+  for (const solicitud of [tarjeta, yape]) {
+    const texto = JSON.stringify(solicitud).toLowerCase()
+    for (const prohibido of ['accesstoken', 'access_token', 'publickey', 'public_key', 'secret', 'app_usr']) {
+      assert.equal(texto.includes(prohibido), false, prohibido)
+    }
+  }
+})

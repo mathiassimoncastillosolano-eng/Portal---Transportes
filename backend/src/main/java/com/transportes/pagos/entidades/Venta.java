@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -42,4 +44,12 @@ public class Venta {
 
     @Column(name = "estado_venta", nullable = false, length = 30)
     private String estadoVenta;
+
+    /**
+     * SANDBOX = compra de prueba (sin dinero real); PRODUCTION = compra real. Las estadísticas y reportes
+     * financieros deben filtrar por PRODUCTION (ver la vista v_venta_produccion).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "entorno", nullable = false, length = 12)
+    private EntornoPago entorno;
 }

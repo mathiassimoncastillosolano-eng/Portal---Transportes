@@ -312,3 +312,14 @@
     animation: none;
   }
 }
+
+/* Compra realizada en el entorno de pruebas: debe ser inconfundible. */
+.proceso-pago__aviso-prueba {
+  margin: 0 0 var(--espacio-4);
+  padding: var(--espacio-3) var(--espacio-4);
+  border-radius: var(--radio-md);
+  border: 1px dashed var(--color-aviso-borde);
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso-texto);
+  font-size: var(--tamano-sm);
+}

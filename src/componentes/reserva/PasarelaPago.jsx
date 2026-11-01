@@ -6,7 +6,9 @@ import {
   TOPE_MAXIMO_YAPE,
   soloDigitos,
 } from '../../utilidades/pagoMercadoPago'
-import { MODO_SANDBOX, obtenerMercadoPago } from '../../servicios/mercadoPagoSdk'
+import { obtenerMercadoPago } from '../../servicios/mercadoPagoSdk'
+import { ENTORNO_SANDBOX } from '../../utilidades/entornoPago'
+import { SelectorEntornoPago } from './SelectorEntornoPago'
 import { formatearPrecio } from '../../utilidades/formato'
 import './pasarelaPago.css'
 
@@ -16,6 +18,9 @@ import './pasarelaPago.css'
  * - Tarjeta: Card Payment Brick oficial. Los datos de la tarjeta se escriben en campos seguros de Mercado
  *   Pago; RutaLibre solo obtiene un token de un solo uso con `getFormData()` (ver PaginaReserva).
  * - Yape: celular + código de aprobación, que MercadoPago.js convierte en token.
+ *
+ * Entorno: `entorno` (SANDBOX | PRODUCTION) y su `publicKey` los decide la página con lo que informa el backend. Los
+ * datos de prueba solo se muestran en SANDBOX. El selector aparece únicamente si el usuario puede elegir (`entornos`).
  *
  * `refControladorTarjeta.current` recibe el controlador del Brick para que el botón "Pagar" del resumen
  * (el flujo existente de RutaLibre) dispare el pago; el Brick no muestra botón propio.
@@ -33,13 +38,23 @@ export function PasarelaPago({
   tema,
   bloqueado,
   refControladorTarjeta,
+  entorno,
+  publicKey,
+  entornos,
+  alCambiarEntorno,
 }) {
+  const esPrueba = entorno === ENTORNO_SANDBOX
+
   function errorDe(campo) {
     return camposTocados[campo] ? errores[campo] : undefined
   }
 
   return (
     <div className="pasarela-pago">
+      {entornos && entornos.length > 1 && (
+        <SelectorEntornoPago entornos={entornos} valor={entorno} alCambiar={alCambiarEntorno} bloqueado={bloqueado} />
+      )}
+
       <div className="pasarela-pago__metodos" role="tablist" aria-label="Método de pago">
         <button
           type="button"
@@ -73,6 +88,7 @@ export function PasarelaPago({
 
       {metodo === 'tarjeta' ? (
         <TarjetaMercadoPago
+          publicKey={publicKey}
           total={total}
           correoInicial={correoInicial}
           tema={tema}
@@ -91,8 +107,8 @@ export function PasarelaPago({
         </fieldset>
       )}
 
-      {MODO_SANDBOX && (
-        <details className="pasarela-pago__prueba">
+      {esPrueba && (
+        <details className="pasarela-pago__prueba" open>
           <summary>Datos de prueba (Sandbox de Mercado Pago)</summary>
           {metodo === 'tarjeta' ? (
             <>
@@ -130,14 +146,14 @@ export function PasarelaPago({
           <path d="M7 1 12 3v3.5C12 10 9.8 12 7 13 4.2 12 2 10 2 6.5V3l5-2Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
         </svg>
         Procesado con Mercado Pago. RutaLibre no ve ni guarda los datos de tu tarjeta.
-        {MODO_SANDBOX && ' Entorno de pruebas: no se realizan cobros reales.'}
+        {esPrueba && ' Entorno de pruebas: no se realizan cobros reales.'}
       </p>
     </div>
   )
 }
 
 /** Monta el Card Payment Brick. Se vuelve a montar solo si cambian el total, el correo o el tema. */
-function TarjetaMercadoPago({ total, correoInicial, tema, bloqueado, refControlador }) {
+function TarjetaMercadoPago({ publicKey, total, correoInicial, tema, bloqueado, refControlador }) {
   const idContenedor = `card-brick-${useId().replace(/:/g, '')}`
   const [estado, setEstado] = useState('cargando') // cargando | listo | error
   const [mensajeError, setMensajeError] = useState(null)
@@ -151,7 +167,7 @@ function TarjetaMercadoPago({ total, correoInicial, tema, bloqueado, refControla
 
     async function montar() {
       try {
-        const mp = await obtenerMercadoPago()
+        const mp = await obtenerMercadoPago(publicKey)
         if (cancelado) return
         controlador = await mp.bricks().create('cardPayment', idContenedor, {
           initialization: {
@@ -207,7 +223,7 @@ function TarjetaMercadoPago({ total, correoInicial, tema, bloqueado, refControla
         // el contenedor ya no existe
       }
     }
-  }, [idContenedor, total, correoInicial, tema, intento, refControlador])
+  }, [idContenedor, publicKey, total, correoInicial, tema, intento, refControlador])
 
   return (
     <div className={`pasarela-pago__brick${bloqueado ? ' pasarela-pago__brick--bloqueado' : ''}`} aria-busy={estado === 'cargando'}>

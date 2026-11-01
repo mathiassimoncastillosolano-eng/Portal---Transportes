@@ -58,8 +58,11 @@ export function tipoDePagoTarjeta(idMetodo, datosAdicionales) {
   return /^deb/.test(idMetodo ?? '') ? 'debit_card' : 'credit_card'
 }
 
-/** Cuerpo de POST /api/pagos para tarjeta, a partir de getFormData() del Card Payment Brick. Sin importe. */
-export function construirSolicitudPagoTarjeta({ idViaje, tokenSesion, claveIdempotencia, datosTarjeta, datosAdicionales }) {
+/**
+ * Cuerpo de POST /api/pagos para tarjeta, a partir de getFormData() del Card Payment Brick. Sin importe.
+ * `entorno` (SANDBOX | PRODUCTION) es solo una solicitud: el backend valida si el usuario puede usarlo.
+ */
+export function construirSolicitudPagoTarjeta({ idViaje, tokenSesion, claveIdempotencia, datosTarjeta, datosAdicionales, entorno }) {
   const identificacion = datosTarjeta?.payer?.identification ?? {}
   return {
     idViaje,
@@ -73,11 +76,12 @@ export function construirSolicitudPagoTarjeta({ idViaje, tokenSesion, claveIdemp
     emailPagador: (datosTarjeta?.payer?.email ?? '').trim(),
     tipoDocumento: identificacion.type || null,
     numeroDocumento: identificacion.number ? String(identificacion.number).trim() : null,
+    ...(entorno ? { entorno } : {}),
   }
 }
 
 /** Cuerpo de POST /api/pagos para Yape. Sin importe ni código de aprobación (solo el token). */
-export function construirSolicitudPagoYape({ idViaje, tokenSesion, claveIdempotencia, token, valores }) {
+export function construirSolicitudPagoYape({ idViaje, tokenSesion, claveIdempotencia, token, valores, entorno }) {
   return {
     idViaje,
     tokenSesion,
@@ -87,6 +91,7 @@ export function construirSolicitudPagoYape({ idViaje, tokenSesion, claveIdempote
     cuotas: 1,
     emailPagador: valores.correo.trim(),
     celular: valores.celular,
+    ...(entorno ? { entorno } : {}),
   }
 }
 

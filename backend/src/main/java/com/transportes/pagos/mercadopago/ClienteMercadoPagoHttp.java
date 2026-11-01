@@ -17,8 +17,6 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -32,14 +30,12 @@ import tools.jackson.databind.node.ObjectNode;
  * <p>
  * Usa el {@link HttpClient} del JDK, igual que la integración de correo, para
  * no agregar dependencias.
- * El Access Token llega por la variable de entorno
- * {@code MERCADOPAGO_ACCESS_TOKEN}, solo viaja en la cabecera
+ * El Access Token (el de un entorno concreto: lo entrega {@link ClientesMercadoPago}) solo viaja en la cabecera
  * Authorization y nunca se registra. Los cuerpos de respuesta tampoco se
  * registran completos: pueden traer
  * datos del pagador.
  * </p>
  */
-@Component
 public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
 
     private static final Logger log = LoggerFactory.getLogger(ClienteMercadoPagoHttp.class);
@@ -51,10 +47,8 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
     private final ObjectMapper json;
     private final HttpClient http;
 
-    public ClienteMercadoPagoHttp(@Value("${mercadopago.access-token:}") String accessToken,
-            @Value("${mercadopago.url-api:https://api.mercadopago.com}") String urlBase,
-            @Value("${mercadopago.timeout-segundos:20}") long timeoutSegundos,
-            ObjectMapper json) {
+    /** Una instancia por entorno (ver {@link ClientesMercadoPago}); no es un bean de Spring. */
+    public ClienteMercadoPagoHttp(String accessToken, String urlBase, long timeoutSegundos, ObjectMapper json) {
         this.accessToken = accessToken == null ? "" : accessToken.strip();
         this.urlBase = urlBase.replaceAll("/+$", "");
         this.timeout = Duration.ofSeconds(timeoutSegundos);
@@ -168,7 +162,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
     private JsonNode enviar(String metodo, String ruta, String cuerpo, String claveIdempotencia) {
         if (!configurado()) {
             throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.NO_CONFIGURADO,
-                    "Mercado Pago no está configurado (MERCADOPAGO_ACCESS_TOKEN).");
+                    "Mercado Pago no está configurado para este entorno (falta su Access Token).");
         }
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(urlBase + ruta))
                 .timeout(timeout)

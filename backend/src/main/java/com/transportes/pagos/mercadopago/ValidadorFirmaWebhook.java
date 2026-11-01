@@ -10,9 +10,6 @@ import java.util.Locale;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 /**
  * Verifica la cabecera {@code x-signature} de las notificaciones Webhook de Mercado Pago.
  *
@@ -22,14 +19,13 @@ import org.springframework.stereotype.Component;
  * constante. La documentación anterior de Webhooks pedía usar {@code data.id} en minúsculas si es alfanumérico;
  * por compatibilidad también se acepta esa variante (ambas exigen conocer la clave secreta).</p>
  */
-@Component
 public class ValidadorFirmaWebhook {
 
     private final String secreto;
     private final Duration tolerancia;
 
-    public ValidadorFirmaWebhook(@Value("${mercadopago.webhook-secret:}") String secreto,
-                                 @Value("${mercadopago.webhook-tolerancia-segundos:0}") long toleranciaSegundos) {
+    /** Una instancia por entorno (ver {@link ValidadoresWebhook}); no es un bean de Spring. */
+    public ValidadorFirmaWebhook(String secreto, long toleranciaSegundos) {
         this.secreto = secreto == null ? "" : secreto.strip();
         this.tolerancia = toleranciaSegundos > 0 ? Duration.ofSeconds(toleranciaSegundos) : null;
     }

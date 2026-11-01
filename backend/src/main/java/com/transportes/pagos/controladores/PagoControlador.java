@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.transportes.pagos.configuracion.AutorizadorEntornoPago;
+import com.transportes.pagos.dto.ConfiguracionPagoResponse;
 import com.transportes.pagos.dto.EstadoPagoResponse;
 import com.transportes.pagos.dto.IniciarPagoRequest;
 import com.transportes.pagos.servicios.PagoServicio;
@@ -26,9 +28,20 @@ import jakarta.validation.constraints.Pattern;
 public class PagoControlador {
 
     private final PagoServicio pagoServicio;
+    private final AutorizadorEntornoPago autorizador;
 
-    public PagoControlador(PagoServicio pagoServicio) {
+    public PagoControlador(PagoServicio pagoServicio, AutorizadorEntornoPago autorizador) {
         this.pagoServicio = pagoServicio;
+        this.autorizador = autorizador;
+    }
+
+    /**
+     * Entornos de pago que el usuario autenticado puede usar y la Public Key (pública) de cada uno. Un comprador
+     * normal solo recibe PRODUCTION; SANDBOX aparece únicamente para los usuarios autorizados en el servidor.
+     */
+    @GetMapping("/configuracion")
+    public ResponseEntity<ConfiguracionPagoResponse> configuracion(@AuthenticationPrincipal UsuarioAutenticado usuario) {
+        return ResponseEntity.ok(autorizador.configuracionPara(usuario.idUsuario()));
     }
 
     /**

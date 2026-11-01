@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -23,18 +24,21 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.transportes.buses.dto.AsientoFisicoDTO;
 import com.transportes.buses.servicios.AsientoServicio;
+import com.transportes.pagos.configuracion.AutorizadorEntornoPago;
 import com.transportes.pagos.configuracion.PropiedadesPago;
 import com.transportes.pagos.dto.EstadoPagoResponse;
 import com.transportes.pagos.dto.EstadoPagoResponse.CompraConfirmada;
 import com.transportes.pagos.dto.EstadoPagoResponse.PasajeConfirmado;
 import com.transportes.pagos.dto.EstadoPagoResponse.SesionRenovada;
 import com.transportes.pagos.dto.IniciarPagoRequest;
+import com.transportes.pagos.entidades.EntornoPago;
 import com.transportes.pagos.entidades.EstadoOperacion;
 import com.transportes.pagos.entidades.OperacionPago;
 import com.transportes.pagos.entidades.Pasaje;
 import com.transportes.pagos.entidades.Venta;
 import com.transportes.pagos.excepciones.PagoException;
 import com.transportes.pagos.mercadopago.ClienteMercadoPago;
+import com.transportes.pagos.mercadopago.ClientesMercadoPago;
 import com.transportes.pagos.mercadopago.DocumentoPagador;
 import com.transportes.pagos.mercadopago.ErrorMercadoPagoException;
 import com.transportes.pagos.mercadopago.OrdenMercadoPago;
@@ -66,6 +70,10 @@ import com.transportes.viajes.servicios.ViajeAsientoServicio;
  *       serializado con un bloqueo de fila: repetir una notificación nunca duplica la compra.</li>
  *   <li>Solo con {@code processed/accredited} se registra la compra ({@link RegistroCompraServicio}).</li>
  * </ol>
+ *
+ * <p>Entornos: cada operación guarda su {@link EntornoPago} (SANDBOX o PRODUCTION) al crearse. Toda llamada posterior
+ * a Mercado Pago (consulta, cancelación, reembolso, Webhook) usa el cliente de ESE entorno, y una order consultada en
+ * un entorno distinto al de la operación se descarta ({@link #aplicarOrden}).</p>
  */
 @Service
 public class PagoServicio {
@@ -84,7 +92,8 @@ public class PagoServicio {
     private final PasajerosSesionCache pasajerosCache;
     private final RegistroCompraServicio registroCompra;
     private final DatosPasajerosJson datosPasajerosJson;
-    private final ClienteMercadoPago mercadoPago;
+    private final ClientesMercadoPago clientes;
+    private final AutorizadorEntornoPago autorizador;
     private final PropiedadesPago propiedades;
     private final VentaRepositorio ventaRepositorio;
     private final PasajeRepositorio pasajeRepositorio;
@@ -97,7 +106,8 @@ public class PagoServicio {
     public PagoServicio(OperacionPagoRepositorio operaciones, ViajeAsientoRepositorio viajeAsientoRepositorio,
                         ViajeAsientoServicio viajeAsientoServicio, TokenSesionServicio tokenSesionServicio,
                         PasajerosSesionCache pasajerosCache, RegistroCompraServicio registroCompra,
-                        DatosPasajerosJson datosPasajerosJson, ClienteMercadoPago mercadoPago,
+                        DatosPasajerosJson datosPasajerosJson, ClientesMercadoPago clientes,
+                        AutorizadorEntornoPago autorizador,
                         PropiedadesPago propiedades, VentaRepositorio ventaRepositorio,
                         PasajeRepositorio pasajeRepositorio, PagoRepositorio pagoRepositorio,
                         PasajeroRepositorio pasajeroRepositorio, AsientoServicio asientoServicio,
@@ -110,7 +120,8 @@ public class PagoServicio {
         this.pasajerosCache = pasajerosCache;
         this.registroCompra = registroCompra;
         this.datosPasajerosJson = datosPasajerosJson;
-        this.mercadoPago = mercadoPago;
+        this.clientes = clientes;
+        this.autorizador = autorizador;
         this.propiedades = propiedades;
         this.ventaRepositorio = ventaRepositorio;
         this.pasajeRepositorio = pasajeRepositorio;
@@ -129,17 +140,15 @@ public class PagoServicio {
     }
 
     public EstadoPagoResponse iniciar(Integer idUsuario, IniciarPagoRequest req) {
-        if (!mercadoPago.configurado()) {
-            log.error("Pago rechazado: falta MERCADOPAGO_ACCESS_TOKEN en el backend");
-            throw new PagoException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Los pagos no están disponibles en este momento. Inténtalo más tarde.");
-        }
+        // El entorno lo decide el BACKEND: lo que pide el navegador se valida contra el usuario autenticado
+        // (Sandbox solo para usuarios autorizados) y contra las credenciales configuradas en el servidor.
+        EntornoPago entorno = autorizador.resolver(req.entorno(), idUsuario);
         validarDatosDelMedio(req);
 
         // Reintento del MISMO intento (doble clic, timeout del navegador): se devuelve la operación existente.
         Optional<OperacionPago> repetida = operaciones.findByClaveIdempotencia(req.claveIdempotencia());
         if (repetida.isPresent()) {
-            return respuestaDeExistente(repetida.get(), idUsuario);
+            return respuestaDeExistente(repetida.get(), idUsuario, entorno);
         }
 
         SesionReserva sesion = tokenSesionServicio.validar(req.tokenSesion(), req.idViaje());
@@ -156,17 +165,17 @@ public class PagoServicio {
 
         Preparacion prep;
         try {
-            prep = tx.execute(estado -> preparar(idUsuario, req, sesion));
+            prep = tx.execute(estado -> preparar(idUsuario, req, sesion, entorno));
         } catch (DataIntegrityViolationException e) {
             // Carrera entre dos solicitudes idénticas: la otra ya registró la operación.
             return operaciones.findByClaveIdempotencia(req.claveIdempotencia())
-                    .map(op -> respuestaDeExistente(op, idUsuario))
+                    .map(op -> respuestaDeExistente(op, idUsuario, entorno))
                     .orElseThrow(() -> new PagoException(HttpStatus.CONFLICT,
                             "Ya hay un pago en curso para esta reserva."));
         }
         OperacionPago op = prep.operacion();
         if (!prep.nueva()) {
-            return respuestaDeExistente(op, idUsuario);
+            return respuestaDeExistente(op, idUsuario, entorno);
         }
 
         // Los pasajeros y el token de sesión acompañan la nueva vigencia de los asientos (permite reintentar).
@@ -178,7 +187,8 @@ public class PagoServicio {
         return respuesta(op.getIdOperacionPago(), renovada);
     }
 
-    private Preparacion preparar(Integer idUsuario, IniciarPagoRequest req, SesionReserva sesion) {
+    private Preparacion preparar(Integer idUsuario, IniciarPagoRequest req, SesionReserva sesion,
+                                 EntornoPago entorno) {
         String idSesion = sesion.idSesion();
         viajeAsientoRepositorio.bloquearSesion("pago:" + idSesion);
 
@@ -231,6 +241,7 @@ public class PagoServicio {
         op.setIdSesionReserva(idSesion);
         op.setIdUsuario(idUsuario);
         op.setMedioPago(req.medioPago());
+        op.setEntorno(entorno);
         op.setMonto(monto);
         op.setMoneda("PEN");
         op.setEstado(EstadoOperacion.CREANDO);
@@ -239,8 +250,8 @@ public class PagoServicio {
         op.setFechaCreacion(ahora);
         op.setFechaActualizacion(ahora);
         op = operaciones.saveAndFlush(op);
-        log.info("Operación de pago creada: referencia={}, viaje={}, asientos={}, monto={}, medio={}",
-                op.getReferenciaExterna(), req.idViaje(), asientos.size(), monto, req.medioPago());
+        log.info("Operación de pago creada: referencia={}, entorno={}, viaje={}, asientos={}, monto={}, medio={}",
+                op.getReferenciaExterna(), entorno, req.idViaje(), asientos.size(), monto, req.medioPago());
         return new Preparacion(op, true, pasajeros);
     }
 
@@ -258,8 +269,11 @@ public class PagoServicio {
     }
 
     SolicitudOrden construirSolicitud(IniciarPagoRequest req, OperacionPago op) {
-        String email = propiedades.getEmailPagadorPrueba().isEmpty()
-                ? req.emailPagador().trim() : propiedades.getEmailPagadorPrueba();
+        // El correo de pagador de prueba es exclusivo de Sandbox. En Producción JAMÁS se reemplaza el correo real
+        // del comprador (aunque MERCADOPAGO_EMAIL_PAGADOR_PRUEBA siga definida en Render).
+        boolean usarCorreoDePrueba = op.getEntorno() == EntornoPago.SANDBOX
+                && !propiedades.getEmailPagadorPrueba().isEmpty();
+        String email = usarCorreoDePrueba ? propiedades.getEmailPagadorPrueba() : req.emailPagador().trim();
         DocumentoPagador.Resultado doc = DocumentoPagador.evaluar(req.tipoDocumento(), req.numeroDocumento(),
                 propiedades.getTiposIdentificacion(), propiedades.getMapeoTiposIdentificacion());
         String tipoDoc = doc.enviar() ? doc.tipo() : null;
@@ -286,10 +300,12 @@ public class PagoServicio {
         // La clave de idempotencia de Mercado Pago es la referencia única de la operación: repetir el POST
         // (p. ej. tras un timeout) devuelve la misma order en lugar de cobrar dos veces.
         String clave = op.getReferenciaExterna();
+        EntornoPago entorno = op.getEntorno();
+        ClienteMercadoPago cliente = clientes.de(entorno);
         ErrorMercadoPagoException ultimo = null;
         for (int intento = 1; intento <= 2; intento++) {
             try {
-                aplicarOrden(op.getIdOperacionPago(), mercadoPago.crearOrden(solicitud, clave));
+                aplicarOrden(op.getIdOperacionPago(), cliente.crearOrden(solicitud, clave), entorno);
                 return;
             } catch (ErrorMercadoPagoException e) {
                 ultimo = e;
@@ -302,13 +318,13 @@ public class PagoServicio {
         switch (ultimo.getTipo()) {
             case PAGO_RECHAZADO -> {
                 if (ultimo.getOrdenAdjunta() != null) {
-                    aplicarOrden(op.getIdOperacionPago(), ultimo.getOrdenAdjunta());
+                    aplicarOrden(op.getIdOperacionPago(), ultimo.getOrdenAdjunta(), entorno);
                 } else {
                     cerrarSinOrden(op.getIdOperacionPago(), EstadoOperacion.RECHAZADO, MensajesPago.rechazo(ultimo.getCodigo()));
                 }
             }
             case SOLICITUD_INVALIDA, NO_CONFIGURADO, NO_ENCONTRADO -> {
-                if ("invalid_email_for_sandbox".equals(ultimo.getCodigo())) {
+                if (entorno == EntornoPago.SANDBOX && "invalid_email_for_sandbox".equals(ultimo.getCodigo())) {
                     log.error("Mercado Pago Sandbox exige un correo de pagador de prueba: configura MERCADOPAGO_EMAIL_PAGADOR_PRUEBA");
                 }
                 cerrarSinOrden(op.getIdOperacionPago(), EstadoOperacion.ERROR, MensajesPago.ERROR_DATOS);
@@ -328,11 +344,16 @@ public class PagoServicio {
     // 2. Interpretar una order (creación, Webhook, consulta, conciliación)
     // =====================================================================================================
 
-    /** Aplica a la operación el estado REAL de una order consultada en Mercado Pago. Idempotente. */
-    public void aplicarOrden(Integer idOperacion, OrdenMercadoPago orden) {
+    /**
+     * Aplica a la operación el estado REAL de una order consultada en Mercado Pago. Idempotente.
+     *
+     * @param origen entorno de las credenciales con las que se obtuvo la order; si no coincide con el entorno de la
+     *               operación la order se descarta (nunca una order de Sandbox confirma una compra de Producción)
+     */
+    public void aplicarOrden(Integer idOperacion, OrdenMercadoPago orden, EntornoPago origen) {
         boolean reembolsar;
         try {
-            reembolsar = Boolean.TRUE.equals(tx.execute(estado -> aplicarEnTransaccion(idOperacion, orden)));
+            reembolsar = Boolean.TRUE.equals(tx.execute(estado -> aplicarEnTransaccion(idOperacion, orden, origen)));
         } catch (AsientoNoDisponibleException | CompraNoRegistrableException e) {
             // La transacción del registro se revirtió completa: no hay venta, pago ni pasajes a medias.
             log.error("Pago aprobado sin poder registrar la compra (operación {}): {}", idOperacion, e.getMessage());
@@ -343,9 +364,14 @@ public class PagoServicio {
         }
     }
 
-    private boolean aplicarEnTransaccion(Integer idOperacion, OrdenMercadoPago orden) {
+    private boolean aplicarEnTransaccion(Integer idOperacion, OrdenMercadoPago orden, EntornoPago origen) {
         OperacionPago op = operaciones.bloquearPorId(idOperacion)
                 .orElseThrow(() -> new IllegalStateException("Operación inexistente " + idOperacion));
+        if (op.getEntorno() != origen) {
+            log.error("Order {} obtenida con credenciales de {} pero la operación {} es de {}: se descarta",
+                    orden.id(), origen, op.getReferenciaExterna(), op.getEntorno());
+            return false;
+        }
         if (orden.referenciaExterna() != null && !op.getReferenciaExterna().equals(orden.referenciaExterna())) {
             log.error("La order {} no corresponde a la operación {}", orden.id(), op.getReferenciaExterna());
             return false;
@@ -448,7 +474,7 @@ public class PagoServicio {
             return;
         }
         try {
-            mercadoPago.reembolsarOrden(op.getMpOrderId(), "refund-" + op.getReferenciaExterna());
+            clientes.de(op.getEntorno()).reembolsarOrden(op.getMpOrderId(), "refund-" + op.getReferenciaExterna());
             tx.executeWithoutResult(e -> operaciones.bloquearPorId(idOperacion).ifPresent(o -> {
                 if (o.getEstado() == EstadoOperacion.APROBADO_SIN_ASIENTOS) {
                     o.setEstado(EstadoOperacion.REEMBOLSADO);
@@ -479,15 +505,17 @@ public class PagoServicio {
         if (!op.getEstado().esActivo()) {
             return;
         }
+        EntornoPago entorno = op.getEntorno();
+        ClienteMercadoPago cliente = clientes.de(entorno);
         try {
             if (op.getMpOrderId() != null) {
-                aplicarOrden(idOperacion, mercadoPago.consultarOrden(op.getMpOrderId()));
+                aplicarOrden(idOperacion, cliente.consultarOrden(op.getMpOrderId()), entorno);
             } else {
                 OffsetDateTime creada = op.getFechaCreacion().atZone(ZoneId.systemDefault()).toOffsetDateTime();
-                Optional<OrdenMercadoPago> encontrada = mercadoPago.buscarPorReferencia(
+                Optional<OrdenMercadoPago> encontrada = cliente.buscarPorReferencia(
                         op.getReferenciaExterna(), creada.minusHours(1), OffsetDateTime.now().plusHours(1));
                 if (encontrada.isPresent()) {
-                    aplicarOrden(idOperacion, encontrada.get());
+                    aplicarOrden(idOperacion, encontrada.get(), entorno);
                 } else if (op.getFechaCreacion().isBefore(
                         LocalDateTime.now().minusSeconds(propiedades.getSegundosResultadoDesconocido()))) {
                     log.warn("La order de {} no existe en Mercado Pago: se cierra sin cobro", op.getReferenciaExterna());
@@ -511,7 +539,9 @@ public class PagoServicio {
         if (op.getMpOrderId() != null) {
             try {
                 // Cerrar la order evita que se apruebe cuando los asientos ya se liberaron.
-                aplicarOrden(idOperacion, mercadoPago.cancelarOrden(op.getMpOrderId(), "cancel-" + op.getReferenciaExterna()));
+                aplicarOrden(idOperacion,
+                        clientes.de(op.getEntorno()).cancelarOrden(op.getMpOrderId(), "cancel-" + op.getReferenciaExterna()),
+                        op.getEntorno());
             } catch (ErrorMercadoPagoException e) {
                 log.warn("No se pudo cancelar la order {} ({})", op.getMpOrderId(), e.getTipo());
             }
@@ -525,27 +555,71 @@ public class PagoServicio {
         }));
     }
 
-    /** Webhook verificado: se consulta la order (no se confía en el cuerpo) y se aplica su estado. */
-    public void procesarNotificacionOrden(String idOrden) {
-        OrdenMercadoPago orden;
-        try {
-            orden = mercadoPago.consultarOrden(idOrden);
-        } catch (ErrorMercadoPagoException e) {
-            if (e.getTipo() == ErrorMercadoPagoException.Tipo.NO_ENCONTRADO) {
-                log.warn("Webhook de una order inexistente: {}", idOrden);
+    /**
+     * Webhook con firma ya verificada. Se consulta la order en la API (el cuerpo de la notificación no se usa para
+     * decidir) y se aplica su estado.
+     *
+     * <p>{@code candidatos} son los entornos cuya clave secreta validó la firma. Si la order ya pertenece a una
+     * operación, manda el entorno de la operación (y debe estar entre los candidatos). Si todavía no se conoce
+     * (Webhook adelantado a la respuesta de creación), se busca en cada candidato y solo se aplica si la operación
+     * hallada es de ese mismo entorno.</p>
+     *
+     * @throws ErrorMercadoPagoException si la consulta falló por un motivo temporal (el controlador responde 503)
+     */
+    public void procesarNotificacionOrden(String idOrden, Collection<EntornoPago> candidatos) {
+        Optional<OperacionPago> conocida = operaciones.findByMpOrderId(idOrden);
+        if (conocida.isPresent()) {
+            OperacionPago op = conocida.get();
+            EntornoPago entorno = op.getEntorno();
+            if (!candidatos.contains(entorno)) {
+                log.warn("Webhook de la order {} descartado: su firma no corresponde al entorno {} de la operación",
+                        idOrden, entorno);
                 return;
             }
-            throw e; // el controlador decide: fallo temporal o de credenciales -> 503 (reintento); rechazo definitivo -> 200
-        }
-        Optional<OperacionPago> op = operaciones.findByMpOrderId(orden.id());
-        if (op.isEmpty() && orden.referenciaExterna() != null) {
-            op = operaciones.findByReferenciaExterna(orden.referenciaExterna());
-        }
-        if (op.isEmpty()) {
-            log.info("Webhook de una order ajena a RutaLibre: {}", orden.id());
+            OrdenMercadoPago orden;
+            try {
+                orden = clientes.de(entorno).consultarOrden(idOrden);
+            } catch (ErrorMercadoPagoException e) {
+                if (e.getTipo() == ErrorMercadoPagoException.Tipo.NO_ENCONTRADO) {
+                    log.warn("Webhook de una order inexistente en {}: {}", entorno, idOrden);
+                    return;
+                }
+                throw e; // el controlador decide: fallo temporal o de credenciales -> 503 (reintento); rechazo definitivo -> 200
+            }
+            aplicarOrden(op.getIdOperacionPago(), orden, entorno);
             return;
         }
-        aplicarOrden(op.get().getIdOperacionPago(), orden);
+
+        ErrorMercadoPagoException ultimoError = null;
+        for (EntornoPago entorno : candidatos) {
+            OrdenMercadoPago orden;
+            try {
+                orden = clientes.de(entorno).consultarOrden(idOrden);
+            } catch (ErrorMercadoPagoException e) {
+                if (e.getTipo() != ErrorMercadoPagoException.Tipo.NO_ENCONTRADO
+                        && e.getTipo() != ErrorMercadoPagoException.Tipo.NO_CONFIGURADO) {
+                    ultimoError = e;
+                }
+                continue; // la order puede pertenecer al otro entorno
+            }
+            Optional<OperacionPago> op = orden.referenciaExterna() == null
+                    ? Optional.empty() : operaciones.findByReferenciaExterna(orden.referenciaExterna());
+            if (op.isEmpty()) {
+                log.info("Webhook de una order ajena a RutaLibre: {}", orden.id());
+                return;
+            }
+            if (op.get().getEntorno() != entorno) {
+                log.error("Webhook: la order {} existe en {} pero la operación {} es de {}: se descarta",
+                        orden.id(), entorno, op.get().getReferenciaExterna(), op.get().getEntorno());
+                return;
+            }
+            aplicarOrden(op.get().getIdOperacionPago(), orden, entorno);
+            return;
+        }
+        if (ultimoError != null) {
+            throw ultimoError;
+        }
+        log.warn("Webhook de una order inexistente: {}", idOrden);
     }
 
     public EstadoPagoResponse consultar(Integer idUsuario, String referencia) {
@@ -565,9 +639,14 @@ public class PagoServicio {
     // 4. Respuestas
     // =====================================================================================================
 
-    private EstadoPagoResponse respuestaDeExistente(OperacionPago op, Integer idUsuario) {
+    private EstadoPagoResponse respuestaDeExistente(OperacionPago op, Integer idUsuario, EntornoPago entorno) {
         if (!op.getIdUsuario().equals(idUsuario)) {
             throw new PagoException(HttpStatus.CONFLICT, "La solicitud de pago no es válida.");
+        }
+        if (op.getEntorno() != entorno) {
+            // Misma reserva o misma clave, pero otro entorno: nunca se reutiliza una operación en otro entorno.
+            throw new PagoException(HttpStatus.CONFLICT,
+                    "Ya hay un pago en curso para esta reserva en otro entorno. Espera su resultado.");
         }
         return respuesta(op.getIdOperacionPago(), null);
     }
@@ -585,7 +664,7 @@ public class PagoServicio {
             return new EstadoPagoResponse(op.getReferenciaExterna(), e.name(), e.esFinal(), reintentable, mensaje,
                     op.getMpOrderId(), op.getMonto(),
                     e == EstadoOperacion.ACCION_REQUERIDA ? op.getUrlDesafio3ds() : null,
-                    sesion, e == EstadoOperacion.APROBADO ? compra(op) : null);
+                    sesion, e == EstadoOperacion.APROBADO ? compra(op) : null, op.getEntorno().name());
         });
     }
 

@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS venta (
  fecha_venta timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
  monto_total numeric(10,2) NOT NULL CHECK (monto_total >= 0),
  fecha_creacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
- estado_venta varchar(30) NOT NULL
+ estado_venta varchar(30) NOT NULL,
+ entorno varchar(12) NOT NULL DEFAULT 'PRODUCTION'
 );
 CREATE TABLE IF NOT EXISTS pago (
  id_pago integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -70,7 +71,7 @@ CREATE TABLE IF NOT EXISTS operacion_pago (
  monto numeric(10,2) NOT NULL, moneda varchar(3) NOT NULL DEFAULT 'PEN', estado varchar(30) NOT NULL,
  mp_order_id varchar(64), mp_estado varchar(40), mp_estado_detalle varchar(60), mp_payment_id varchar(64),
  url_desafio_3ds varchar(500), datos_pasajeros varchar(20000), id_venta integer REFERENCES venta(id_venta),
- mensaje varchar(255), fecha_expiracion timestamp NOT NULL, fecha_ultima_consulta timestamp,
+ mensaje varchar(255), entorno varchar(12) NOT NULL DEFAULT 'PRODUCTION', fecha_expiracion timestamp NOT NULL, fecha_ultima_consulta timestamp,
  fecha_creacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
  fecha_actualizacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
  CONSTRAINT uq_operacion_pago_referencia UNIQUE (referencia_externa),

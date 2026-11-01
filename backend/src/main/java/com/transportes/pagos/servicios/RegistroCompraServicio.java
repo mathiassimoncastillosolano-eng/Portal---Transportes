@@ -91,6 +91,7 @@ public class RegistroCompraServicio {
         venta.setMontoTotal(op.getMonto());
         venta.setFechaCreacion(ahora);
         venta.setEstadoVenta(Venta.ESTADO_PAGADA);
+        venta.setEntorno(op.getEntorno()); // la venta hereda el entorno con el que se verificó el pago
         venta = ventaRepositorio.saveAndFlush(venta);
 
         Pago pago = new Pago();

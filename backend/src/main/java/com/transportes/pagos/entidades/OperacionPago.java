@@ -50,6 +50,11 @@ public class OperacionPago {
     @Column(name = "medio_pago", nullable = false, length = 20)
     private String medioPago;
 
+    /** Entorno con el que se creó la order. No cambia nunca: define con qué credenciales se consulta y reembolsa. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "entorno", nullable = false, length = 12)
+    private EntornoPago entorno;
+
     @Column(name = "monto", nullable = false, precision = 10, scale = 2)
     private BigDecimal monto;
 

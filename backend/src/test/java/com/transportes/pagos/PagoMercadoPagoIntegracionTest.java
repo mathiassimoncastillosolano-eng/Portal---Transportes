@@ -6,10 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -43,14 +46,18 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import com.transportes.RelojPruebaConfiguracion;
 import com.transportes.RelojPruebaConfiguracion.RelojPrueba;
+import com.transportes.pagos.configuracion.AutorizadorEntornoPago;
+import com.transportes.pagos.entidades.EntornoPago;
 import com.transportes.pagos.mercadopago.ClienteMercadoPago;
+import com.transportes.pagos.mercadopago.ClientesMercadoPago;
 import com.transportes.pagos.mercadopago.ErrorMercadoPagoException;
 import com.transportes.pagos.mercadopago.OrdenMercadoPago;
 import com.transportes.pagos.mercadopago.SolicitudOrden;
-import com.transportes.pagos.mercadopago.ValidadorFirmaWebhook;
+import com.transportes.pagos.mercadopago.ValidadoresWebhook;
 import com.transportes.pagos.servicios.PagoServicio;
 import com.transportes.viajes.servicios.ClienteDni;
 
@@ -76,10 +83,14 @@ class PagoMercadoPagoIntegracionTest {
     @LocalServerPort int port;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
-    @Autowired ValidadorFirmaWebhook validadorFirma;
+    @Autowired ValidadoresWebhook validadores;
     @Autowired PagoServicio pagoServicio;
     @Autowired RelojPrueba reloj;
-    @MockitoBean ClienteMercadoPago mp;
+    /** La API de Mercado Pago simulada: ambos entornos usan este mismo mock (se distingue por el entorno pedido). */
+    final ClienteMercadoPago mp = mock(ClienteMercadoPago.class);
+    @MockitoBean ClientesMercadoPago clientes;
+    /** Espía: las pruebas autorizan Sandbox para un usuario sin tocar el resto de la lógica real. */
+    @MockitoSpyBean AutorizadorEntornoPago autorizador;
     @MockitoBean ClienteDni clienteDni;
     final HttpClient http = HttpClient.newHttpClient();
     String jwt;
@@ -102,6 +113,7 @@ class PagoMercadoPagoIntegracionTest {
                     + "VALUES(?,1,50,'DISPONIBLE',?)", i, i);
         }
         reset(mp);
+        when(clientes.de(any(EntornoPago.class))).thenReturn(mp);
         when(mp.configurado()).thenReturn(true);
         when(clienteDni.consultar(anyString())).thenReturn(Optional.empty());
         jwt = jwtUsuario();
@@ -205,14 +217,22 @@ class PagoMercadoPagoIntegracionTest {
         assertEquals(0, cuenta("SELECT COUNT(*) FROM viaje_asiento WHERE estado_viaje_asiento='OCUPADO'"));
     }
 
+    /** Webhook por la URL heredada, firmado con la clave de PRODUCTION (las pruebas existentes operan en Producción). */
     HttpResponse<String> webhook(String idOrden, String firmaManual) throws Exception {
+        return webhook("/api/pagos/webhook", EntornoPago.PRODUCTION, idOrden, firmaManual);
+    }
+
+    /** @param firmaCon entorno cuya clave secreta firma la notificación (ignorado si se pasa firmaManual) */
+    HttpResponse<String> webhook(String ruta, EntornoPago firmaCon, String idOrden, String firmaManual)
+            throws Exception {
         String requestId = UUID.randomUUID().toString();
         String ts = String.valueOf(System.currentTimeMillis() / 1000);
         String firma = firmaManual != null ? firmaManual
-                : "ts=" + ts + ",v1=" + validadorFirma.firmar("id:" + idOrden + ";request-id:" + requestId + ";ts:" + ts + ";");
+                : "ts=" + ts + ",v1=" + validadores.de(firmaCon)
+                        .firmar("id:" + idOrden + ";request-id:" + requestId + ";ts:" + ts + ";");
         String cuerpo = "{\"action\":\"order.processed\",\"type\":\"order\",\"data\":{\"id\":\"" + idOrden
                 + "\",\"status\":\"processed\",\"status_detail\":\"accredited\"}}";
-        return enviar("POST", "/api/pagos/webhook?data.id=" + idOrden + "&type=order", cuerpo, null,
+        return enviar("POST", ruta + "?data.id=" + idOrden + "&type=order", cuerpo, null,
                 Map.of("x-signature", firma, "x-request-id", requestId));
     }
 
@@ -535,15 +555,6 @@ class PagoMercadoPagoIntegracionTest {
         assertSinCompra();
     }
 
-    @Test
-    void mercadoPagoSinConfigurarDevuelve503YNoCreaNada() throws Exception {
-        String sesion = reservaLista(1);
-        when(mp.configurado()).thenReturn(false);
-        var r = enviar("POST", "/api/pagos", solicitudTarjeta(sesion, UUID.randomUUID().toString()), jwt);
-        assertEquals(503, r.statusCode());
-        assertEquals(0, cuenta("SELECT COUNT(*) FROM operacion_pago"));
-    }
-
     // ------------------------------------------------------------------ persistencia y asientos
 
     @Test
@@ -811,5 +822,160 @@ class PagoMercadoPagoIntegracionTest {
         assertEquals(200, webhook(idOrden, null).statusCode());
         assertEquals(1, cuenta("SELECT COUNT(*) FROM venta"));
         assertEquals(2, cuenta("SELECT COUNT(*) FROM pasaje"));
+    }
+
+    // ------------------------------------------------------------------ entornos Sandbox / Producción
+
+    /** Autoriza Sandbox para cualquier usuario durante la prueba (la autorización real es por id_usuario). */
+    void autorizarSandbox() {
+        doReturn(true).when(autorizador).puedeUsarSandbox(anyInt());
+    }
+
+    String entornoDe(String tabla, String where, Object... args) {
+        return jdbc.queryForObject("SELECT entorno FROM " + tabla + " WHERE " + where, String.class, args);
+    }
+
+    @Test
+    void sinEntornoSeUsaProduccionYLaVentaQuedaMarcadaComoReal() throws Exception {
+        String sesion = reservaLista(1);
+        alCrear("processed", "accredited");
+        JsonNode r = pagar(solicitudTarjeta(sesion, UUID.randomUUID().toString()));
+        assertEquals("APROBADO", r.get("estado").asText());
+        assertEquals("PRODUCTION", r.get("entorno").asText());
+        assertEquals("PRODUCTION", entornoDe("operacion_pago", "estado='APROBADO'"));
+        assertEquals("PRODUCTION", entornoDe("venta", "estado_venta='PAGADA'"));
+        verify(clientes, never()).de(EntornoPago.SANDBOX);
+    }
+
+    @Test
+    void sandboxSinAutorizacionSeRechazaEnElBackendAunqueElNavegadorLoPida() throws Exception {
+        String sesion = reservaLista(1);
+        alCrear("processed", "accredited");
+        Map<String, Object> solicitud = solicitudTarjeta(sesion, UUID.randomUUID().toString());
+        solicitud.put("entorno", "SANDBOX");
+        var r = enviar("POST", "/api/pagos", solicitud, jwt);
+        assertEquals(403, r.statusCode(), r.body());
+        verify(mp, never()).crearOrden(any(), anyString());
+        assertEquals(0, cuenta("SELECT COUNT(*) FROM operacion_pago"));
+        assertSinCompra();
+    }
+
+    @Test
+    void sandboxAutorizadoCreaOperacionYVentaMarcadasComoPrueba() throws Exception {
+        autorizarSandbox();
+        String sesion = reservaLista(1, 2);
+        alCrear("processed", "accredited");
+        Map<String, Object> solicitud = solicitudTarjeta(sesion, UUID.randomUUID().toString());
+        solicitud.put("entorno", "SANDBOX");
+        JsonNode r = pagar(solicitud);
+        assertEquals("APROBADO", r.get("estado").asText());
+        assertEquals("SANDBOX", r.get("entorno").asText());
+        assertEquals("SANDBOX", entornoDe("operacion_pago", "estado='APROBADO'"));
+        assertEquals("SANDBOX", entornoDe("venta", "estado_venta='PAGADA'"));
+        assertEquals(0, cuenta("SELECT COUNT(*) FROM venta WHERE entorno='PRODUCTION'"), "no se mezcla con ventas reales");
+        verify(clientes, never()).de(EntornoPago.PRODUCTION);
+    }
+
+    @Test
+    void entornoInvalidoSeRechazaConBadRequest() throws Exception {
+        String sesion = reservaLista(1);
+        Map<String, Object> solicitud = solicitudTarjeta(sesion, UUID.randomUUID().toString());
+        solicitud.put("entorno", "STAGING");
+        assertEquals(400, enviar("POST", "/api/pagos", solicitud, jwt).statusCode());
+        verify(mp, never()).crearOrden(any(), anyString());
+    }
+
+    @Test
+    void laMismaClaveNoSePuedeReutilizarEnOtroEntorno() throws Exception {
+        autorizarSandbox();
+        String sesion = reservaLista(1);
+        alCrear("processing", "in_process");
+        String clave = UUID.randomUUID().toString();
+        assertEquals("EN_PROCESO", pagar(solicitudTarjeta(sesion, clave)).get("estado").asText());
+
+        Map<String, Object> otroEntorno = solicitudTarjeta(sesion, clave);
+        otroEntorno.put("entorno", "SANDBOX");
+        assertEquals(409, enviar("POST", "/api/pagos", otroEntorno, jwt).statusCode());
+        verify(mp, times(1)).crearOrden(any(), anyString());
+    }
+
+    @Test
+    void unaOrderObtenidaEnOtroEntornoNuncaConfirmaLaCompra() throws Exception {
+        String sesion = reservaLista(1);
+        alCrear("processing", "in_process");
+        JsonNode r = pagar(solicitudTarjeta(sesion, UUID.randomUUID().toString()));
+        String referencia = r.get("referencia").asText();
+        String idOrden = r.get("ordenId").asText();
+        Integer idOperacion = jdbc.queryForObject("SELECT id_operacion_pago FROM operacion_pago", Integer.class);
+
+        // Una order "aprobada" consultada con las credenciales de SANDBOX no puede aplicarse a una operación de PRODUCTION.
+        pagoServicio.aplicarOrden(idOperacion, orden(idOrden, "processed", "accredited", referencia, "50.00"),
+                EntornoPago.SANDBOX);
+        assertEquals("EN_PROCESO", consultar(referencia).get("estado").asText());
+        assertSinCompra();
+    }
+
+    @Test
+    void webhookFirmadoConLaClaveDelOtroEntornoSeRechaza() throws Exception {
+        String sesion = reservaLista(1);
+        alCrear("processing", "in_process");
+        String idOrden = pagar(solicitudTarjeta(sesion, UUID.randomUUID().toString())).get("ordenId").asText();
+
+        // URL de Sandbox con firma de Producción, y viceversa: 401, sin consultar ni registrar.
+        assertEquals(401, webhook("/api/pagos/webhook/sandbox", EntornoPago.PRODUCTION, idOrden, null).statusCode());
+        assertEquals(401, webhook("/api/pagos/webhook/production", EntornoPago.SANDBOX, idOrden, null).statusCode());
+        assertEquals(404, webhook("/api/pagos/webhook/otro", EntornoPago.PRODUCTION, idOrden, null).statusCode());
+        verify(mp, never()).consultarOrden(anyString());
+        assertSinCompra();
+    }
+
+    @Test
+    void webhookDeSandboxNoPuedeConfirmarUnaOperacionDeProduccion() throws Exception {
+        String sesion = reservaLista(1);
+        alCrear("processing", "in_process");
+        JsonNode r = pagar(solicitudTarjeta(sesion, UUID.randomUUID().toString()));
+        String idOrden = r.get("ordenId").asText();
+        when(mp.consultarOrden(idOrden)).thenReturn(
+                orden(idOrden, "processed", "accredited", r.get("referencia").asText(), "50.00"));
+
+        // Firma válida de SANDBOX sobre una order que pertenece a una operación de PRODUCTION: se descarta.
+        assertEquals(200, webhook("/api/pagos/webhook/sandbox", EntornoPago.SANDBOX, idOrden, null).statusCode());
+        verify(mp, never()).consultarOrden(anyString());
+        assertSinCompra();
+        assertEquals("EN_PROCESO", consultar(r.get("referencia").asText()).get("estado").asText());
+    }
+
+    @Test
+    void webhookPorLaUrlDelEntornoCorrectoConfirmaLaCompra() throws Exception {
+        String sesion = reservaLista(1);
+        alCrear("processing", "in_process");
+        JsonNode r = pagar(solicitudTarjeta(sesion, UUID.randomUUID().toString()));
+        String idOrden = r.get("ordenId").asText();
+        when(mp.consultarOrden(idOrden)).thenReturn(
+                orden(idOrden, "processed", "accredited", r.get("referencia").asText(), "50.00"));
+
+        assertEquals(200, webhook("/api/pagos/webhook/production", EntornoPago.PRODUCTION, idOrden, null).statusCode());
+        assertEquals(1, cuenta("SELECT COUNT(*) FROM venta WHERE entorno='PRODUCTION'"));
+    }
+
+    @Test
+    void laConfiguracionSoloEntregaDatosPublicosYSandboxSoloAlAutorizado() throws Exception {
+        var normal = enviar("GET", "/api/pagos/configuracion", null, jwt);
+        assertEquals(200, normal.statusCode(), normal.body());
+        JsonNode cfg = json.readTree(normal.body());
+        assertEquals(1, cfg.get("entornos").size(), "un comprador normal solo ve Producción");
+        assertEquals("PRODUCTION", cfg.get("entornos").get(0).get("codigo").asText());
+        assertEquals("PRODUCTION", cfg.get("entornoPorDefecto").asText());
+        assertEquals("PROD-public-key-falsa", cfg.get("entornos").get(0).get("publicKey").asText());
+        // Nunca viajan Access Tokens ni claves secretas de Webhooks.
+        assertFalse(normal.body().contains("token-falso"), normal.body());
+        assertFalse(normal.body().contains("secreto-webhook"), normal.body());
+        assertEquals(401, enviar("GET", "/api/pagos/configuracion", null, null).statusCode());
+
+        autorizarSandbox();
+        JsonNode conSandbox = json.readTree(enviar("GET", "/api/pagos/configuracion", null, jwt).body());
+        assertEquals(2, conSandbox.get("entornos").size());
+        assertEquals("SANDBOX", conSandbox.get("entornos").get(1).get("codigo").asText());
+        assertEquals("PRODUCTION", conSandbox.get("entornoPorDefecto").asText(), "el valor por defecto nunca es Sandbox");
     }
 }

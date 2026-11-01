@@ -59,6 +59,14 @@ export async function iniciarPago(solicitud, opciones = {}) {
   throw ultimoError
 }
 
+/**
+ * GET /api/pagos/configuracion: entornos de pago que el backend permite a ESTE usuario (Sandbox solo si está
+ * autorizado) y la Public Key de cada uno. No contiene secretos.
+ */
+export function obtenerConfiguracionPago({ enviar = solicitarApi } = {}) {
+  return enviar('/api/pagos/configuracion', { timeoutMs: TIMEOUT_CONSULTA_MS })
+}
+
 /** GET /api/pagos/{referencia}: estado verificado por el backend. */
 export function consultarPago(referencia, { enviar = solicitarApi } = {}) {
   return enviar(`/api/pagos/${encodeURIComponent(referencia)}`, { timeoutMs: TIMEOUT_CONSULTA_MS })

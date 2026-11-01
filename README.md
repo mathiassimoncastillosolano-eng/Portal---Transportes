@@ -127,3 +127,16 @@ Los registros consultados llegan hasta el 23/09/2026. Para otra fecha sin viajes
 - La contraseña de base de datos estaba versionada en la configuración original. Se retiró de los archivos de esta entrega, pero sigue en el historial remoto: el responsable de Supabase debe rotarla y actualizar la configuración de los integrantes.
 - Revisar los cambios en una rama y ejecutar las pruebas antes de publicar. Nunca agregar `.env.properties` o `.env` a Git.
 - Un despliegue público completo requiere integrar y probar reservas, asientos, pagos y boletos; esas tareas están fuera del alcance confirmado de esta entrega.
+
+## Pagos con Mercado Pago: entornos Sandbox y Producción
+
+El pago admite dos entornos independientes, elegidos en el paso de pago pero **decididos siempre por el backend**:
+
+- **Sandbox (pruebas):** credenciales de prueba, sin dinero real. Solo pueden usarlo los `id_usuario` listados en `MERCADOPAGO_SANDBOX_USUARIOS_AUTORIZADOS` (vacío = nadie). Las compras quedan marcadas «COMPRA DE PRUEBA».
+- **Producción (dinero real):** tarjetas y Yape con credenciales productivas. Es el entorno por defecto; se deshabilita solo si sus credenciales faltan o son idénticas a las de Sandbox.
+
+Cada operación guarda su entorno (`operacion_pago.entorno`, `venta.entorno`) y nunca se mezclan clientes, webhooks ni confirmaciones. Webhooks: `POST /api/pagos/webhook/sandbox` y `/api/pagos/webhook/production` (cada uno con su clave secreta; la URL anterior `/api/pagos/webhook` sigue funcionando). La Public Key de cada entorno la entrega `GET /api/pagos/configuracion`; los Access Tokens nunca llegan al frontend.
+
+Variables del backend: ver `backend/.env.properties.example`. Migraciones: `database/migrations/004_entorno_pago.sql` → desplegar backend → `004b_quitar_default_entorno.sql` (reversión: `004_rollback_entorno_pago.sql`).
+
+Verificación: `cd backend && ./mvnw test` y `npm ci && npm test && npm run build`. Antes de cobrar dinero real hay que activar el ambiente de producción en Mercado Pago, cargar sus credenciales y webhooks, y hacer un cobro mínimo real con reembolso.

@@ -110,6 +110,13 @@ export function CompraConfirmada({ respuesta, resultado, fecha, alVerPasajes, al
         </div>
       </div>
 
+      {respuesta.entorno === 'SANDBOX' && (
+        <p className="proceso-pago__aviso-prueba" role="status">
+          <strong>COMPRA DE PRUEBA (Sandbox).</strong> No se realizó ningún cobro real y estos pasajes no tienen valor
+          comercial.
+        </p>
+      )}
+
       <dl className="proceso-pago__datos">
         <div>
           <dt>N.º de operación</dt>
