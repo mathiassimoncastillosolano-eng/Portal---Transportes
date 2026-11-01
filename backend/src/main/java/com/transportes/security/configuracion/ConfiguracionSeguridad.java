@@ -84,6 +84,13 @@ public class ConfiguracionSeguridad {
                                                                 "/v3/api-docs.yaml")
                                                 .permitAll()
 
+                                                // Health checks (liveness/readiness): públicos para Render y
+                                                // para la pantalla de inicialización del frontend. Explícito
+                                                // para que no dependa del anyRequest().permitAll() final.
+                                                .requestMatchers(HttpMethod.GET, "/api/health/live",
+                                                                "/api/health/ready")
+                                                .permitAll()
+
                                                 // Crear una cuenta no requiere una sesión previa.
                                                 .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
 

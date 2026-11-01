@@ -1,0 +1,524 @@
+/* ==========================================================================
+   Pantalla de inicialización global de RutaLibre
+   Identidad propia (siempre oscura, independiente del tema). Usa la paleta
+   de marca de tokens.css. No comparte clases con componentes/carga.
+   ========================================================================== */
+
+.inicio-rl {
+  --ini-fondo-a: var(--color-azul-950, #071E25);
+  --ini-fondo-b: var(--color-azul-900, #0B3540);
+  --ini-menta: var(--color-verde-500, #2DD4A8);
+  --ini-turquesa: #2DD4D4;
+  --ini-texto: #EAF4F6;
+  --ini-texto-suave: rgba(214, 233, 238, 0.72);
+  --ini-texto-tenue: rgba(214, 233, 238, 0.42);
+  --ini-via: rgba(207, 227, 231, 0.12);
+
+  box-sizing: border-box;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  overflow: hidden;
+  color: var(--ini-texto);
+  background: linear-gradient(160deg, var(--ini-fondo-a) 0%, #09303A 55%, var(--ini-fondo-b) 100%);
+  font-family: var(--fuente-texto, 'Inter', system-ui, sans-serif);
+  opacity: 1;
+  animation: inicio-rl-entrada 320ms ease-out both;
+  transition: opacity 420ms cubic-bezier(0.4, 0, 0.2, 1);
+  isolation: isolate;
+}
+
+.inicio-rl--saliendo {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes inicio-rl-entrada {
+  from {
+    opacity: 0;
+  }
+}
+
+/* --- Fondo --------------------------------------------------------------- */
+
+.inicio-rl__fondo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.inicio-rl__halo {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(10px);
+}
+
+.inicio-rl__halo--a {
+  width: 70vmax;
+  height: 70vmax;
+  left: -25vmax;
+  top: -35vmax;
+  background: radial-gradient(closest-side, rgba(45, 212, 212, 0.16), rgba(45, 212, 212, 0));
+  animation: inicio-rl-deriva 14s ease-in-out infinite alternate;
+}
+
+.inicio-rl__halo--b {
+  width: 80vmax;
+  height: 60vmax;
+  right: -30vmax;
+  bottom: -32vmax;
+  background: radial-gradient(closest-side, rgba(16, 185, 129, 0.18), rgba(16, 185, 129, 0));
+  animation: inicio-rl-deriva 18s ease-in-out infinite alternate-reverse;
+}
+
+.inicio-rl__reticula {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(207, 227, 231, 0.09) 1px, transparent 1.2px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 52%, #000 0%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 55% at 50% 52%, #000 0%, transparent 75%);
+}
+
+@keyframes inicio-rl-deriva {
+  to {
+    transform: translate3d(4vmax, 3vmax, 0);
+  }
+}
+
+/* --- Marca --------------------------------------------------------------- */
+
+.inicio-rl__marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.inicio-rl__logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(45, 212, 168, 0.25), 0 8px 24px -8px rgba(16, 185, 129, 0.5);
+}
+
+.inicio-rl__nombre {
+  font-family: var(--fuente-titulos, 'Space Grotesk', sans-serif);
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ini-texto);
+}
+
+.inicio-rl__nombre strong {
+  font-weight: 700;
+  color: var(--ini-menta);
+}
+
+/* --- Centro -------------------------------------------------------------- */
+
+.inicio-rl__centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(20px, 4vh, 36px);
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.inicio-rl__escena {
+  position: relative;
+  width: 100%;
+  padding-bottom: 28px; /* espacio para las etiquetas de las paradas */
+}
+
+.inicio-rl__ruta {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Calzada */
+.inicio-rl__via-base {
+  stroke: var(--ini-via);
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+.inicio-rl__via-carril {
+  stroke: rgba(207, 227, 231, 0.18);
+  stroke-width: 1.4;
+  stroke-dasharray: 8 10;
+  stroke-linecap: round;
+  animation: inicio-rl-carril 1.4s linear infinite;
+}
+
+.inicio-rl--listo .inicio-rl__via-carril,
+.inicio-rl--error .inicio-rl__via-carril {
+  animation: none;
+}
+
+@keyframes inicio-rl-carril {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+.inicio-rl__via-luz {
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1100ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.inicio-rl__via-actividad {
+  stroke: var(--ini-turquesa);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 1 9;
+  opacity: 0.85;
+  animation: inicio-rl-actividad 900ms linear infinite;
+}
+
+@keyframes inicio-rl-actividad {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.inicio-rl__deposito rect {
+  fill: rgba(207, 227, 231, 0.28);
+}
+
+/* Paradas */
+.inicio-rl__parada-onda {
+  fill: none;
+  stroke: var(--ini-turquesa);
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.inicio-rl__parada-anillo {
+  fill: var(--ini-fondo-a);
+  stroke: rgba(207, 227, 231, 0.3);
+  stroke-width: 2;
+  transition: stroke 400ms ease, fill 400ms ease;
+}
+
+.inicio-rl__parada-nucleo {
+  fill: rgba(207, 227, 231, 0.22);
+  transition: fill 400ms ease, transform 400ms ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.inicio-rl__parada-check {
+  fill: none;
+  stroke: var(--ini-fondo-a);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 12;
+  stroke-dashoffset: 12;
+  transition: stroke-dashoffset 360ms ease 260ms;
+}
+
+.inicio-rl__parada--activa .inicio-rl__parada-anillo {
+  stroke: var(--ini-turquesa);
+}
+
+.inicio-rl__parada--activa .inicio-rl__parada-nucleo {
+  fill: var(--ini-turquesa);
+  animation: inicio-rl-latido 1.6s ease-in-out infinite;
+}
+
+.inicio-rl__parada--activa .inicio-rl__parada-onda {
+  animation: inicio-rl-onda 1.6s ease-out infinite;
+}
+
+.inicio-rl__parada--hecha .inicio-rl__parada-anillo {
+  stroke: var(--ini-menta);
+  fill: var(--ini-menta);
+}
+
+.inicio-rl__parada--hecha .inicio-rl__parada-nucleo {
+  fill: var(--ini-menta);
+  transform: scale(1.5);
+}
+
+.inicio-rl__parada--hecha .inicio-rl__parada-check {
+  stroke-dashoffset: 0;
+}
+
+@keyframes inicio-rl-latido {
+  50% {
+    transform: scale(0.72);
+  }
+}
+
+@keyframes inicio-rl-onda {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
+/* Bus */
+.inicio-rl__bus-pos {
+  transition: transform 1100ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.inicio-rl__bus {
+  animation: inicio-rl-motor 0.9s ease-in-out infinite;
+}
+
+.inicio-rl *,
+.inicio-rl *::before,
+.inicio-rl *::after {
+  box-sizing: border-box;
+}
+
+.inicio-rl__bus-haz {
+  opacity: 0.55;
+  animation: inicio-rl-haz 2.4s ease-in-out infinite;
+}
+
+.inicio-rl--saliendo .inicio-rl__bus-pos {
+  transition: transform 700ms cubic-bezier(0.55, 0, 1, 0.45);
+  transform: translate(700px, 86px) !important;
+}
+
+.inicio-rl--error .inicio-rl__bus,
+.inicio-rl--error .inicio-rl__bus-haz {
+  animation: none;
+}
+
+.inicio-rl--error .inicio-rl__bus-haz {
+  opacity: 0;
+}
+
+/* Bus a escala 1,25 apoyado sobre la calzada; el motor tiembla sobre esa posición base. */
+.inicio-rl__bus {
+  transform: translate(-35px, -55px) scale(1.25);
+}
+
+@keyframes inicio-rl-motor {
+  50% {
+    transform: translate(-35px, -55.8px) scale(1.25);
+  }
+}
+
+@keyframes inicio-rl-haz {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* Etiquetas de las paradas */
+.inicio-rl__etapas {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inicio-rl__etapas li {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ini-texto-tenue);
+  transition: color 400ms ease;
+}
+
+.inicio-rl__etapas li.es-activa {
+  color: var(--ini-turquesa);
+}
+
+.inicio-rl__etapas li.es-hecha {
+  color: var(--ini-menta);
+}
+
+/* Texto */
+.inicio-rl__texto {
+  display: grid;
+  gap: 10px;
+  min-height: 5.5rem;
+  padding: 0 4px;
+}
+
+.inicio-rl__titulo {
+  margin: 0;
+  font-family: var(--fuente-titulos, 'Space Grotesk', sans-serif);
+  font-size: clamp(1.375rem, 2.6vw + 0.8rem, 2rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--ini-texto);
+  animation: inicio-rl-texto 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.inicio-rl--listo .inicio-rl__titulo {
+  color: var(--ini-menta);
+}
+
+.inicio-rl__detalle {
+  max-width: 44ch;
+  margin: 0 auto;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ini-texto-suave);
+}
+
+@keyframes inicio-rl-texto {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Acciones (error) */
+.inicio-rl__acciones {
+  display: flex;
+  justify-content: center;
+}
+
+.inicio-rl__boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 26px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #052A22;
+  background: linear-gradient(120deg, #2DD4A8 0%, #10B981 100%);
+  box-shadow: 0 10px 30px -12px rgba(16, 185, 129, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.inicio-rl__boton svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.inicio-rl__boton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px -12px rgba(16, 185, 129, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.inicio-rl__boton:active {
+  transform: translateY(0);
+}
+
+.inicio-rl__boton:focus-visible {
+  outline: 2px solid rgba(233, 255, 248, 0.85);
+  outline-offset: 4px;
+}
+
+.inicio-rl__pie {
+  text-align: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ini-texto-tenue);
+}
+
+.inicio-rl__solo-lector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* --- Móvil --------------------------------------------------------------- */
+
+@media (max-width: 480px) {
+  .inicio-rl__etapas li {
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+  }
+
+  .inicio-rl__detalle {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-height: 520px) {
+  .inicio-rl__centro {
+    gap: 14px;
+  }
+
+  .inicio-rl__pie {
+    display: none;
+  }
+}
+
+/* --- Movimiento reducido ------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .inicio-rl,
+  .inicio-rl__halo,
+  .inicio-rl__via-carril,
+  .inicio-rl__via-actividad,
+  .inicio-rl__bus,
+  .inicio-rl__bus-haz,
+  .inicio-rl__parada-nucleo,
+  .inicio-rl__parada-onda,
+  .inicio-rl__titulo {
+    animation: none !important;
+  }
+
+  .inicio-rl__via-luz,
+  .inicio-rl__bus-pos,
+  .inicio-rl__parada-anillo,
+  .inicio-rl__parada-nucleo,
+  .inicio-rl__parada-check {
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
+
+  .inicio-rl {
+    transition-duration: 200ms;
+  }
+
+  /* la actividad se indica con una línea fija y el anillo activo */
+  .inicio-rl__via-actividad {
+    stroke-dasharray: 2 6;
+  }
+}
