@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { CampoTexto } from '../../componentes/comunes/CampoTexto'
 import { BotonPrincipal } from '../../componentes/comunes/BotonPrincipal'
 import { BotonGoogle } from '../../componentes/comunes/BotonGoogle'
@@ -20,9 +20,8 @@ const VENTAJAS = [
 export function PaginaIniciarSesion() {
   const { iniciarSesion, iniciarSesionConGoogle } = useAutenticacion()
   const navegar = useNavigate()
-  const { abrirRecuperarContrasena } = useModalesAutenticacion()
-  const ubicacion = useLocation()
-  const [correo, setCorreo] = useState(ubicacion.state?.correoRegistro ?? '')
+  const { abrirRecuperarContrasena, abrirCrearCuenta } = useModalesAutenticacion()
+  const [correo, setCorreo] = useState('')
   const [contrasena, setContrasena] = useState('')
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
@@ -70,14 +69,6 @@ export function PaginaIniciarSesion() {
               Ingresa a tu cuenta para ver tus pasajes y tickets electrónicos.
             </p>
           </header>
-
-          {ubicacion.state?.cuentaCreada && (
-            <div className="pagina-autenticacion__aviso">
-              <AvisoAutenticacion tono="exito">
-                Tu cuenta se creó correctamente. Inicia sesión para continuar.
-              </AvisoAutenticacion>
-            </div>
-          )}
 
           <div className="pagina-autenticacion__social">
             <BotonGoogle alCredencial={manejarGoogle} alError={setError} deshabilitado={cargando} />
@@ -145,9 +136,9 @@ export function PaginaIniciarSesion() {
 
           <p className="pagina-autenticacion__pie">
             ¿No tienes una cuenta?{' '}
-            <NavLink to="/crear-cuenta" className="pagina-autenticacion__enlace">
+            <button type="button" className="pagina-autenticacion__enlace" onClick={abrirCrearCuenta}>
               Crear cuenta
-            </NavLink>
+            </button>
           </p>
         </div>
       </div>

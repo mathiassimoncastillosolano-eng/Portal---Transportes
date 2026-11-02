@@ -7,10 +7,8 @@ const ICONO_CHECK = (
 /**
  * Columna de marca de las pantallas de autenticación.
  *
- * Antes este bloque estaba duplicado literalmente en PaginaIniciarSesion y
- * PaginaCrearCuenta; aquí se parametriza (título, texto y ventajas) para que
- * ambas pantallas compartan exactamente el mismo tratamiento visual y un
- * cambio de diseño solo haya que hacerlo en un sitio.
+ * Se parametriza (título, texto y ventajas) para que cualquier pantalla de
+ * acceso comparta el mismo tratamiento visual.
  */
 export function PanelMarcaAutenticacion({ titulo, texto, ventajas = [] }) {
   return (

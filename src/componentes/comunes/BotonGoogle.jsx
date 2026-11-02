@@ -43,13 +43,11 @@ function medirAncho(elemento) {
  *
  * Integración con el modo oscuro
  * ------------------------------
- * El botón lo renderiza Google dentro de su propio contenedor, así que el CSS
- * de la aplicación no puede repintarlo: por eso antes aparecía un bloque
- * blanco sobre el lienzo oscuro. La solución es pedirle a GIS su variante
- * oficial oscura (`theme: 'filled_black'`) cuando el tema es oscuro, y la
- * clara (`outline`) cuando es claro. Así el fondo del botón es oscuro, el
- * logotipo de Google conserva sus colores originales y no hay rectángulo
- * blanco alrededor. Al cambiar de tema se vuelve a dibujar.
+ * Google dibuja el botón dentro de un iframe, así que el CSS de la aplicación
+ * no puede repintarlo. Se pide su variante oficial oscura (`filled_black`) en
+ * tema oscuro y `outline` en claro, y el contenedor declara
+ * `color-scheme: light` (ver botones.css) para que el navegador no pinte un
+ * lienzo blanco opaco alrededor del iframe. Al cambiar de tema se redibuja.
  *
  * Nada de esto altera el flujo de OAuth: la configuración de `initialize`, el
  * callback de la credencial y el contrato con el backend son los mismos.

@@ -153,10 +153,6 @@
   box-shadow: var(--sombra-marcada);
 }
 
-.pagina-autenticacion__tarjeta--ancha {
-  max-width: 540px;
-}
-
 /* ---------- Jerarquía tipográfica ---------- */
 
 .pagina-autenticacion__encabezado {
@@ -176,10 +172,6 @@
   color: var(--color-texto-secundario);
   font-size: var(--tamano-sm);
   line-height: 1.55;
-}
-
-.pagina-autenticacion__aviso {
-  margin-bottom: var(--espacio-5);
 }
 
 /* ---------- Google y separador ---------- */
@@ -338,8 +330,7 @@
     align-items: flex-start;
   }
 
-  .pagina-autenticacion__tarjeta,
-  .pagina-autenticacion__tarjeta--ancha {
+  .pagina-autenticacion__tarjeta {
     max-width: 560px;
     margin: calc(var(--espacio-6) * -1) auto 0;
   }
@@ -375,8 +366,7 @@
     background: var(--color-fondo);
   }
 
-  .pagina-autenticacion__tarjeta,
-  .pagina-autenticacion__tarjeta--ancha {
+  .pagina-autenticacion__tarjeta {
     max-width: none;
     margin-top: calc(var(--espacio-5) * -1);
     padding: var(--espacio-6) var(--espacio-5);
@@ -410,8 +400,7 @@
 }
 
 @media (max-width: 380px) {
-  .pagina-autenticacion__tarjeta,
-  .pagina-autenticacion__tarjeta--ancha {
+  .pagina-autenticacion__tarjeta {
     padding: var(--espacio-5) var(--espacio-4);
   }
 }

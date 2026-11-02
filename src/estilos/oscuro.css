@@ -139,20 +139,6 @@
   transform: none;
 }
 
-[data-theme='dark'] .barra-navegacion__boton-registro {
-  background: var(--color-superficie);
-  color: var(--color-texto-principal);
-  border-color: var(--borde-defecto);
-  box-shadow: none;
-}
-
-[data-theme='dark'] .barra-navegacion__boton-registro:hover {
-  background: var(--color-superficie-elevada);
-  border-color: var(--acento);
-  transform: none;
-  box-shadow: none;
-}
-
 [data-theme='dark'] .barra-navegacion__boton-perfil {
   background: var(--color-superficie);
   border: 1px solid var(--borde-defecto);
@@ -284,13 +270,14 @@
 }
 
 [data-theme='dark'] .boton-google {
-  background: var(--velo-superficie);
-  border: 1px solid var(--borde-intenso);
+  background: #131314;
+  border: 1px solid #8e918f;
+  color: #e3e3e3;
 }
 
 [data-theme='dark'] .boton-google:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.24);
+  background: #1e1f20;
+  border-color: #c4c7c5;
   box-shadow: none;
   transform: none;
 }
@@ -1150,15 +1137,10 @@
   background: linear-gradient(90deg, var(--borde-intenso), transparent);
 }
 
-/* Botón de Google: GIS dibuja su variante oficial oscura (filled_black).
-   El anillo propio sube de contraste para integrar ese negro casi puro con
-   la superficie azulada de la tarjeta. */
-[data-theme='dark'] .boton-google-contenedor__gis::after {
-  border-color: var(--borde-intenso);
-}
-
-[data-theme='dark'] .boton-google-contenedor__gis:hover::after {
-  border-color: rgba(255, 255, 255, 0.26);
+/* Botón de Google: GIS dibuja su variante oficial oscura (filled_black) y el
+   contenedor fuerza color-scheme: light para que no haya lienzo blanco. */
+[data-theme='dark'] .boton-google-contenedor__gis:focus-within {
+  box-shadow: var(--sombra-foco-verde);
 }
 
 [data-theme='dark'] .pagina-autenticacion__pie,

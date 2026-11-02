@@ -120,14 +120,9 @@ export function BarraNavegacion({ alAbrirInicioSesion }) {
               )}
             </div>
           ) : (
-            <>
-              <button type="button" className="barra-navegacion__boton-ingreso" onClick={alAbrirInicioSesion}>
-                Iniciar sesión
-              </button>
-              <NavLink to="/crear-cuenta" className="barra-navegacion__boton-registro">
-                Crear cuenta
-              </NavLink>
-            </>
+            <button type="button" className="barra-navegacion__boton-ingreso" onClick={alAbrirInicioSesion}>
+              Iniciar sesión
+            </button>
           )}
 
           <button
@@ -182,11 +177,6 @@ export function BarraNavegacion({ alAbrirInicioSesion }) {
             >
               Iniciar sesión
             </button>
-          )}
-          {!estaAutenticado && (
-            <NavLink to="/crear-cuenta" className="barra-navegacion__enlace-movil" onClick={() => setMenuMovilAbierto(false)}>
-              Crear cuenta
-            </NavLink>
           )}
         </nav>
       )}

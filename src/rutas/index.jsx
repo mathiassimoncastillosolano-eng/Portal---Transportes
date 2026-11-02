@@ -11,7 +11,6 @@ import { PaginaDetalleDestino } from '../paginas/destinos/PaginaDetalleDestino'
 import { PaginaServicios } from '../paginas/servicios/PaginaServicios'
 import { PaginaAyuda } from '../paginas/ayuda/PaginaAyuda'
 import { PaginaIniciarSesion } from '../paginas/autenticacion/PaginaIniciarSesion'
-import { PaginaCrearCuenta } from '../paginas/autenticacion/PaginaCrearCuenta'
 import { PaginaPerfil } from '../paginas/perfil/PaginaPerfil'
 import { PaginaMisPasajes } from '../paginas/perfil/PaginaMisPasajes'
 import { PaginaHistorial } from '../paginas/perfil/PaginaHistorial'
@@ -37,7 +36,6 @@ export function RutasApp() {
         <Route path="/servicios" element={<PaginaServicios />} />
         <Route path="/ayuda" element={<PaginaAyuda />} />
         <Route path="/iniciar-sesion" element={<PaginaIniciarSesion />} />
-        <Route path="/crear-cuenta" element={<PaginaCrearCuenta />} />
 
         <Route
           path="/perfil"
