@@ -58,7 +58,8 @@ class ClienteMercadoPagoHttpTest {
         synchronized (solicitudes) {
             solicitudes.add(Map.of("metodo", ex.getRequestMethod(), "ruta", ex.getRequestURI().toString(),
                     "auth", String.valueOf(ex.getRequestHeaders().getFirst("Authorization")),
-                    "idem", String.valueOf(ex.getRequestHeaders().getFirst("X-Idempotency-Key")), "cuerpo", cuerpo));
+                    "idem", String.valueOf(ex.getRequestHeaders().getFirst("X-Idempotency-Key")),
+                    "device", String.valueOf(ex.getRequestHeaders().getFirst("X-meli-session-id")), "cuerpo", cuerpo));
         }
         Respuesta r = respuestas.getOrDefault(ex.getRequestMethod() + " " + ex.getRequestURI().getPath(),
                 new Respuesta(404, "{\"errors\":[{\"code\":\"not_found\"}]}", 0));
@@ -131,6 +132,16 @@ class ClienteMercadoPagoHttpTest {
             assertEquals("invalid_transaction_amount", e.getCodigo());
         }
         assertTrue(solicitudes.isEmpty());
+    }
+
+    @Test
+    void enviaElDeviceIdEnLaCabeceraSoloSiExiste() {
+        respuestas.put("POST /v1/orders", new Respuesta(201, ORDEN_APROBADA, 0));
+        cliente.crearOrden(new SolicitudOrden("RL-9", new BigDecimal("10.00"), null, "a@b.com", null, null, "111111111",
+                "yape", "debit_card", "tok", 1, null, "device-abc"), "RL-9");
+        cliente.crearOrden(yapeCon(new BigDecimal("10.00"), "tok"), "RL-9");
+        assertEquals("device-abc", solicitudes.get(0).get("device"));
+        assertEquals("null", solicitudes.get(1).get("device"));
     }
 
     @Test
@@ -352,7 +363,7 @@ class ClienteMercadoPagoHttpTest {
     void propertyValueDeTipoDeDocumentoNoExponeNumeroNiCorreo() {
         respuestas.put("POST /v1/orders", new Respuesta(400, """
                 {"errors":[{"code":"property_value","message":"Invalid value",
-                "details":["$.payer.identification.type - value must be one of 'DNI', 'CE', 'RUC'","user@mail.com 12345678"]}]}""", 0));
+                 "details":["$.payer.identification.type - value must be one of 'DNI', 'CE', 'RUC'","user@mail.com 12345678"]}]}""", 0));
         ErrorMercadoPagoException e = assertThrows(ErrorMercadoPagoException.class, () -> cliente.crearOrden(solicitudTarjeta(), "k"));
         assertEquals(ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, e.getTipo());
         assertEquals("property_value", e.getCodigo());

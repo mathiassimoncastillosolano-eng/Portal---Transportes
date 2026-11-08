@@ -288,12 +288,13 @@ public class PagoServicio {
 
         if ("YAPE".equals(req.medioPago())) {
             return new SolicitudOrden(op.getReferenciaExterna(), op.getMonto(), descripcion, email,
-                    tipoDoc, numDoc, req.celular(), "yape", "debit_card", req.token(), 1, null);
+                    tipoDoc, numDoc, req.celular(), "yape", "debit_card", req.token(), 1, null, req.deviceId());
         }
         String tipo = req.tipoPago() == null ? "credit_card" : req.tipoPago();
         int cuotas = "credit_card".equals(tipo) && req.cuotas() != null ? req.cuotas() : 1;
         return new SolicitudOrden(op.getReferenciaExterna(), op.getMonto(), descripcion, email, tipoDoc, numDoc,
-                null, req.metodoPagoId(), tipo, req.token(), cuotas, propiedades.getValidacion3ds());
+                null, req.metodoPagoId(), tipo, req.token(), cuotas, propiedades.getValidacion3ds(),
+                req.deviceId());
     }
 
     private void crearOrdenEnMercadoPago(OperacionPago op, SolicitudOrden solicitud) {

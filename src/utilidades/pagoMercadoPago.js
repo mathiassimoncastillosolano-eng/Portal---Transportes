@@ -30,6 +30,11 @@ export const TARJETAS_PRUEBA = [
 
 const PATRON_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
+export function leerDeviceId() {
+  const id = globalThis.MP_DEVICE_SESSION_ID
+  return typeof id === 'string' && id.trim() ? id.trim() : null
+}
+
 export function soloDigitos(valor) {
   return String(valor ?? '').replace(/\D/g, '')
 }
@@ -76,6 +81,7 @@ export function construirSolicitudPagoTarjeta({ idViaje, tokenSesion, claveIdemp
     emailPagador: (datosTarjeta?.payer?.email ?? '').trim(),
     tipoDocumento: identificacion.type || null,
     numeroDocumento: identificacion.number ? String(identificacion.number).trim() : null,
+    ...(leerDeviceId() ? { deviceId: leerDeviceId() } : {}),
     ...(entorno ? { entorno } : {}),
   }
 }
@@ -91,6 +97,7 @@ export function construirSolicitudPagoYape({ idViaje, tokenSesion, claveIdempote
     cuotas: 1,
     emailPagador: valores.correo.trim(),
     celular: valores.celular,
+    ...(leerDeviceId() ? { deviceId: leerDeviceId() } : {}),
     ...(entorno ? { entorno } : {}),
   }
 }

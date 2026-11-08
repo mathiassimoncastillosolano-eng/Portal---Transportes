@@ -18,7 +18,15 @@ public record SolicitudOrden(
         String metodoPagoTipo,
         String token,
         int cuotas,
-        String validacion3ds) {
+        String validacion3ds,
+        String deviceId) {
+
+    public SolicitudOrden(String referenciaExterna, BigDecimal monto, String descripcion, String emailPagador,
+            String tipoDocumentoPagador, String numeroDocumentoPagador, String celularPagador, String metodoPagoId,
+            String metodoPagoTipo, String token, int cuotas, String validacion3ds) {
+        this(referenciaExterna, monto, descripcion, emailPagador, tipoDocumentoPagador, numeroDocumentoPagador,
+                celularPagador, metodoPagoId, metodoPagoTipo, token, cuotas, validacion3ds, null);
+    }
 
     /** Evita que el token aparezca en registros si alguien imprime la solicitud. */
     @Override

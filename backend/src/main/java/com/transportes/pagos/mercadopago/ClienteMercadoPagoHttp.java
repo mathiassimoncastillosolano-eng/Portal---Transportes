@@ -63,7 +63,8 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
 
     @Override
     public OrdenMercadoPago crearOrden(SolicitudOrden s, String claveIdempotencia) {
-        return leerOrden(enviar("POST", "/v1/orders", construirCuerpoOrden(s).toString(), claveIdempotencia));
+        return leerOrden(enviar("POST", "/v1/orders", construirCuerpoOrden(s).toString(), claveIdempotencia,
+                s.deviceId()));
     }
 
     @Override
@@ -169,6 +170,10 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
     // ------------------------------------------------------------------ HTTP
 
     private JsonNode enviar(String metodo, String ruta, String cuerpo, String claveIdempotencia) {
+        return enviar(metodo, ruta, cuerpo, claveIdempotencia, null);
+    }
+
+    private JsonNode enviar(String metodo, String ruta, String cuerpo, String claveIdempotencia, String deviceId) {
         if (!configurado()) {
             throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.NO_CONFIGURADO,
                     "Mercado Pago no está configurado para este entorno (falta su Access Token).");
@@ -180,6 +185,9 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
                 .header("User-Agent", "rutalibre-backend/1.0");
         if (claveIdempotencia != null) {
             b.header("X-Idempotency-Key", claveIdempotencia);
+        }
+        if (deviceId != null && !deviceId.isBlank()) {
+            b.header("X-meli-session-id", deviceId.strip());
         }
         if ("GET".equals(metodo)) {
             b.GET();
