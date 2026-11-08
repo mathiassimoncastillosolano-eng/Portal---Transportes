@@ -107,7 +107,16 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
      * (Perú).
      */
     ObjectNode construirCuerpoOrden(SolicitudOrden s) {
-        String monto = s.monto().setScale(2, RoundingMode.UNNECESSARY).toPlainString();
+        BigDecimal importe = s.monto();
+        if (importe == null || importe.signum() <= 0 || importe.stripTrailingZeros().scale() > 2) {
+            throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, 0,
+                    "invalid_transaction_amount", "El importe de la order no es válido.", null);
+        }
+        if (s.token() == null || s.token().isBlank()) {
+            throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, 0,
+                    "missing_payment_token", "Falta el token de pago.", null);
+        }
+        String monto = importe.setScale(2, RoundingMode.UNNECESSARY).toPlainString();
 
         ObjectNode cuerpo = json.createObjectNode();
         cuerpo.put("type", "online");

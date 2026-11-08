@@ -116,6 +116,40 @@ class ClienteMercadoPagoHttpTest {
         assertEquals("required", seguridad.get("liability_shift").asText());
     }
 
+    private SolicitudOrden yapeCon(BigDecimal monto, String token) {
+        return new SolicitudOrden("RL-9", monto, null, "a@b.com", null, null, "111111111", "yape", "debit_card", token,
+                1, null);
+    }
+
+    @Test
+    void rechazaImporteNuloCeroNegativoOConPrecisionInvalidaSinLlamarAMercadoPago() {
+        for (BigDecimal monto : new BigDecimal[] { null, BigDecimal.ZERO, new BigDecimal("-5.00"),
+                new BigDecimal("10.005") }) {
+            ErrorMercadoPagoException e = assertThrows(ErrorMercadoPagoException.class,
+                    () -> cliente.crearOrden(yapeCon(monto, "tok"), "RL-9"));
+            assertEquals(ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, e.getTipo());
+            assertEquals("invalid_transaction_amount", e.getCodigo());
+        }
+        assertTrue(solicitudes.isEmpty());
+    }
+
+    @Test
+    void rechazaTokenAusenteSinLlamarAMercadoPago() {
+        for (String token : new String[] { null, "", "  " }) {
+            ErrorMercadoPagoException e = assertThrows(ErrorMercadoPagoException.class,
+                    () -> cliente.crearOrden(yapeCon(new BigDecimal("10.00"), token), "RL-9"));
+            assertEquals("missing_payment_token", e.getCodigo());
+        }
+        assertTrue(solicitudes.isEmpty());
+    }
+
+    @Test
+    void totalYPagoLlevanElMismoImporteConDosDecimales() {
+        JsonNode cuerpo = cliente.construirCuerpoOrden(yapeCon(new BigDecimal("35.5"), "tok"));
+        assertEquals("35.50", cuerpo.get("total_amount").asText());
+        assertEquals("35.50", cuerpo.get("transactions").get("payments").get(0).get("amount").asText());
+    }
+
     @Test
     void cuerpoDeYapeLlevaTelefonoYSin3ds() {
         SolicitudOrden yape = new SolicitudOrden("RL-2", new BigDecimal("50"), null, "a@b.com", null, null, "111111111",
@@ -318,7 +352,7 @@ class ClienteMercadoPagoHttpTest {
     void propertyValueDeTipoDeDocumentoNoExponeNumeroNiCorreo() {
         respuestas.put("POST /v1/orders", new Respuesta(400, """
                 {"errors":[{"code":"property_value","message":"Invalid value",
-                 "details":["$.payer.identification.type - value must be one of 'DNI', 'CE', 'RUC'","user@mail.com 12345678"]}]}""", 0));
+                "details":["$.payer.identification.type - value must be one of 'DNI', 'CE', 'RUC'","user@mail.com 12345678"]}]}""", 0));
         ErrorMercadoPagoException e = assertThrows(ErrorMercadoPagoException.class, () -> cliente.crearOrden(solicitudTarjeta(), "k"));
         assertEquals(ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, e.getTipo());
         assertEquals("property_value", e.getCodigo());

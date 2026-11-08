@@ -324,6 +324,9 @@ public class PagoServicio {
                 }
             }
             case SOLICITUD_INVALIDA, NO_CONFIGURADO, NO_ENCONTRADO -> {
+                log.error("Order rechazada: operacion={}, entorno={}, medio={}/{}, monto={} PEN, http={}, codigo={}, detalle={}",
+                        op.getReferenciaExterna(), entorno, solicitud.metodoPagoId(), solicitud.metodoPagoTipo(),
+                        solicitud.monto(), ultimo.getEstadoHttp(), ultimo.getCodigo(), ultimo.getDetalle());
                 if (entorno == EntornoPago.SANDBOX && "invalid_email_for_sandbox".equals(ultimo.getCodigo())) {
                     log.error("Mercado Pago Sandbox exige un correo de pagador de prueba: configura MERCADOPAGO_EMAIL_PAGADOR_PRUEBA");
                 }
