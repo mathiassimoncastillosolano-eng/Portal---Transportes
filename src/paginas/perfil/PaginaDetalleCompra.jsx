@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useAutenticacion } from '../../hooks/useAutenticacion'
+import { adaptarBoletoReal, puedeIniciarPostergacion } from '../../utilidades/postergacion'
 import { obtenerCompra } from '../../servicios/comprasServicio'
 import { TarjetaTicket } from '../../componentes/perfil/TarjetaTicket'
 import { PanelAsincrono } from '../../componentes/carga'
@@ -8,6 +10,7 @@ import './paginaMisPasajes.css'
 /** /perfil/pasajes/:idVenta — siempre consulta al backend, que solo entrega compras del usuario autenticado. */
 export function PaginaDetalleCompra() {
   const { idVenta } = useParams()
+  const { usuario } = useAutenticacion()
   const [compra, setCompra] = useState(null)
   const [estado, setEstado] = useState('cargando')
   const [error, setError] = useState('')
@@ -62,7 +65,21 @@ export function PaginaDetalleCompra() {
           estadoError={{ titulo: 'No pudimos abrir esta compra' }}
         >
           {() => compra && (
-            <TarjetaTicket compra={compra} onDescargar={descargarPdf} descargando={descargando} errorPdf={errorPdf} />
+            <TarjetaTicket
+              compra={compra}
+              onDescargar={descargarPdf}
+              descargando={descargando}
+              errorPdf={errorPdf}
+              accionBoleto={(boleto) => puedeIniciarPostergacion(compra) && (
+                <Link
+                  className="pagina-mis-pasajes__postergar"
+                  to={`/postergar/${boleto.idPasaje}`}
+                  state={{ pasaje: adaptarBoletoReal(compra, boleto, usuario?.id) }}
+                >
+                  Postergar este pasaje
+                </Link>
+              )}
+            />
           )}
         </PanelAsincrono>
       </div>

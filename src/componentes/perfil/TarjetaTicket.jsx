@@ -11,7 +11,7 @@ function motivoSinDocumento(compra) {
 }
 
 /** Detalle de una compra real: trayecto, datos del viaje, un elemento por boleto y total. */
-export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf }) {
+export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, accionBoleto }) {
   const estado = estadoVisible(compra)
   const faltantes = compra.incompleta ? datosFaltantes(compra) : []
   const aviso = avisoTotal(compra)
@@ -75,6 +75,7 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf }) {
                 <strong className="tarjeta-ticket__codigo">{boleto.numeroBoleto}</strong>
               </div>
               <strong className="tarjeta-ticket__boleto-precio">{formatearPrecio(boleto.precio, compra.moneda)}</strong>
+              {accionBoleto && <div className="tarjeta-ticket__boleto-accion">{accionBoleto(boleto, compra)}</div>}
             </div>
           ))}
         </section>

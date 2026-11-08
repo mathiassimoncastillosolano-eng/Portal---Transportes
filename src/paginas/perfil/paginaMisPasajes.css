@@ -56,3 +56,17 @@
 .pagina-mis-pasajes__subtitulo::after { content: ''; flex: 1; height: 1px; background: var(--color-borde); }
 .pagina-mis-pasajes__volver { text-decoration: none; }
 .pagina-mis-pasajes__volver:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+
+.pagina-mis-pasajes__postergar {
+  display: inline-flex; align-items: center; gap: .4rem; min-height: 2.5rem; padding: .5rem 1rem;
+  border: 1.5px solid var(--color-borde-marca); border-radius: var(--radio-pastilla);
+  color: var(--color-texto-marca); font-size: .88rem; font-weight: 700; text-decoration: none;
+  transition: background var(--transicion-rapida), transform var(--transicion-rapida);
+}
+.pagina-mis-pasajes__postergar:hover { background: var(--color-superficie-marca); transform: translateY(-1px); }
+.pagina-mis-pasajes__postergar:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+
+.pagina-mis-pasajes__mock { padding: .75rem 1rem; border: 1px dashed var(--color-borde-fuerte); border-radius: var(--radio-md); background: var(--color-superficie-1); }
+.pagina-mis-pasajes__mock summary { cursor: pointer; font-size: .82rem; font-weight: 700; color: var(--color-texto-secundario); }
+.pagina-mis-pasajes__mock ul { display: grid; gap: .5rem; margin: .8rem 0 0; padding: 0; list-style: none; }
+.pagina-mis-pasajes__mock li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; font-size: .85rem; color: var(--color-texto-principal); }

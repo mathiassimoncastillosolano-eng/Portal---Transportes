@@ -7,18 +7,18 @@ const PASOS = [
   { clave: 'pago', etiqueta: 'Pago' },
 ]
 
-export function IndicadorProgreso({ pasoActual }) {
-  const indiceActual = PASOS.findIndex((paso) => paso.clave === pasoActual)
+export function IndicadorProgreso({ pasoActual, pasos = PASOS, etiqueta = 'Progreso de la compra' }) {
+  const indiceActual = pasos.findIndex((paso) => paso.clave === pasoActual)
 
   return (
-    <ol className="indicador-progreso" aria-label="Progreso de la compra">
-      {PASOS.map((paso, indice) => {
+    <ol className="indicador-progreso" aria-label={etiqueta}>
+      {pasos.map((paso, indice) => {
         const completado = indice < indiceActual
         const activo = indice === indiceActual
         const estado = completado ? 'completado' : activo ? 'activo' : 'pendiente'
 
         return (
-          <li key={paso.clave} className={`indicador-progreso__paso indicador-progreso__paso--${estado}`}>
+          <li key={paso.clave} className={`indicador-progreso__paso indicador-progreso__paso--${estado}`} aria-current={activo ? 'step' : undefined}>
             <span className="indicador-progreso__marcador" aria-hidden="true">
               {completado ? (
                 <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
@@ -29,7 +29,7 @@ export function IndicadorProgreso({ pasoActual }) {
               )}
             </span>
             <span className="indicador-progreso__etiqueta">{paso.etiqueta}</span>
-            {indice < PASOS.length - 1 && <span className="indicador-progreso__linea" aria-hidden="true" />}
+            {indice < pasos.length - 1 && <span className="indicador-progreso__linea" aria-hidden="true" />}
           </li>
         )
       })}

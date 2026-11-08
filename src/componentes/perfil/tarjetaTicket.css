@@ -89,3 +89,5 @@
   .tarjeta-ticket__acciones button { transition: none; }
   .tarjeta-ticket__acciones button:hover:not(:disabled) { transform: none; }
 }
+
+.tarjeta-ticket__boleto > .tarjeta-ticket__boleto-accion { grid-column: 1 / -1; display: flex; }

@@ -15,6 +15,7 @@ import { PaginaPerfil } from '../paginas/perfil/PaginaPerfil'
 import { PaginaMisPasajes } from '../paginas/perfil/PaginaMisPasajes'
 import { PaginaHistorial } from '../paginas/perfil/PaginaHistorial'
 import { PaginaDetalleCompra } from '../paginas/perfil/PaginaDetalleCompra'
+import { PaginaPostergarPasaje } from '../paginas/perfil/PaginaPostergarPasaje'
 import { PaginaNoEncontrada } from '../paginas/PaginaNoEncontrada'
 
 export function RutasApp() {
@@ -28,6 +29,14 @@ export function RutasApp() {
           element={
             <RutaProtegida>
               <PaginaReserva />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/postergar/:idPasaje"
+          element={
+            <RutaProtegida>
+              <PaginaPostergarPasaje />
             </RutaProtegida>
           }
         />

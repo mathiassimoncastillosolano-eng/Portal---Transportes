@@ -48,7 +48,7 @@ const ICONOS_SERVICIO = {
  * (empresa, horario, comodidades) y una franja de precio + CTA, similar en
  * jerarquía a la referencia pero con la identidad visual de RutaLibre.
  */
-export function TarjetaResultadoViaje({ resultado, esMasEconomico, alSeleccionar, estadoReserva }) {
+export function TarjetaResultadoViaje({ resultado, esMasEconomico, alSeleccionar, estadoReserva, textoAccion = 'Elegir asientos →' }) {
   // La página pasa el estado ya refrescado con el reloj del servidor; sin él se calcula aquí.
   const estadoActual = estadoReserva ?? estadoReservaActual(resultado, Date.now())
   const reservable = estadoActual === ESTADOS_RESERVA.DISPONIBLE
@@ -133,7 +133,7 @@ export function TarjetaResultadoViaje({ resultado, esMasEconomico, alSeleccionar
           ancho="100%"
           descritoPor={reservable ? undefined : idAviso}
         >
-          {reservable ? 'Elegir asientos →' : textos?.boton ?? 'No disponible'}
+          {reservable ? textoAccion : textos?.boton ?? 'No disponible'}
         </BotonPrincipal>
       </div>
     </article>

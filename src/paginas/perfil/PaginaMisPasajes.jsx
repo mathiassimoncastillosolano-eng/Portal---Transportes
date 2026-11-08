@@ -4,6 +4,7 @@ import { listarCompras } from '../../servicios/comprasServicio'
 import { agruparPasajes } from '../../utilidades/pasajesVista'
 import { TarjetaPasaje } from '../../componentes/perfil/TarjetaPasaje'
 import { PanelAsincrono } from '../../componentes/carga'
+import { PasajesMockPostergacion } from '../../componentes/postergacion/PasajesMockPostergacion'
 import './paginaMisPasajes.css'
 
 export function PaginaMisPasajes() {
@@ -87,6 +88,7 @@ export function PaginaMisPasajes() {
           </>
         )}
       </PanelAsincrono>
+      {import.meta.env.DEV && <PasajesMockPostergacion idCliente={usuario?.id ?? 'cliente-mock'} />}
     </section>
   )
 }

@@ -1,0 +1,224 @@
+import { useCallback, useEffect, useReducer, useRef } from 'react'
+import {
+  CODIGO_ERROR_PROCESAMIENTO,
+  ESTADOS_PAGO,
+  aplicarTarifaDeEscenario,
+  calcularComparacion,
+  confirmarPostergacionSimulada,
+  consultarElegibilidad,
+  procesarPagoSimulado,
+} from '../servicios/postergacionMock'
+import { CODIGOS_RECHAZO, puedeContinuarDesdeTarifa } from '../utilidades/postergacion'
+
+export const FASES = Object.freeze({
+  VALIDANDO: 'validando',
+  VIAJE: 'viaje',
+  ASIENTO: 'asiento',
+  TARIFA: 'tarifa',
+  PAGO: 'pago',
+  CONFIRMANDO: 'confirmando',
+  RESULTADO: 'resultado',
+})
+
+const ORDEN_ATRAS = {
+  [FASES.ASIENTO]: FASES.VIAJE,
+  [FASES.TARIFA]: FASES.ASIENTO,
+  [FASES.PAGO]: FASES.TARIFA,
+}
+
+function estadoInicial() {
+  return {
+    fase: FASES.VALIDANDO,
+    viaje: null,
+    asiento: null,
+    comparacion: null,
+    aceptaCondiciones: false,
+    metodo: 'tarjeta',
+    procesando: false,
+    busqueda: null,
+    intentos: [],
+    avisoPago: null,
+    versionMapa: 0,
+    resultado: null,
+  }
+}
+
+function reductor(estado, accion) {
+  switch (accion.tipo) {
+    case 'reiniciar':
+      return estadoInicial()
+    case 'elegibilidad-ok':
+      return { ...estado, fase: FASES.VIAJE }
+    case 'rechazar':
+      return { ...estado, fase: FASES.RESULTADO, procesando: false, resultado: { exito: false, ...accion.datos } }
+    case 'guardar-busqueda':
+      return { ...estado, busqueda: accion.busqueda }
+    case 'elegir-viaje':
+      return { ...estado, viaje: accion.viaje, asiento: null, comparacion: null, aceptaCondiciones: false, avisoPago: null, fase: FASES.ASIENTO }
+    case 'elegir-asiento':
+      return { ...estado, asiento: accion.asiento }
+    case 'ir-a-tarifa':
+      return { ...estado, comparacion: accion.comparacion, aceptaCondiciones: false, fase: FASES.TARIFA }
+    case 'aceptar':
+      return { ...estado, aceptaCondiciones: accion.valor }
+    case 'ir-a-pago':
+      return { ...estado, fase: FASES.PAGO, avisoPago: null }
+    case 'metodo':
+      return { ...estado, metodo: accion.metodo, avisoPago: null }
+    case 'iniciar-pago':
+      return { ...estado, procesando: true, avisoPago: null }
+    case 'confirmando':
+      return { ...estado, fase: FASES.CONFIRMANDO, procesando: true, avisoPago: null }
+    case 'intento':
+      return { ...estado, intentos: [...estado.intentos, accion.intento] }
+    case 'aviso-pago': {
+      const fase = estado.fase === FASES.CONFIRMANDO
+        ? (estado.comparacion?.requierePago ? FASES.PAGO : FASES.TARIFA)
+        : estado.fase
+      return { ...estado, fase, procesando: false, avisoPago: accion.aviso }
+    }
+    case 'exito':
+      return { ...estado, fase: FASES.RESULTADO, procesando: false, resultado: { exito: true, ...accion.datos } }
+    case 'reelegir-asiento':
+      return { ...estado, fase: FASES.ASIENTO, asiento: null, comparacion: null, aceptaCondiciones: false, procesando: false, resultado: null, versionMapa: estado.versionMapa + 1 }
+    case 'volver':
+      return { ...estado, fase: ORDEN_ATRAS[estado.fase] ?? estado.fase, avisoPago: null, aceptaCondiciones: false }
+    default:
+      return estado
+  }
+}
+
+export function usePostergacion({ pasaje, idCliente, escenario, alEscenarioConsumido }) {
+  const [estado, despachar] = useReducer(reductor, undefined, estadoInicial)
+  const enVuelo = useRef(false)
+  const escenarioRef = useRef(escenario)
+  escenarioRef.current = escenario
+  const estadoRef = useRef(estado)
+  estadoRef.current = estado
+
+  useEffect(() => {
+    let cancelado = false
+    enVuelo.current = false
+    despachar({ tipo: 'reiniciar' })
+    consultarElegibilidad(pasaje, idCliente).then((resultado) => {
+      if (cancelado) return
+      if (resultado.elegible) despachar({ tipo: 'elegibilidad-ok' })
+      else despachar({ tipo: 'rechazar', datos: { codigo: resultado.codigo, mensaje: resultado.mensaje, motivoInicial: true } })
+    })
+    return () => { cancelado = true }
+  }, [pasaje.idPasaje, pasaje.idCliente, idCliente])
+
+  const guardarBusqueda = useCallback((busqueda) => despachar({ tipo: 'guardar-busqueda', busqueda }), [])
+
+  const elegirViaje = useCallback((viaje) => {
+    despachar({ tipo: 'elegir-viaje', viaje: aplicarTarifaDeEscenario(viaje, pasaje, escenarioRef.current) })
+  }, [pasaje])
+
+  const elegirAsiento = useCallback((asiento) => {
+    const actual = estadoRef.current.asiento
+    const mismo = actual && actual.idAsiento === asiento.idAsiento
+    despachar({ tipo: 'elegir-asiento', asiento: mismo ? null : asiento })
+  }, [])
+
+  const continuarDesdeAsiento = useCallback(() => {
+    const { viaje, asiento } = estadoRef.current
+    if (!viaje || !asiento) return
+    despachar({ tipo: 'ir-a-tarifa', comparacion: calcularComparacion(pasaje, viaje) })
+  }, [pasaje])
+
+  const aceptarCondiciones = useCallback((valor) => despachar({ tipo: 'aceptar', valor }), [])
+  const cambiarMetodo = useCallback((metodo) => despachar({ tipo: 'metodo', metodo }), [])
+  const volver = useCallback(() => despachar({ tipo: 'volver' }), [])
+  const reelegirAsiento = useCallback(() => despachar({ tipo: 'reelegir-asiento' }), [])
+
+  const manejarFallo = useCallback((fallo) => {
+    if (fallo?.codigo === CODIGOS_RECHAZO.ASIENTO_NO_DISPONIBLE) {
+      alEscenarioConsumido?.()
+      despachar({ tipo: 'rechazar', datos: { codigo: fallo.codigo, mensaje: fallo.message, puedeReelegirAsiento: true } })
+      return
+    }
+    if (fallo?.codigo === CODIGO_ERROR_PROCESAMIENTO) {
+      despachar({ tipo: 'aviso-pago', aviso: { tipo: 'error', mensaje: fallo.message } })
+      return
+    }
+    despachar({ tipo: 'rechazar', datos: { codigo: fallo?.codigo ?? 'DESCONOCIDO', mensaje: fallo?.message } })
+  }, [alEscenarioConsumido])
+
+  const confirmar = useCallback(async (pago = null) => {
+    const { viaje, asiento, comparacion } = estadoRef.current
+    despachar({ tipo: 'confirmando' })
+    try {
+      const respuesta = await confirmarPostergacionSimulada({
+        pasaje, viaje, asiento, comparacion, idCliente, escenario: escenarioRef.current, pago,
+      })
+      despachar({
+        tipo: 'exito',
+        datos: { pasaje: respuesta.pasaje, pago: respuesta.pago, montoAdicional: comparacion.montoAPagar, comparacion },
+      })
+    } catch (fallo) {
+      manejarFallo(fallo)
+    } finally {
+      enVuelo.current = false
+    }
+  }, [pasaje, idCliente, manejarFallo])
+
+  const pagar = useCallback(async () => {
+    if (enVuelo.current) return
+    enVuelo.current = true
+    const { viaje, asiento, comparacion, metodo, intentos } = estadoRef.current
+    despachar({ tipo: 'iniciar-pago' })
+    const numero = intentos.length + 1
+    try {
+      const pago = await procesarPagoSimulado({
+        viaje, asiento, monto: comparacion.montoAPagar, metodo, escenario: escenarioRef.current,
+      })
+      despachar({
+        tipo: 'intento',
+        intento: { numero, metodo, resultado: pago.estado, referencia: pago.referencia, monto: pago.monto, mensaje: pago.mensaje, hora: Date.now() },
+      })
+      if (pago.estado === ESTADOS_PAGO.APROBADO) {
+        await confirmar(pago)
+        return
+      }
+      despachar({
+        tipo: 'aviso-pago',
+        aviso: { tipo: pago.estado === ESTADOS_PAGO.PENDIENTE ? 'pendiente' : 'rechazado', mensaje: pago.mensaje },
+      })
+    } catch (fallo) {
+      despachar({
+        tipo: 'intento',
+        intento: { numero, metodo, resultado: fallo?.codigo ?? 'ERROR', referencia: null, monto: comparacion.montoAPagar, mensaje: fallo?.message, hora: Date.now() },
+      })
+      manejarFallo(fallo)
+    } finally {
+      enVuelo.current = false
+    }
+  }, [confirmar, manejarFallo])
+
+  const continuarDesdeTarifa = useCallback(() => {
+    const { comparacion, aceptaCondiciones } = estadoRef.current
+    if (enVuelo.current || !puedeContinuarDesdeTarifa(comparacion, aceptaCondiciones)) return
+    if (comparacion.requierePago) {
+      despachar({ tipo: 'ir-a-pago' })
+      return
+    }
+    enVuelo.current = true
+    confirmar(null)
+  }, [confirmar])
+
+  return {
+    estado,
+    acciones: {
+      guardarBusqueda,
+      elegirViaje,
+      elegirAsiento,
+      continuarDesdeAsiento,
+      aceptarCondiciones,
+      continuarDesdeTarifa,
+      cambiarMetodo,
+      pagar,
+      volver,
+      reelegirAsiento,
+    },
+  }
+}
