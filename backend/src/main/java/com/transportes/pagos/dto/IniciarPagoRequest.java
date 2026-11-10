@@ -33,7 +33,7 @@ public record IniciarPagoRequest(
         @Size(max = 9) @Pattern(regexp = "^\\d*$", message = "Celular no válido") String celular,
         @Size(max = 12) @Pattern(regexp = "^(SANDBOX|PRODUCTION)?$", message = "Entorno de pago no válido")
         String entorno,
-        @Size(max = 200) @Pattern(regexp = "^[A-Za-z0-9._-]*$", message = "Identificador de dispositivo no válido")
+        @Size(max = 1000) @Pattern(regexp = "^[\\x21-\\x7E]*$", message = "Identificador de dispositivo no válido")
         String deviceId) {
 
     @Override
