@@ -2,6 +2,7 @@
 // La Public Key es pública por diseño; el Access Token NUNCA debe estar en el frontend.
 
 const URL_SDK = 'https://sdk.mercadopago.com/js/v2'
+const URL_SEGURIDAD = 'https://www.mercadopago.com/v2/security.js'
 
 /**
  * Public Key de PRUEBA heredada (variable de Vercel anterior a los entornos). Solo sirve como respaldo para Sandbox
@@ -36,6 +37,16 @@ function cargarScript() {
   return promesaSdk
 }
 
+function cargarSeguridad() {
+  if (typeof document === 'undefined') return
+  if (document.querySelector(`script[src="${URL_SEGURIDAD}"]`)) return
+  const script = document.createElement('script')
+  script.src = URL_SEGURIDAD
+  script.async = true
+  script.setAttribute('view', 'checkout')
+  document.body.appendChild(script)
+}
+
 /** Instancia de MercadoPago (locale es-PE) para la Public Key del entorno elegido. */
 export async function obtenerMercadoPago(publicKey) {
   const clave = (publicKey ?? '').trim()
@@ -43,6 +54,7 @@ export async function obtenerMercadoPago(publicKey) {
     throw new Error('Falta la Public Key de Mercado Pago para este entorno. Avisa al administrador.')
   }
   if (instancias.has(clave)) return instancias.get(clave)
+  cargarSeguridad()
   const MercadoPago = await cargarScript()
   const instancia = new MercadoPago(clave, { locale: 'es-PE' })
   instancias.set(clave, instancia)

@@ -35,7 +35,7 @@ export function leerDeviceId() {
   return typeof id === 'string' && id.trim() ? id.trim() : null
 }
 
-export async function esperarDeviceId({ leer = leerDeviceId, dormir = (ms) => new Promise((r) => setTimeout(r, ms)), maxEsperaMs = 2000, intervaloMs = 100 } = {}) {
+export async function esperarDeviceId({ leer = leerDeviceId, dormir = (ms) => new Promise((r) => setTimeout(r, ms)), maxEsperaMs = 4000, intervaloMs = 100 } = {}) {
   let transcurrido = 0
   let id = leer()
   while (!id && transcurrido < maxEsperaMs) {
