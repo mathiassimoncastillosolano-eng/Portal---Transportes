@@ -12,7 +12,6 @@ import { AvisoResultadoPago, CompraConfirmada, Desafio3ds, PagoProcesando } from
 import {
   TOPE_MAXIMO_YAPE,
   VALORES_YAPE_INICIALES,
-  esperarDeviceId,
   construirSolicitudPagoTarjeta,
   construirSolicitudPagoYape,
   describirEstadoPago,
@@ -39,7 +38,7 @@ import {
   nuevaClaveIdempotencia,
   obtenerConfiguracionPago,
 } from '../../servicios/pagosServicio'
-import { PUBLIC_KEY_SANDBOX_RESPALDO, crearTokenYape } from '../../servicios/mercadoPagoSdk'
+import { PUBLIC_KEY_SANDBOX_RESPALDO, asegurarDeviceId, crearTokenYape } from '../../servicios/mercadoPagoSdk'
 import { useTema } from '../../hooks/useTema'
 import {
   dniConDatosDistintos,
@@ -836,7 +835,7 @@ export function PaginaReserva() {
       setCamposTocadosPago(Object.fromEntries(Object.keys(datosYape).map((campo) => [campo, true])))
       if (Object.keys(errores).length > 0) return null
       const token = await crearTokenYape({ ...datosYape, publicKey: publicKeyPago })
-      await esperarDeviceId()
+      await asegurarDeviceId()
       return construirSolicitudPagoYape({
         idViaje, tokenSesion, claveIdempotencia, token, valores: datosYape, entorno: entornoPago,
       })
@@ -854,7 +853,7 @@ export function PaginaReserva() {
       throw new Error('Revisa los datos de la tarjeta marcados en el formulario.')
     }
     const datosAdicionales = await Promise.resolve(controlador.getAdditionalData?.()).catch(() => null)
-    await esperarDeviceId()
+    await asegurarDeviceId()
     return construirSolicitudPagoTarjeta({
       idViaje, tokenSesion, claveIdempotencia, datosTarjeta, datosAdicionales, entorno: entornoPago,
     })

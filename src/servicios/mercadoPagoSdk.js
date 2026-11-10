@@ -1,6 +1,8 @@
 // Carga de MercadoPago.js v2 (SDK oficial) e inicialización con la Public Key.
 // La Public Key es pública por diseño; el Access Token NUNCA debe estar en el frontend.
 
+import { esperarDeviceId } from '../utilidades/pagoMercadoPago'
+
 const URL_SDK = 'https://sdk.mercadopago.com/js/v2'
 const URL_SEGURIDAD = 'https://www.mercadopago.com/v2/security.js'
 
@@ -47,6 +49,13 @@ function cargarSeguridad() {
   document.body.appendChild(script)
 }
 
+export async function asegurarDeviceId() {
+  const desdeSdk = await esperarDeviceId({ maxEsperaMs: 3000 })
+  if (desdeSdk) return desdeSdk
+  cargarSeguridad()
+  return esperarDeviceId({ maxEsperaMs: 3000 })
+}
+
 /** Instancia de MercadoPago (locale es-PE) para la Public Key del entorno elegido. */
 export async function obtenerMercadoPago(publicKey) {
   const clave = (publicKey ?? '').trim()
@@ -54,7 +63,6 @@ export async function obtenerMercadoPago(publicKey) {
     throw new Error('Falta la Public Key de Mercado Pago para este entorno. Avisa al administrador.')
   }
   if (instancias.has(clave)) return instancias.get(clave)
-  cargarSeguridad()
   const MercadoPago = await cargarScript()
   const instancia = new MercadoPago(clave, { locale: 'es-PE' })
   instancias.set(clave, instancia)
