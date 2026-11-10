@@ -20,6 +20,8 @@ final class MensajesPago {
             Map.entry("cc_rejected_card_disabled", "La tarjeta está deshabilitada. Comunícate con tu banco."),
             Map.entry("cc_rejected_duplicated_payment", "Ya existe un pago igual reciente. Revisa tus movimientos antes de reintentar."),
             Map.entry("cc_rejected_high_risk", "El pago fue rechazado por seguridad. Usa otro medio de pago."),
+            Map.entry("high_risk", "Mercado Pago rechazó el pago por su control de seguridad. Intenta con otro medio de pago o comunícate con Mercado Pago."),
+            Map.entry("rejected_high_risk", "Mercado Pago rechazó el pago por su control de seguridad. Intenta con otro medio de pago o comunícate con Mercado Pago."),
             Map.entry("cc_rejected_blacklist", "El pago fue rechazado. Usa otro medio de pago."),
             Map.entry("cc_rejected_max_attempts", "Alcanzaste el límite de intentos. Usa otra tarjeta."),
             Map.entry("max_attempts_exceeded", "Alcanzaste el límite de intentos permitidos."),

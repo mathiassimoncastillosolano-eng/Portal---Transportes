@@ -10,7 +10,7 @@
 /** Tope por operación de Yape (S/ 500, 900 o 2000 según la configuración del pagador en su app). */
 export const TOPE_MAXIMO_YAPE = 2000
 
-export const VALORES_YAPE_INICIALES = { celular: '', codigoAprobacion: '', correo: '' }
+export const VALORES_YAPE_INICIALES = { celular: '', codigoAprobacion: '', correo: '', dni: '' }
 
 /** Celulares de prueba oficiales de Yape para Sandbox (OTP 123456). */
 export const CELULARES_PRUEBA_YAPE = [
@@ -35,6 +35,17 @@ export function leerDeviceId() {
   return typeof id === 'string' && id.trim() ? id.trim() : null
 }
 
+export async function esperarDeviceId({ leer = leerDeviceId, dormir = (ms) => new Promise((r) => setTimeout(r, ms)), maxEsperaMs = 2000, intervaloMs = 100 } = {}) {
+  let transcurrido = 0
+  let id = leer()
+  while (!id && transcurrido < maxEsperaMs) {
+    await dormir(intervaloMs)
+    transcurrido += intervaloMs
+    id = leer()
+  }
+  return id
+}
+
 export function soloDigitos(valor) {
   return String(valor ?? '').replace(/\D/g, '')
 }
@@ -50,6 +61,8 @@ export function validarPagoYape(valores, { sandbox = false } = {}) {
 
   if (!valores.correo?.trim()) errores.correo = 'Ingresa tu correo para enviarte el comprobante.'
   else if (!PATRON_CORREO.test(valores.correo.trim())) errores.correo = 'Ingresa un correo válido.'
+
+  if (valores.dni && !/^\d{8}$/.test(valores.dni)) errores.dni = 'El DNI tiene 8 dígitos.'
   return errores
 }
 
@@ -97,6 +110,7 @@ export function construirSolicitudPagoYape({ idViaje, tokenSesion, claveIdempote
     cuotas: 1,
     emailPagador: valores.correo.trim(),
     celular: valores.celular,
+    ...(/^\d{8}$/.test(valores.dni ?? '') ? { tipoDocumento: 'DNI', numeroDocumento: valores.dni } : {}),
     ...(leerDeviceId() ? { deviceId: leerDeviceId() } : {}),
     ...(entorno ? { entorno } : {}),
   }

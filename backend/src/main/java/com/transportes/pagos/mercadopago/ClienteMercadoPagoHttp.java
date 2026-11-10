@@ -63,8 +63,20 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
 
     @Override
     public OrdenMercadoPago crearOrden(SolicitudOrden s, String claveIdempotencia) {
-        return leerOrden(enviar("POST", "/v1/orders", construirCuerpoOrden(s).toString(), claveIdempotencia,
-                s.deviceId()));
+        try {
+            return leerOrden(enviar("POST", "/v1/orders", construirCuerpoOrden(s, true).toString(), claveIdempotencia,
+                    s.deviceId()));
+        } catch (ErrorMercadoPagoException e) {
+            boolean formatoRechazado = e.getTipo() == ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA
+                    && (e.getEstadoHttp() == 400 || e.getEstadoHttp() == 422);
+            if (!formatoRechazado || !s.tieneDatosAdicionales()) {
+                throw e;
+            }
+            log.warn("Mercado Pago rechazó la solicitud con datos adicionales del pagador (HTTP {}, código {}, detalle {}); "
+                    + "se reintenta con el cuerpo mínimo", e.getEstadoHttp(), e.getCodigo(), e.getDetalle());
+            return leerOrden(enviar("POST", "/v1/orders", construirCuerpoOrden(s, false).toString(),
+                    claveIdempotencia + "-min", s.deviceId()));
+        }
     }
 
     @Override
@@ -108,6 +120,10 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
      * (Perú).
      */
     ObjectNode construirCuerpoOrden(SolicitudOrden s) {
+        return construirCuerpoOrden(s, true);
+    }
+
+    ObjectNode construirCuerpoOrden(SolicitudOrden s, boolean conDatosAdicionales) {
         BigDecimal importe = s.monto();
         if (importe == null || importe.signum() <= 0 || importe.stripTrailingZeros().scale() > 2) {
             throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.SOLICITUD_INVALIDA, 0,
@@ -130,6 +146,14 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
 
         ObjectNode pagador = cuerpo.putObject("payer");
         pagador.put("email", s.emailPagador());
+        if (conDatosAdicionales) {
+            if (s.nombrePagador() != null && !s.nombrePagador().isBlank()) {
+                pagador.put("first_name", s.nombrePagador().strip());
+            }
+            if (s.apellidoPagador() != null && !s.apellidoPagador().isBlank()) {
+                pagador.put("last_name", s.apellidoPagador().strip());
+            }
+        }
         if (s.tipoDocumentoPagador() != null && s.numeroDocumentoPagador() != null) {
             ObjectNode identificacion = pagador.putObject("identification");
             // El tipo ya fue validado/decidido por DocumentoPagador: se envía tal cual, sin cambios.
@@ -142,6 +166,13 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
             ObjectNode telefono = pagador.putObject("phone");
             telefono.put("area_code", "51");
             telefono.put("number", s.celularPagador());
+        }
+
+        if (conDatosAdicionales && s.tituloItem() != null && !s.tituloItem().isBlank()) {
+            ObjectNode item = cuerpo.putArray("items").addObject();
+            item.put("title", s.tituloItem().strip());
+            item.put("unit_price", monto);
+            item.put("quantity", 1);
         }
 
         ArrayNode pagos = cuerpo.putObject("transactions").putArray("payments");

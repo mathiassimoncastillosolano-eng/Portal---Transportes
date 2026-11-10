@@ -47,6 +47,8 @@ import com.transportes.pagos.repositorios.OperacionPagoRepositorio;
 import com.transportes.pagos.repositorios.PagoRepositorio;
 import com.transportes.pagos.repositorios.PasajeRepositorio;
 import com.transportes.pagos.repositorios.VentaRepositorio;
+import com.transportes.usuarios.entidades.Usuario;
+import com.transportes.usuarios.repositorios.UsuarioRepository;
 import com.transportes.viajes.dto.PasajeroAsientoRequest;
 import com.transportes.viajes.entidades.Pasajero;
 import com.transportes.viajes.entidades.ViajeAsiento;
@@ -84,6 +86,7 @@ public class PagoServicio {
             EnumSet.of(EstadoOperacion.CREANDO, EstadoOperacion.EN_PROCESO, EstadoOperacion.ACCION_REQUERIDA);
     private static final Set<String> TIPOS_TARJETA = Set.of("credit_card", "debit_card", "prepaid_card");
     private static final String ESTADO_BLOQUEADO = "BLOQUEADO_TEMPORAL";
+    private static final String TITULO_ITEM = "Pasajes de bus RutaLibre";
 
     private final OperacionPagoRepositorio operaciones;
     private final ViajeAsientoRepositorio viajeAsientoRepositorio;
@@ -99,6 +102,7 @@ public class PagoServicio {
     private final PasajeRepositorio pasajeRepositorio;
     private final PagoRepositorio pagoRepositorio;
     private final PasajeroRepositorio pasajeroRepositorio;
+    private final UsuarioRepository usuarioRepositorio;
     private final AsientoServicio asientoServicio;
     private final ValidadorReservaViaje validadorReserva;
     private final TransactionTemplate tx;
@@ -110,7 +114,8 @@ public class PagoServicio {
                         AutorizadorEntornoPago autorizador,
                         PropiedadesPago propiedades, VentaRepositorio ventaRepositorio,
                         PasajeRepositorio pasajeRepositorio, PagoRepositorio pagoRepositorio,
-                        PasajeroRepositorio pasajeroRepositorio, AsientoServicio asientoServicio,
+                        PasajeroRepositorio pasajeroRepositorio, UsuarioRepository usuarioRepositorio,
+                        AsientoServicio asientoServicio,
                         ValidadorReservaViaje validadorReserva,
                         PlatformTransactionManager transactionManager) {
         this.operaciones = operaciones;
@@ -127,6 +132,7 @@ public class PagoServicio {
         this.pasajeRepositorio = pasajeRepositorio;
         this.pagoRepositorio = pagoRepositorio;
         this.pasajeroRepositorio = pasajeroRepositorio;
+        this.usuarioRepositorio = usuarioRepositorio;
         this.asientoServicio = asientoServicio;
         this.validadorReserva = validadorReserva;
         this.tx = new TransactionTemplate(transactionManager);
@@ -281,20 +287,42 @@ public class PagoServicio {
         if (!doc.enviar()) {
             // Sin datos personales: solo el motivo y el tipo elegido (valor del catálogo).
             log.info("Se omite payer.identification en {}: {} (tipo recibido: {})", op.getReferenciaExterna(),
-                    DocumentoPagador.descripcion(doc).orElse(""), req.tipoDocumento() != null
-                            && DocumentoPagador.TIPOS_CATALOGO.contains(req.tipoDocumento()) ? req.tipoDocumento() : "fuera de catálogo");
+                    DocumentoPagador.descripcion(doc).orElse(""), tipoDocumentoParaLog(req.tipoDocumento()));
         }
         String descripcion = "RutaLibre - pasajes de bus";
+        Usuario comprador = usuarioRepositorio.findById(op.getIdUsuario()).orElse(null);
+        String nombre = comprador == null ? null : textoOpcional(comprador.getNombres());
+        String apellido = comprador == null ? null : textoOpcional(comprador.getApellidos());
+        boolean conDeviceId = req.deviceId() != null && !req.deviceId().isBlank();
+        log.info("Datos antifraude de {}: deviceId={}, documento={}, nombre={}", op.getReferenciaExterna(),
+                conDeviceId ? "presente" : "AUSENTE", doc.enviar() ? "enviado" : "omitido",
+                nombre != null && apellido != null ? "enviado" : "omitido");
 
         if ("YAPE".equals(req.medioPago())) {
             return new SolicitudOrden(op.getReferenciaExterna(), op.getMonto(), descripcion, email,
-                    tipoDoc, numDoc, req.celular(), "yape", "debit_card", req.token(), 1, null, req.deviceId());
+                    tipoDoc, numDoc, req.celular(), "yape", "debit_card", req.token(), 1, null, req.deviceId(),
+                    nombre, apellido, TITULO_ITEM);
         }
         String tipo = req.tipoPago() == null ? "credit_card" : req.tipoPago();
         int cuotas = "credit_card".equals(tipo) && req.cuotas() != null ? req.cuotas() : 1;
         return new SolicitudOrden(op.getReferenciaExterna(), op.getMonto(), descripcion, email, tipoDoc, numDoc,
                 null, req.metodoPagoId(), tipo, req.token(), cuotas, propiedades.getValidacion3ds(),
-                req.deviceId());
+                req.deviceId(), nombre, apellido, TITULO_ITEM);
+    }
+
+    private static String textoOpcional(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        String limpio = valor.strip();
+        return limpio.length() <= 100 ? limpio : limpio.substring(0, 100);
+    }
+
+    private static String tipoDocumentoParaLog(String tipo) {
+        if (tipo == null || tipo.isBlank()) {
+            return "no enviado";
+        }
+        return DocumentoPagador.TIPOS_CATALOGO.contains(tipo) ? tipo : "fuera de catálogo";
     }
 
     private void crearOrdenEnMercadoPago(OperacionPago op, SolicitudOrden solicitud) {

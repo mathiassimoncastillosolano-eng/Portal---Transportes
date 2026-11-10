@@ -4,6 +4,7 @@ import {
   construirSolicitudPagoTarjeta,
   construirSolicitudPagoYape,
   describirEstadoPago,
+  esperarDeviceId,
   tipoDePagoTarjeta,
   validarPagoYape,
 } from './pagoMercadoPago.js'
@@ -106,4 +107,30 @@ test('la solicitud lleva el entorno SOLICITADO solo cuando se indica (el backend
       assert.equal(texto.includes(prohibido), false, prohibido)
     }
   }
+})
+
+test('Yape envía el DNI solo cuando tiene 8 dígitos y lo valida si se escribe', () => {
+  const base = { celular: '987654321', codigoAprobacion: '123456', correo: 'a@b.com' }
+  const solicitud = (dni) => construirSolicitudPagoYape({
+    idViaje: 7, tokenSesion: 'ses', claveIdempotencia: 'clave-abcdefabcdef', token: 't', valores: { ...base, dni },
+  })
+  const con = solicitud('12345678')
+  assert.equal(con.tipoDocumento, 'DNI')
+  assert.equal(con.numeroDocumento, '12345678')
+  for (const dni of ['', undefined, '1234']) {
+    assert.equal('tipoDocumento' in solicitud(dni), false)
+    assert.equal('numeroDocumento' in solicitud(dni), false)
+  }
+  assert.deepEqual(validarPagoYape({ ...base, dni: '' }), {})
+  assert.deepEqual(validarPagoYape({ ...base, dni: '12345678' }), {})
+  assert.ok(validarPagoYape({ ...base, dni: '1234' }).dni)
+})
+
+test('esperarDeviceId devuelve el id en cuanto aparece y null si nunca llega', async () => {
+  let lecturas = 0
+  const dormir = async () => {}
+  const id = await esperarDeviceId({ leer: () => (++lecturas >= 3 ? 'dev-1' : null), dormir })
+  assert.equal(id, 'dev-1')
+  assert.equal(lecturas, 3)
+  assert.equal(await esperarDeviceId({ leer: () => null, dormir, maxEsperaMs: 300, intervaloMs: 100 }), null)
 })

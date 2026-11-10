@@ -294,6 +294,18 @@ function FormularioYape({ valores, errorDe, alCambiarCampo, alTocarCampo, total 
         </div>
       </div>
 
+      <div onBlur={() => alTocarCampo('dni')}>
+        <CampoTexto
+          etiqueta="DNI del titular de Yape (opcional)"
+          valor={valores.dni}
+          alCambiar={(valor) => alCambiarCampo('dni', soloDigitos(valor).slice(0, 8))}
+          marcador="12345678"
+          error={errorDe('dni')}
+          modoEntrada="numeric"
+          ayuda="Ayuda a Mercado Pago a validar tu pago."
+        />
+      </div>
+
       <div onBlur={() => alTocarCampo('correo')}>
         <CampoTexto
           etiqueta="Correo electrónico"
