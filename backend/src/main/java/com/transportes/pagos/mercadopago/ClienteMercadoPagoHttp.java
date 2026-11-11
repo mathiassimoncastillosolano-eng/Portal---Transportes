@@ -186,6 +186,9 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         // no se envía.
         if (!"yape".equals(s.metodoPagoId())) {
             metodo.put("installments", s.cuotas());
+            if (conDatosAdicionales) {
+                metodo.put("statement_descriptor", DESCRIPTOR_RESUMEN);
+            }
         }
 
         // 3DS 2.0 (solo tarjetas): on_fraud_risk exige liability_shift=required; con
@@ -241,7 +244,22 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
                     "Consulta a Mercado Pago interrumpida.");
         }
         String idSolicitud = respuesta.headers().firstValue("x-request-id").orElse(null);
+        if ("POST".equals(metodo) && (respuesta.statusCode() == 400 || respuesta.statusCode() == 422)) {
+            log.warn("Detalle para soporte de Mercado Pago (sanitizado) x-request-id={}: solicitud={} respuesta={}",
+                    idSolicitud, sanitizarParaSoporte(cuerpo), sanitizarParaSoporte(respuesta.body()));
+        }
         return interpretar(metodo, ruta, respuesta.statusCode(), respuesta.body(), idSolicitud);
+    }
+
+    static String sanitizarParaSoporte(String texto) {
+        if (texto == null) {
+            return null;
+        }
+        String limpio = texto
+                .replaceAll("(\"(?:token|number|email|first_name|last_name)\"\\s*:\\s*\")[^\"]*(\")", "$1***$2")
+                .replaceAll("[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+", "***@***")
+                .replaceAll("\\d{6,}", "***");
+        return limpio.length() <= 2000 ? limpio : limpio.substring(0, 2000);
     }
 
     JsonNode interpretar(String metodo, String ruta, int estado, String cuerpo) {
@@ -353,6 +371,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
     }
 
     private static final int MAX_DETALLE = 300;
+    private static final String DESCRIPTOR_RESUMEN = "RUTALIBRE";
 
     /**
      * Resume errors[0].message y errors[0].details (cadenas u objetos) para el

@@ -56,6 +56,8 @@ class BusquedaIntegracionTest {
         }
     }
 
+    static String sinHora(String cuerpo) { return cuerpo.replaceAll("\"ahoraServidorMs\":\\d+","\"ahoraServidorMs\":0"); }
+
     HttpResponse<String> get(String ruta) throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+ruta)).GET().build(), HttpResponse.BodyHandlers.ofString());
     }
@@ -86,7 +88,7 @@ class BusquedaIntegracionTest {
             assertEquals(i*2+1,datos.get(0).get("id").asInt());
             assertEquals(i*2+2,datos.get(1).get("id").asInt());
         }
-        assertEquals(get(base+"&horario=ma%C3%B1ana").body(),get(base+"&horario=manana").body());
+        assertEquals(sinHora(get(base+"&horario=ma%C3%B1ana").body()),sinHora(get(base+"&horario=manana").body()));
     }
 
     @Test void validaParametrosYSinResultados() throws Exception {
@@ -98,7 +100,7 @@ class BusquedaIntegracionTest {
         }
         var vacio=get(base.replace(fechaSalida.toString(),fechaSalida.plusDays(1).toString()));
         assertEquals(200,vacio.statusCode()); assertEquals("[]",vacio.body());
-        assertEquals(get(base).body(),get(base.replace("Lima","%20lImA%20").replace("Cusco","CUSCO")).body());
+        assertEquals(sinHora(get(base).body()),sinHora(get(base.replace("Lima","%20lImA%20").replace("Cusco","CUSCO")).body()));
     }
 
     @Test void excluyeCanceladosYConfiguracionesInactivas() throws Exception {

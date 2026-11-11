@@ -907,6 +907,7 @@ class PagoMercadoPagoIntegracionTest {
         String referencia = r.get("referencia").asText();
         String idOrden = r.get("ordenId").asText();
         Integer idOperacion = jdbc.queryForObject("SELECT id_operacion_pago FROM operacion_pago", Integer.class);
+        when(mp.consultarOrden(idOrden)).thenReturn(orden(idOrden, "processing", "in_process", referencia, "50.00"));
 
         // Una order "aprobada" consultada con las credenciales de SANDBOX no puede aplicarse a una operación de PRODUCTION.
         pagoServicio.aplicarOrden(idOperacion, orden(idOrden, "processed", "accredited", referencia, "50.00"),
@@ -942,6 +943,8 @@ class PagoMercadoPagoIntegracionTest {
         assertEquals(200, webhook("/api/pagos/webhook/sandbox", EntornoPago.SANDBOX, idOrden, null).statusCode());
         verify(mp, never()).consultarOrden(anyString());
         assertSinCompra();
+        when(mp.consultarOrden(idOrden)).thenReturn(
+                orden(idOrden, "processing", "in_process", r.get("referencia").asText(), "50.00"));
         assertEquals("EN_PROCESO", consultar(r.get("referencia").asText()).get("estado").asText());
     }
 
