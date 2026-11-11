@@ -1,0 +1,562 @@
+@import "tailwindcss";
+
+/*
+  ---------------------------------------------------------------------------
+  DESIGN TOKENS — RutaLibre Sistema Empresarial (SE)
+  ---------------------------------------------------------------------------
+  FUENTE DE VERDAD: el Portal de Clientes (`estilos/tokens.css` y `oscuro.css`
+  del portal). Cada valor de este archivo se copió de allí; la columna
+  "Portal" de abajo indica de qué token proviene. El SE solo cambia los
+  NOMBRES (escala Tailwind: surface, text, border…) para no romper ningún
+  componente, nunca los valores.
+
+    Token SE                     Portal (claro)                      Portal (oscuro)
+    ---------------------------  ----------------------------------  ---------------------------------
+    surface                      --color-fondo            #E8F0F3     --color-fondo            #070F13
+    surface-card                 --color-superficie       #FFFFFF     --color-superficie       #0E1C22
+    surface-sunken               --color-superficie-1     #F1F7F9     --color-fondo-alterno    #0A161B
+    surface-hover                --color-superficie-1     #F1F7F9     --color-superficie-2     #101F26
+    surface-raised               --color-superficie-elevada #FFFFFF   --color-superficie-elevada #12242B
+    surface-selected             --acento-tinte                       --acento-tinte
+    border / border-strong       --color-borde / -fuerte  #D5E2E8…    --borde-defecto / -intenso (blanco 9 % / 14 %)
+    text-900 / 500 / 400         --color-texto-principal / secundario / terciario
+    accent-line, cta             --acento                 #10B981     --acento                 #3CCDA3
+    cta-hover / cta-active       --acento-hover / -activo             --acento-hover / -activo
+    on-cta                       --acento-sobre           #06281B     --acento-sobre           #04211A
+    accent-text                  --color-texto-exito      #0E7A3C     --acento-texto           #6FE0BF
+    status-ok / low / out        --color-estado-*                     --color-estado-*
+    warning-text / danger-500    --color-aviso-texto / --color-error-texto
+    destructive                  --color-destructivo-fondo #C62222
+
+  Único paso DERIVADO (el portal solo define 3 niveles de texto): `text-700`,
+  intermedio entre principal y secundario.
+
+  Cada token tiene su variante oscura en `:root.dark`. Un componente que use
+  tokens (nunca hex sueltos) es automáticamente compatible con ambos temas.
+  ---------------------------------------------------------------------------
+*/
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Tipografía del portal: títulos Space Grotesk, texto Inter */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Ink — sidebar y marca (= --color-azul-* del portal) */
+  --color-ink-950: #071e25;
+  --color-ink-900: #0b3540;
+  --color-ink-850: #0d414d;
+  --color-ink-800: #0f4c5c;
+  --color-ink-700: #0b6878;
+  --color-ink-600: #147f91;
+  --color-ink-400: #5e8891;
+  --color-ink-300: #9db3b9;
+
+  /* Primary — acciones principales sobre superficie clara */
+  --color-primary-50: #e4eef0;
+  --color-primary-500: #0b3540;
+  --color-primary-600: #0d414d;
+  --color-primary-700: #071e25;
+
+  /* Secondary — "route": azul intermedio de marca */
+  --color-route-50: #f2f7f8;
+  --color-route-100: #cfe3e7;
+  --color-route-400: #147f91;
+  --color-route-500: #0b6878;
+  --color-route-600: #0d414d;
+
+  /* Superficies */
+  --color-surface: #e8f0f3;
+  --color-surface-card: #ffffff;
+  --color-surface-sunken: #f1f7f9;
+  --color-border: #d5e2e8;
+  --color-border-strong: #b9cbd4;
+
+  /* Texto (700 = único paso derivado) */
+  --color-text-900: #172b3a;
+  --color-text-700: #3d505f;
+  --color-text-500: #64748b;
+  --color-text-400: #93a2b3;
+
+  /* Acento — verde de marca (--color-verde-*) */
+  --color-accent-50: #effbf5;
+  --color-accent-100: #e1f7ee;
+  --color-accent-400: #2dd4a8;
+  --color-accent-500: #16a34a;
+  --color-accent-600: #0e7a3c;
+  --color-accent-text: #0e7a3c; /* texto de acento legible sobre claro (= --color-texto-exito) */
+
+  /* Estado */
+  --color-success-500: #16a34a;
+  --color-success-50: #e1f7ee;
+  --color-danger-500: #b91c1c; /* texto/borde de error (= --color-error-texto) */
+  --color-danger-50: #fbe4e4; /* = --color-error-fondo */
+  --color-warning-500: #f59e0b; /* = --color-estado-pocos */
+  --color-warning-50: #fff8ea; /* = --color-aviso-fondo */
+  --color-warning-text: #765317; /* = --color-aviso-texto */
+  --color-info-500: #0b6878; /* = --semantico-info */
+  --color-info-50: #e4eef0;
+  --color-destructive: #c62222; /* = --color-destructivo-fondo: sostiene texto blanco */
+  --color-destructive-hover: #a91b1b;
+  --color-destructive-active: #8f1616;
+
+  /* Indicadores de disponibilidad (= --color-estado-disponible / pocos / agotado) */
+  --color-status-ok: #16a34a;
+  --color-status-low: #f59e0b;
+  --color-status-out: #ef4444;
+
+  /* Series de gráficos (Dashboard). Nunca usar la paleta por defecto de la librería. */
+  --color-chart-1: #147f91;
+  --color-chart-2: #16a34a;
+  --color-chart-3: #d18a1f;
+  --color-chart-4: #5b73c9;
+
+  /* Sombras (= --sombra-suave / --sombra-flotante / --sombra-marcada) */
+  --shadow-panel: 0 1px 2px rgba(11, 53, 64, 0.05), 0 10px 26px -12px rgba(11, 53, 64, 0.2);
+  --shadow-flyout: 0 8px 16px -6px rgba(11, 53, 64, 0.16), 0 34px 64px -26px rgba(11, 53, 64, 0.34);
+  --shadow-panel-hover: 0 4px 10px rgba(11, 53, 64, 0.06), 0 24px 48px -20px rgba(11, 53, 64, 0.3);
+
+  /* ---- Capa de "booking" (Registrar pasaje): superficies, selección y CTA ---- */
+  --color-surface-hover: #f1f7f9; /* = --color-superficie-1 */
+  --color-surface-raised: #ffffff; /* = --color-superficie-elevada */
+  /* = --acento-tinte (12 %) sobre la tarjeta: se resuelve en ambos temas con los tokens vigentes */
+  --color-surface-selected: color-mix(in srgb, var(--color-accent-line) 12%, var(--color-surface-card));
+  --color-border-subtle: color-mix(in srgb, var(--color-border) 55%, #ffffff);
+  --color-accent-line: #10b981; /* = --acento (verde-600): borde/relleno de selección y progreso */
+  --color-cta: #10b981; /* = --acento */
+  --color-cta-hover: #2dd4a8; /* = --acento-hover (verde-500) */
+  --color-cta-active: #16a34a; /* = --acento-activo (verde-700) */
+  --color-on-cta: #06281b; /* = --acento-sobre */
+
+  /* Radios (= --radio-sm / md / lg) y duraciones (= --duracion-rapida / normal) */
+  /* = --gradiente-marca-profunda del portal */
+  --gradient-brand-deep: linear-gradient(135deg, #082a33 0%, #0b3f4c 48%, #0f566a 100%);
+
+  --radius-card: 16px;
+  --radius-panel: 22px;
+  --radius-control: 10px;
+  --duration-fast: 150ms;
+  --duration-base: 240ms;
+
+  /* Alturas de control */
+  --height-control-sm: 32px;
+  --height-control: 40px;
+  --height-control-lg: 44px;
+
+  --width-sidebar-expanded: 264px;
+  --width-sidebar-collapsed: 76px;
+  --height-header: 64px;
+
+  --color-scrim: rgba(7, 30, 37, 0.5);
+
+  /* Curva de easing (= --transicion-premium del portal) */
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/*
+  ---------------------------------------------------------------------------
+  DARK MODE — copia del bloque `[data-theme='dark']` del portal
+  ---------------------------------------------------------------------------
+  Estrategia: clase `.dark` en <html> (ver `src/theme/`). Basta con redefinir
+  los tokens bajo `:root.dark` para re-tematizar todos los componentes.
+  Jerarquía del portal: lienzo → superficie → elevada → fuerte → interactiva.
+  Bordes de 1px en blanco translúcido (6 / 9 / 14 %); el acento (menta) se
+  reserva para acción primaria, selección y foco; los estados viven en
+  iconos, badges y bordes, con fondos de baja opacidad.
+  ---------------------------------------------------------------------------
+*/
+:root.dark {
+  /* Ink — el sidebar es el tono más profundo (= --barra-fondo del portal) */
+  --color-ink-950: #081115;
+  --color-ink-900: #0a161b;
+  --color-ink-850: #101f26;
+  --color-ink-800: #172f37; /* = --superficie-fuerte */
+  --color-ink-700: #1b353e; /* = --superficie-interactiva */
+  --color-ink-600: #2f95a8;
+  --color-ink-400: #82979f; /* = --color-texto-terciario */
+  --color-ink-300: #a9bbc2; /* = --color-texto-secundario */
+
+  --color-primary-50: #0d2730;
+  --color-primary-500: #147f91;
+  --color-primary-600: #1f96a9;
+  --color-primary-700: #0d414d;
+
+  --color-route-50: #0d2730;
+  --color-route-100: #123640;
+  --color-route-400: #2f95a8;
+  --color-route-500: #147f91;
+  --color-route-600: #0d414d;
+
+  /* Superficies */
+  --color-surface: #070f13;
+  --color-surface-card: #0e1c22;
+  --color-surface-sunken: #0a161b;
+  --color-border: rgba(255, 255, 255, 0.09);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Capa de booking (oscuro) */
+  --color-surface-hover: #101f26;
+  --color-surface-raised: #12242b;
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-accent-line: #3ccda3;
+  --color-cta: #3ccda3;
+  --color-cta-hover: #4fd9b0;
+  --color-cta-active: #31b58e;
+  --color-on-cta: #04211a;
+
+  /* Texto (700 = único paso derivado) */
+  --color-text-900: #e9f1f3;
+  --color-text-700: #c9d6da;
+  --color-text-500: #a9bbc2;
+  --color-text-400: #82979f;
+
+  /* Acento */
+  --color-accent-50: rgba(60, 205, 163, 0.07);
+  --color-accent-100: rgba(60, 205, 163, 0.11);
+  --color-accent-400: #4fd9b0;
+  --color-accent-500: #3ccda3;
+  --color-accent-600: #31b58e;
+  --color-accent-text: #6fe0bf;
+
+  /* Estado */
+  --color-success-500: #3fcf9b;
+  --color-success-50: rgba(63, 207, 155, 0.1);
+  --color-danger-500: #f6a8a6;
+  --color-danger-50: rgba(242, 112, 110, 0.1);
+  --color-warning-500: #f0b429;
+  --color-warning-50: rgba(240, 180, 41, 0.08);
+  --color-warning-text: #f3d184;
+  --color-info-500: #6cc4db;
+  --color-info-50: rgba(108, 196, 219, 0.1);
+  --color-destructive: #c62222;
+  --color-destructive-hover: #d63a3a;
+  --color-destructive-active: #a91b1b;
+
+  --color-status-ok: #3fcf9b;
+  --color-status-low: #f0b429;
+  --color-status-out: #f2706e;
+
+  --color-chart-1: #2f95a8;
+  --color-chart-2: #2dd4a8;
+  --color-chart-3: #e0a13e;
+  --color-chart-4: #8ea0ec;
+
+  /* Sombras amplias y difusas (= --sombra-suave / flotante / marcada oscuras) */
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px -14px rgba(0, 0, 0, 0.5);
+  --shadow-flyout: 0 8px 20px -10px rgba(0, 0, 0, 0.45), 0 32px 64px -30px rgba(0, 0, 0, 0.65);
+  --shadow-panel-hover: 0 2px 6px rgba(0, 0, 0, 0.2), 0 20px 44px -24px rgba(0, 0, 0, 0.6);
+
+  --color-scrim: rgba(3, 8, 10, 0.66);
+
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-surface);
+    color: var(--color-text-900);
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+  }
+
+  /* Foco visible consistente para navegación por teclado */
+  :focus-visible {
+    outline: 2px solid var(--color-accent-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-accent-line) 28%, transparent);
+    color: var(--color-text-900);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Panel del Select (portal): entra/sale desde el lado del campo, rápido y sin rebote. */
+@keyframes select-in {
+  from { opacity: 0; transform: translateY(var(--select-shift, -4px)) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes select-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(var(--select-shift, -4px)) scale(0.985); }
+}
+
+.select-popup {
+  transform-origin: top center;
+  --select-shift: -4px;
+}
+
+.select-popup[data-side="top"] {
+  transform-origin: bottom center;
+  --select-shift: 4px;
+}
+
+.select-popup[data-state="open"] {
+  animation: select-in 150ms var(--ease-premium) both;
+}
+
+.select-popup[data-state="closed"] {
+  animation: select-out 110ms ease-in both;
+  pointer-events: none;
+}
+
+/*
+  ---------------------------------------------------------------------------
+  MOVIMIENTO — vocabulario de animación compartido
+  ---------------------------------------------------------------------------
+  Un pequeño set de keyframes reutilizados en toda la app (login, cambio de
+  sección, toasts, listas) para que las entradas se sientan de la misma
+  familia en vez de que cada pantalla invente su propia animación. Todas
+  respetan `prefers-reduced-motion` a través de la regla global en @layer
+  base, que reduce cualquier `animation-duration`/`transition-duration` a
+  ~0 — como las keyframes de entrada siempre terminan en el estado final
+  visible (opacity:1, transform:none), el resultado con motion reducido es
+  el contenido apareciendo directamente en su posición final, sin salto.
+  ---------------------------------------------------------------------------
+*/
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-slide-up-sm {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -14px, 0); }
+}
+
+@keyframes float-slower {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(10px, 10px, 0); }
+}
+
+@keyframes draw-path {
+  from { stroke-dashoffset: var(--path-length, 1000); }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(22 163 74 / 0.35); }
+  100% { box-shadow: 0 0 0 8px rgb(22 163 74 / 0); }
+}
+
+@keyframes check-pop {
+  0% { opacity: 0; transform: scale(0.4); }
+  60% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes step-swap {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes route-draw {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* Isotipo de marca — copia de `.barra-navegacion__isotipo` del portal. */
+.brand-isotipo {
+  --brand-size: 44px;
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--brand-size);
+  height: var(--brand-size);
+  border-radius: calc(var(--brand-size) * 0.318);
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgba(45, 212, 168, 0.5) 0%, transparent 55%),
+    var(--gradient-brand-deep);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: calc(var(--brand-size) * 0.216);
+  letter-spacing: 0.02em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -6px 10px -6px rgba(0, 0, 0, 0.35),
+    0 10px 20px -8px rgba(11, 53, 64, 0.65);
+}
+.brand-isotipo::after {
+  content: '';
+  position: absolute;
+  right: calc(var(--brand-size) * 0.136);
+  top: calc(var(--brand-size) * 0.136);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2dd4a8;
+  box-shadow: 0 0 0 3px rgba(45, 212, 168, 0.22);
+}
+
+@layer utilities {
+  /* Atmósfera del lienzo (= .diseno-principal del portal): luces ambientales muy tenues, sin tramas. */
+  .app-canvas {
+    background-image:
+      radial-gradient(1000px 560px at 6% -10%, rgba(20, 127, 145, 0.1), transparent 62%),
+      radial-gradient(860px 520px at 106% 8%, rgba(16, 185, 129, 0.05), transparent 60%);
+    background-attachment: fixed;
+  }
+  :root.dark .app-canvas {
+    background-image:
+      radial-gradient(1000px 560px at 6% -10%, rgba(44, 150, 165, 0.075), transparent 62%),
+      radial-gradient(860px 520px at 106% 8%, rgba(60, 205, 163, 0.035), transparent 60%);
+  }
+
+  .animate-check-pop {
+    animation: check-pop 240ms var(--ease-premium) both;
+  }
+  .animate-step-swap {
+    animation: step-swap 200ms var(--ease-premium) both;
+  }
+  .animate-route-draw {
+    transform-origin: left center;
+    animation: route-draw 420ms var(--ease-premium) 80ms both;
+  }
+  .animate-sheet-up {
+    animation: sheet-up 220ms var(--ease-premium) both;
+  }
+  .animate-fade-in {
+    animation: fade-in 400ms var(--ease-premium) both;
+  }
+  .animate-fade-slide-up {
+    animation: fade-slide-up 500ms var(--ease-premium) both;
+  }
+  .animate-fade-slide-up-sm {
+    animation: fade-slide-up-sm 260ms var(--ease-premium) both;
+  }
+  .animate-scale-in {
+    animation: scale-in 220ms var(--ease-premium) both;
+  }
+  .animate-float-slow {
+    animation: float-slow 9s ease-in-out infinite;
+  }
+  .animate-float-slower {
+    animation: float-slower 13s ease-in-out infinite;
+  }
+  .animate-toast-in {
+    animation: toast-in 320ms var(--ease-premium) both;
+  }
+  .animate-draw-path {
+    animation: draw-path 1600ms var(--ease-premium) 150ms both;
+  }
+  .stagger-1 { animation-delay: 60ms; }
+  .stagger-2 { animation-delay: 120ms; }
+  .stagger-3 { animation-delay: 180ms; }
+  .stagger-4 { animation-delay: 240ms; }
+  .stagger-5 { animation-delay: 300ms; }
+  .stagger-6 { animation-delay: 360ms; }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--color-border-strong);
+    border-radius: 999px;
+  }
+  .scrollbar-thin-dark {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-600) transparent;
+  }
+  .scrollbar-thin-dark::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin-dark::-webkit-scrollbar-thumb {
+    background-color: var(--color-ink-600);
+    border-radius: 999px;
+  }
+}
+
+/* Impresión del comprobante: solo se imprime el área marcada con `.print-area`. */
+@media print {
+  aside,
+  header,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .print-area {
+    box-shadow: none !important;
+    border: 1px solid #999 !important;
+  }
+}

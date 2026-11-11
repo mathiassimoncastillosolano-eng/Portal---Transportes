@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>RutaLibre — Sistema Empresarial</title>
+    <script>
+      // Aplica el tema correcto ANTES del primer paint para evitar el
+      // "flash" de tema claro seguido de un salto a oscuro. Debe leer el
+      // mismo formato que `src/stores/themeStore.ts` (Zustand `persist`,
+      // key "rutalibre-theme"). Si cambia esa key o su shape, actualizar
+      // también aquí.
+      (function () {
+        try {
+          var raw = localStorage.getItem('rutalibre-theme');
+          var mode = raw ? JSON.parse(raw).state.mode : 'dark';
+          var isDark =
+            mode === 'dark' ||
+            (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          /* localStorage no disponible (modo privado, SSR, etc.) — se queda en claro */
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
