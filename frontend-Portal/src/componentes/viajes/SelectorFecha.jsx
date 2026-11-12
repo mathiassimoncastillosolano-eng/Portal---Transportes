@@ -27,6 +27,11 @@ function indiceMes(fecha) {
   return fecha.getFullYear() * 12 + fecha.getMonth()
 }
 
+// Devuelve la más tardía de dos fechas (si la segunda no existe, la primera).
+function fechaMasTardia(primera, segunda) {
+  return segunda && segunda > primera ? segunda : primera
+}
+
 function textoDisparador(fecha) {
   if (!fecha) return 'Selecciona una fecha'
   return fecha.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
@@ -35,17 +40,21 @@ function textoDisparador(fecha) {
 /**
  * Selector de fecha con calendario propio. Mantiene el mismo contrato que el
  * <input type="date"> anterior: recibe/entrega "YYYY-MM-DD", no permite días
- * anteriores a hoy (igual que `min`) y publica el valor en un campo
+ * anteriores a hoy ni a `fechaMinima` si se indica (igual que `min`) y publica
+ * el valor en un campo
  * `name="fecha"` para que el formulario siga leyéndolo con FormData.
  */
-export function SelectorFecha({ etiqueta, valor, alCambiar }) {
+export function SelectorFecha({ etiqueta, valor, alCambiar, fechaMinima }) {
   const hoy = fechaLocal()
   const fechaHoy = aFecha(hoy)
+  // Primer día que se puede elegir: hoy, o una fecha posterior si se indica
+  // (en la postergación no se puede elegir antes del viaje original).
+  const fechaMin = fechaMasTardia(fechaHoy, aFecha(fechaMinima))
   const fechaValor = aFecha(valor)
 
   const [abierto, setAbierto] = useState(false)
-  const [mesVisible, setMesVisible] = useState(() => primerDiaDelMes(fechaValor ?? fechaHoy))
-  const [fechaFoco, setFechaFoco] = useState(() => fechaLocal(fechaValor && fechaValor >= fechaHoy ? fechaValor : fechaHoy))
+  const [mesVisible, setMesVisible] = useState(() => primerDiaDelMes(fechaValor ?? fechaMin))
+  const [fechaFoco, setFechaFoco] = useState(() => fechaLocal(fechaValor && fechaValor >= fechaMin ? fechaValor : fechaMin))
   const [direccion, setDireccion] = useState('siguiente')
   const [posicion, setPosicion] = useState({ izquierda: 0, arriba: 0, abajo: 'auto' })
   const referencia = useRef(null)
@@ -100,7 +109,7 @@ export function SelectorFecha({ etiqueta, valor, alCambiar }) {
   }, [abierto, fechaFoco, mesVisible])
 
   function abrir() {
-    const base = fechaValor && fechaValor >= fechaHoy ? fechaValor : fechaHoy
+    const base = fechaValor && fechaValor >= fechaMin ? fechaValor : fechaMin
     calcularPosicion()
     setMesVisible(primerDiaDelMes(base))
     setFechaFoco(fechaLocal(base))
@@ -121,16 +130,16 @@ export function SelectorFecha({ etiqueta, valor, alCambiar }) {
 
   function cambiarMes(delta) {
     const nuevo = new Date(mesVisible.getFullYear(), mesVisible.getMonth() + delta, 1)
-    if (indiceMes(nuevo) < indiceMes(fechaHoy)) return
+    if (indiceMes(nuevo) < indiceMes(fechaMin)) return
     setDireccion(delta > 0 ? 'siguiente' : 'anterior')
     setMesVisible(nuevo)
     // Mantiene un día alcanzable con Tab dentro del mes visible.
     const candidato = fechaValor && indiceMes(fechaValor) === indiceMes(nuevo) ? fechaValor : nuevo
-    setFechaFoco(fechaLocal(candidato < fechaHoy ? fechaHoy : candidato))
+    setFechaFoco(fechaLocal(candidato < fechaMin ? fechaMin : candidato))
   }
 
   function moverFoco(nueva) {
-    if (nueva < fechaHoy) return
+    if (nueva < fechaMin) return
     if (indiceMes(nueva) !== indiceMes(mesVisible)) {
       setDireccion(indiceMes(nueva) > indiceMes(mesVisible) ? 'siguiente' : 'anterior')
       setMesVisible(primerDiaDelMes(nueva))
@@ -169,7 +178,7 @@ export function SelectorFecha({ etiqueta, valor, alCambiar }) {
   const diasDelMes = new Date(anio, mes + 1, 0).getDate()
   const desfase = (new Date(anio, mes, 1).getDay() + 6) % 7 // semana inicia en lunes
   const celdas = [...Array(desfase).fill(null), ...Array.from({ length: diasDelMes }, (_, i) => new Date(anio, mes, i + 1))]
-  const puedeRetroceder = indiceMes(mesVisible) > indiceMes(fechaHoy)
+  const puedeRetroceder = indiceMes(mesVisible) > indiceMes(fechaMin)
   const nombreMes = MESES[mes]
 
   return (
@@ -255,7 +264,7 @@ export function SelectorFecha({ etiqueta, valor, alCambiar }) {
                 {celdas.map((fecha, indice) => {
                   if (!fecha) return <span key={`vacio-${indice}`} className="selector-fecha__vacio" aria-hidden="true" />
                   const iso = fechaLocal(fecha)
-                  const noDisponible = fecha < fechaHoy
+                  const noDisponible = fecha < fechaMin
                   const seleccionado = iso === valor
                   const esHoy = iso === hoy
                   return (
