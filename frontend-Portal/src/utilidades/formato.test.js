@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { formatearFechaCorta, formatearFechaLarga, formatearPrecio, iniciales } from './formato.js'
+import { formatearFechaCorta, formatearFechaHoraCompra, formatearFechaLarga, formatearPrecio, iniciales } from './formato.js'
 
 test('formatea importes y no revienta con datos ausentes', () => {
   assert.equal(formatearPrecio(190), 'S/ 190.00')
@@ -21,4 +21,14 @@ test('formatea fechas ISO y devuelve — si no son válidas', () => {
 test('iniciales', () => {
   assert.equal(iniciales('mathias', 'castillo'), 'MC')
   assert.equal(iniciales(undefined, undefined), '')
+})
+
+test('la fecha de compra se guarda en UTC y se muestra en hora de Perú', () => {
+  // 20:47 UTC del 12 de noviembre = 15:47 en Lima (UTC-5).
+  const texto = formatearFechaHoraCompra('2026-11-12T20:47:36.076041')
+  assert.match(texto, /12/)
+  assert.match(texto, /15:47/)
+  assert.match(formatearFechaHoraCompra('2026-11-12T20:47:36Z'), /15:47/)
+  assert.equal(formatearFechaHoraCompra(null), '—')
+  assert.equal(formatearFechaHoraCompra('no es fecha'), '—')
 })

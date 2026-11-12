@@ -34,6 +34,25 @@ export function formatearFechaCorta(fechaIso) {
   })
 }
 
+// Fecha y hora en que se compró el pasaje, en hora de Perú.
+// La base de datos guarda venta.fecha_venta con now() en hora UTC y sin zona
+// (por ejemplo "2026-11-12T20:47:36.076041"), así que se lee como UTC.
+export function formatearFechaHoraCompra(valor) {
+  if (typeof valor !== 'string' || !valor) return SIN_DATO
+  const tieneZona = /(Z|[+-]\d{2}:?\d{2})$/.test(valor)
+  const fecha = new Date(tieneZona ? valor : `${valor}Z`)
+  if (Number.isNaN(fecha.getTime())) return SIN_DATO
+  return fecha.toLocaleString('es-PE', {
+    timeZone: 'America/Lima',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+}
+
 export function iniciales(nombres, apellidos) {
   const inicial1 = nombres?.trim()?.[0] ?? ''
   const inicial2 = apellidos?.trim()?.[0] ?? ''

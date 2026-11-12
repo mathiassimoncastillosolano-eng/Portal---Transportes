@@ -3,11 +3,13 @@ import assert from 'node:assert/strict'
 import {
   REGLAS_POSTERGACION,
   buscarViajesPostergables,
+  esMismaSalida,
   fechaInicialDeBusqueda,
   rutasDePostergacion,
   salidaOriginalMs,
   separarViajesPostergables,
 } from './postergacionServicio.js'
+import { fechaLocal } from '../utilidades/fechas.js'
 
 const fetchOriginal = globalThis.fetch
 afterEach(() => { globalThis.fetch = fetchOriginal })
@@ -19,8 +21,13 @@ const pasaje = { idPasaje: 1, idViaje: 50, origen: 'Trujillo', destino: 'Lima', 
 const ORIGINAL = salidaOriginalMs(pasaje)
 const AHORA = ORIGINAL - 20 * HORA
 
+// Arma un viaje de prueba. La fecha y la hora se calculan desde salidaMs,
+// igual que las envía la API.
 function viaje(datos) {
-  return { origen: 'Trujillo', destino: 'Lima', fechaSalida: '2026-11-13', horaSalida: '08:00', asientosDisponibles: 10, precio: 60, reservable: true, ...datos }
+  const salida = new Date(datos.salidaMs ?? ORIGINAL)
+  const fechaSalida = fechaLocal(salida)
+  const horaSalida = `${String(salida.getHours()).padStart(2, '0')}:${String(salida.getMinutes()).padStart(2, '0')}`
+  return { origen: 'Trujillo', destino: 'Lima', fechaSalida, horaSalida, asientosDisponibles: 10, precio: 60, reservable: true, ...datos }
 }
 
 test('la postergación solo ofrece la ruta del pasaje original', () => {
@@ -100,4 +107,25 @@ test('la búsqueda se abre en el día del viaje original', () => {
   assert.equal(fechaInicialDeBusqueda(pasaje, '2026-11-12'), '2026-11-13')
   assert.equal(fechaInicialDeBusqueda(pasaje, '2026-11-13'), '2026-11-13')
   assert.equal(fechaInicialDeBusqueda(pasaje, '2026-11-14'), '2026-11-14')
+})
+
+test('no ofrece ninguna salida con la misma fecha y hora del pasaje, aunque sea otro tipo de bus', () => {
+  // La compra del perfil no envía idViaje: así llega el pasaje real.
+  const pasajeReal = { ...pasaje, idViaje: undefined, fechaSalida: '2026-11-16', horaSalida: '08:00', tipoBus: 'Estándar' }
+  const mismo = viaje({ id: 900, fechaSalida: '2026-11-16', horaSalida: '08:00', tipoBus: 'Estándar' })
+  const otroTipo = viaje({ id: 901, fechaSalida: '2026-11-16', horaSalida: '08:00', tipoBus: 'Semi Cama' })
+  const otraHora = viaje({ id: 902, fechaSalida: '2026-11-16', horaSalida: '11:00', tipoBus: 'Estándar' })
+  const otroDia = viaje({ id: 903, fechaSalida: '2026-11-17', horaSalida: '08:00', tipoBus: 'Estándar' })
+  assert.equal(esMismaSalida(mismo, pasajeReal), true)
+  assert.equal(esMismaSalida(otroTipo, pasajeReal), true)
+  assert.equal(esMismaSalida(otraHora, pasajeReal), false)
+  assert.equal(esMismaSalida(otroDia, pasajeReal), false)
+  const salida = salidaOriginalMs(pasajeReal)
+  const ofrecidos = separarViajesPostergables(pasajeReal, [
+    { ...mismo, salidaMs: salida },
+    { ...otroTipo, salidaMs: salida },
+    { ...otraHora, salidaMs: salida + 3 * HORA },
+    { ...otroDia, salidaMs: salida + 24 * HORA },
+  ], salida - 20 * HORA)
+  assert.deepEqual(ofrecidos.viajes.map((v) => v.id), [902, 903])
 })

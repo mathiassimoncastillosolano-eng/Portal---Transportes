@@ -1,5 +1,5 @@
 import { EstadoDisponibilidad } from '../comunes/EstadoDisponibilidad'
-import { formatearFechaLarga, formatearPrecio } from '../../utilidades/formato'
+import { formatearFechaHoraCompra, formatearFechaLarga, formatearPrecio } from '../../utilidades/formato'
 import { avisoTotal, datosFaltantes, estadoVisible } from '../../utilidades/pasajesVista'
 import './tarjetaTicket.css'
 
@@ -46,6 +46,7 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
         <dl className="tarjeta-ticket__viaje">
           <div><dt>Salida</dt><dd>{salida}</dd></div>
           <div><dt>Servicio</dt><dd>{servicio}</dd></div>
+          <div><dt>Fecha de compra</dt><dd>{formatearFechaHoraCompra(compra.fechaCompra)}</dd></div>
         </dl>
 
         {faltantes.length > 0 && (
