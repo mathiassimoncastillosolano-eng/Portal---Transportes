@@ -39,7 +39,7 @@ function Exito({ resultado, pasajeOriginal, alIrAMisPasajes }) {
       <article className="resultado-ticket" aria-label="Nuevo viaje del pasaje">
         <div className="resultado-ticket__franja">
           <span>Nuevo viaje</span>
-          <EstadoDisponibilidad estado="confirmado" etiqueta="Postergado" />
+          <EstadoDisponibilidad estado="confirmado" etiqueta="Fecha cambiada" />
         </div>
         <div className="resultado-ticket__ruta">
           <span>{pasaje.origen}</span>
@@ -80,7 +80,7 @@ function Rechazo({ resultado, pasajeOriginal, alIrAMisPasajes, alReelegirAsiento
         <strong>Motivo:</strong> {resultado.mensaje}
       </p>
       <p className="resultado__nota">
-        <EstadoDisponibilidad estado="cancelado" etiqueta="Postergación rechazada" />
+        <EstadoDisponibilidad estado="cancelado" etiqueta="Cambio rechazado" />
         <span>Tu pasaje no fue modificado: conserva su viaje y su asiento originales.</span>
       </p>
 

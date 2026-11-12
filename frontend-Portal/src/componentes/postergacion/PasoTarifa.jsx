@@ -5,7 +5,7 @@ import { formatearPrecio } from '../../utilidades/formato'
 const MENSAJES = {
   [ESCENARIO_TARIFA.IGUAL]: {
     titulo: 'Sin diferencia por pagar',
-    texto: 'Ambas tarifas son iguales: esta postergación no genera ningún cobro adicional.',
+    texto: 'Ambas tarifas son iguales: este cambio no genera ningún cobro adicional.',
     icono: 'igual',
   },
   [ESCENARIO_TARIFA.SUPERIOR]: {
