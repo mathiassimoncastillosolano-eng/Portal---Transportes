@@ -2,17 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { BuscadorViajes } from '../viajes/BuscadorViajes'
 import { TarjetaResultadoViaje } from '../viajes/TarjetaResultadoViaje'
 import { PanelAsincrono } from '../carga'
-import { buscarViajesPostergables, obtenerRutasPostergacion } from '../../servicios/postergacionMock'
+import { buscarViajesPostergables, rutasDePostergacion } from '../../servicios/postergacionServicio'
 import { estadoReservaActual } from '../../utilidades/estadoReserva'
 import { fechaDeManana } from '../../utilidades/fechas'
 import { formatearFechaLarga } from '../../utilidades/formato'
-
-const RUTAS = obtenerRutasPostergacion()
 
 export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir }) {
   const [buscando, setBuscando] = useState(!busqueda)
   const [error, setError] = useState('')
   const consulta = useRef(0)
+  // Solo se ofrece la ruta del pasaje original (se calcula una vez).
+  const [rutas] = useState(() => rutasDePostergacion(pasaje))
 
   async function ejecutar(criterios) {
     const numero = consulta.current + 1
@@ -53,7 +53,7 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir }
 
       <div className="postergacion-paso__buscador">
         <BuscadorViajes
-          rutasDisponibles={RUTAS}
+          rutasDisponibles={rutas}
           valoresIniciales={criterios}
           buscando={buscando}
           alBuscar={ejecutar}
