@@ -10,7 +10,9 @@ function obtenerFechaPorDefecto() {
   return fechaDeManana()
 }
 
-export function BuscadorViajes({ alBuscar, buscando, valoresIniciales, rutasDisponibles, destinoSugerido }) {
+// rutaFija: el origen y el destino se muestran pero no se pueden cambiar (postergación).
+// fechaMinima: primer día que se puede buscar ("YYYY-MM-DD"); si no se indica, es hoy.
+export function BuscadorViajes({ alBuscar, buscando, valoresIniciales, rutasDisponibles, destinoSugerido, rutaFija = false, fechaMinima }) {
   const [origen, setOrigen] = useState(valoresIniciales?.origen ?? '')
   const [destino, setDestino] = useState(valoresIniciales?.destino ?? '')
   const [fecha, setFecha] = useState(valoresIniciales?.fecha ?? obtenerFechaPorDefecto())
@@ -48,7 +50,7 @@ export function BuscadorViajes({ alBuscar, buscando, valoresIniciales, rutasDisp
     .sort((a, b) => a.localeCompare(b, 'es'))
 
   const puedeIntercambiar = Boolean(
-    !destinoSugerido && origen && destino &&
+    !destinoSugerido && !rutaFija && origen && destino &&
     rutas.some((ruta) => ruta.origen === destino && ruta.destino === origen)
   )
 
@@ -74,6 +76,11 @@ export function BuscadorViajes({ alBuscar, buscando, valoresIniciales, rutasDisp
       return
     }
 
+    if (fechaMinima && fechaSeleccionada < fechaMinima) {
+      setErrorFormulario('Elige una fecha igual o posterior a la de tu viaje original.')
+      return
+    }
+
     if (!rutas.some((ruta) => ruta.origen === origen && ruta.destino === destino)) {
       setErrorFormulario('Ese destino no está disponible para el origen elegido.')
       return
@@ -91,6 +98,7 @@ export function BuscadorViajes({ alBuscar, buscando, valoresIniciales, rutasDisp
           etiqueta="Origen"
           valor={origen}
           alCambiar={cambiarOrigen}
+          deshabilitado={rutaFija}
         />
 
         <button
@@ -111,11 +119,11 @@ export function BuscadorViajes({ alBuscar, buscando, valoresIniciales, rutasDisp
           etiqueta="Destino"
           valor={destino}
           alCambiar={setDestino}
-          deshabilitado={!origen || rutas.length === 0}
+          deshabilitado={rutaFija || !origen || rutas.length === 0}
         />
 
         <div className="buscador-viajes__separador" aria-hidden="true" />
-        <SelectorFecha etiqueta="Fecha" valor={fecha} alCambiar={setFecha} />
+        <SelectorFecha etiqueta="Fecha" valor={fecha} alCambiar={setFecha} fechaMinima={fechaMinima} />
       </div>
 
       <BotonPrincipal tipo="submit" deshabilitado={buscando} ancho="100%">
