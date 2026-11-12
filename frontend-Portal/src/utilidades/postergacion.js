@@ -146,6 +146,7 @@ export function adaptarBoletoReal(compra, boleto, idCliente) {
     numeroBoleto: boleto.numeroBoleto,
     idVenta: compra.idVenta,
     codigoCompra: compra.codigoCompra,
+    fechaCompra: compra.fechaCompra ?? null,
     idPagoOriginal: compra.idPago ?? null,
     idCliente,
     estado: estadoPostergableDeCompra(compra),

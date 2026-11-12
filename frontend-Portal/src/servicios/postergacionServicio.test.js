@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   REGLAS_POSTERGACION,
   buscarViajesPostergables,
+  esElViajeDelPasaje,
   fechaInicialDeBusqueda,
   rutasDePostergacion,
   salidaOriginalMs,
@@ -100,4 +101,21 @@ test('la búsqueda se abre en el día del viaje original', () => {
   assert.equal(fechaInicialDeBusqueda(pasaje, '2026-11-12'), '2026-11-13')
   assert.equal(fechaInicialDeBusqueda(pasaje, '2026-11-13'), '2026-11-13')
   assert.equal(fechaInicialDeBusqueda(pasaje, '2026-11-14'), '2026-11-14')
+})
+
+test('sin id del viaje, reconoce el viaje comprado por fecha, hora y tipo de bus', () => {
+  // La compra del perfil no envía idViaje: así llega el pasaje real.
+  const pasajeReal = { ...pasaje, idViaje: undefined, fechaSalida: '2026-11-16', horaSalida: '08:00', tipoBus: 'Estándar' }
+  const mismo = viaje({ id: 900, fechaSalida: '2026-11-16', horaSalida: '08:00', tipoBus: 'Estándar' })
+  const otroTipo = viaje({ id: 901, fechaSalida: '2026-11-16', horaSalida: '08:00', tipoBus: 'Semi Cama' })
+  const otraHora = viaje({ id: 902, fechaSalida: '2026-11-16', horaSalida: '11:00', tipoBus: 'Estándar' })
+  assert.equal(esElViajeDelPasaje(mismo, pasajeReal), true)
+  assert.equal(esElViajeDelPasaje(otroTipo, pasajeReal), false)
+  assert.equal(esElViajeDelPasaje(otraHora, pasajeReal), false)
+  const salida = salidaOriginalMs(pasajeReal)
+  const ofrecidos = separarViajesPostergables(pasajeReal, [
+    { ...mismo, salidaMs: salida },
+    { ...otraHora, salidaMs: salida + 3 * HORA },
+  ], salida - 20 * HORA)
+  assert.deepEqual(ofrecidos.viajes.map((v) => v.id), [902])
 })
