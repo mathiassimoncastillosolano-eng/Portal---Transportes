@@ -19,15 +19,11 @@ export function salidaOriginalMs(pasaje) {
   return salidaMsDe(pasaje.fechaSalida, pasaje.horaSalida)
 }
 
-// ¿Es el mismo viaje que ya tiene el pasaje?
-// Si el pasaje trae el id de su viaje, se compara por id. Si no lo trae (la
-// compra del perfil no lo envía), se compara por fecha, hora de salida y tipo
-// de bus, que juntos identifican la salida que el cliente compró.
-export function esElViajeDelPasaje(viaje, pasaje) {
-  if (pasaje.idViaje) return viaje.id === pasaje.idViaje
-  return viaje.fechaSalida === pasaje.fechaSalida
-    && viaje.horaSalida === pasaje.horaSalida
-    && viaje.tipoBus === pasaje.tipoBus
+// ¿Sale el mismo día y a la misma hora que el viaje del pasaje?
+// El cambio es de fecha u hora, así que una salida con la misma fecha y hora
+// no cuenta como cambio, aunque sea otro bus u otro tipo de servicio.
+export function esMismaSalida(viaje, pasaje) {
+  return viaje.fechaSalida === pasaje.fechaSalida && viaje.horaSalida === pasaje.horaSalida
 }
 
 // Anticipación mínima de la regla R2, en milisegundos (6 h).
@@ -41,8 +37,8 @@ const ANTICIPACION_MINIMA_MS = HORAS_MINIMAS_ANTICIPACION * MS_HORA
 // Ejemplo: a las 08:00 se puede pasar a cualquier salida desde las 14:00.
 export const REGLAS_POSTERGACION = [
   {
-    nombre: 'No es el mismo viaje del pasaje',
-    cumple: (viaje, pasaje) => !esElViajeDelPasaje(viaje, pasaje),
+    nombre: 'Cambia la fecha o la hora del viaje',
+    cumple: (viaje, pasaje) => !esMismaSalida(viaje, pasaje),
   },
   {
     nombre: 'Faltan 6 h o más para la salida original',
