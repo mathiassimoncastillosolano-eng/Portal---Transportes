@@ -8,7 +8,7 @@ const ESTADOS = {
   NO_VALIDO: { clave: 'SIN_INFORMACION', etiqueta: 'No válido' },
 }
 
-export function TarjetaPasajeOriginal({ pasaje, titulo = 'Pasaje a postergar' }) {
+export function TarjetaPasajeOriginal({ pasaje, titulo = 'Pasaje a cambiar' }) {
   const estado = ESTADOS[pasaje.estado] ?? ESTADOS.NO_VALIDO
 
   return (

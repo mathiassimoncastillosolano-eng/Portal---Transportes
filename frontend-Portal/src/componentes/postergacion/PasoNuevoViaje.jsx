@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { BuscadorViajes } from '../viajes/BuscadorViajes'
 import { TarjetaResultadoViaje } from '../viajes/TarjetaResultadoViaje'
 import { PanelAsincrono } from '../carga'
-import { buscarViajesPostergables, fechaMinimaDePostergacion, rutasDePostergacion } from '../../servicios/postergacionServicio'
+import { buscarViajesPostergables, fechaInicialDeBusqueda, rutasDePostergacion } from '../../servicios/postergacionServicio'
 import { estadoReservaActual } from '../../utilidades/estadoReserva'
 import { formatearFechaLarga } from '../../utilidades/formato'
 
@@ -12,8 +12,8 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir }
   const consulta = useRef(0)
   // Solo se ofrece la ruta del pasaje original (se calcula una vez).
   const [rutas] = useState(() => rutasDePostergacion(pasaje))
-  // Es postergación: no se puede buscar antes del día del viaje original.
-  const [fechaMinima] = useState(() => fechaMinimaDePostergacion(pasaje))
+  // La búsqueda empieza en el día del viaje original; se puede elegir otro día.
+  const [fechaInicial] = useState(() => fechaInicialDeBusqueda(pasaje))
 
   async function ejecutar(criterios) {
     const numero = consulta.current + 1
@@ -34,11 +34,11 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir }
 
   useEffect(() => {
     if (busqueda) return undefined
-    ejecutar({ origen: pasaje.origen, destino: pasaje.destino, fecha: fechaMinima })
+    ejecutar({ origen: pasaje.origen, destino: pasaje.destino, fecha: fechaInicial })
     return () => { consulta.current += 1 }
   }, [])
 
-  const criterios = busqueda?.criterios ?? { origen: pasaje.origen, destino: pasaje.destino, fecha: fechaMinima }
+  const criterios = busqueda?.criterios ?? { origen: pasaje.origen, destino: pasaje.destino, fecha: fechaInicial }
   const viajes = busqueda?.viajes ?? []
   const sinCupo = busqueda?.sinCupo ?? 0
   const ahora = Date.now()
@@ -48,8 +48,8 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir }
       <div className="postergacion-paso__cabecera">
         <h2 className="postergacion-paso__titulo" tabIndex={-1} data-foco-paso>Elige tu nuevo viaje</h2>
         <p className="postergacion-paso__texto">
-          Elige una nueva fecha. La ruta no cambia y solo se muestran salidas posteriores a tu viaje original.
-          Tu pasaje conserva su código y su pago; solo cambian el viaje y el asiento.
+          Elige otra fecha u hora, antes o después de tu viaje. La ruta no cambia y solo se muestran
+          salidas que parten dentro de 6 horas o más. Tu pasaje conserva su código y su pago.
         </p>
       </div>
 
@@ -57,7 +57,6 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir }
         <BuscadorViajes
           rutasDisponibles={rutas}
           rutaFija
-          fechaMinima={fechaMinima}
           valoresIniciales={criterios}
           buscando={buscando}
           alBuscar={ejecutar}
@@ -97,7 +96,7 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir }
             </div>
             {sinCupo > 0 && (
               <p className="postergacion-paso__nota">
-                {sinCupo} {sinCupo === 1 ? 'salida no se muestra' : 'salidas no se muestran'} por no tener cupo, salir antes de tu viaje original o ya haber partido.
+                {sinCupo} {sinCupo === 1 ? 'salida no se muestra' : 'salidas no se muestran'} por no tener cupo, ser tu viaje actual o salir en menos de 6 horas.
               </p>
             )}
           </>

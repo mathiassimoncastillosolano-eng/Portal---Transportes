@@ -80,7 +80,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
   const pasosVisibles = PASOS.map((paso) => (paso.clave === 'tarifa' && fase === FASES.PAGO ? { ...paso, etiqueta: 'Pago' } : paso))
   const indiceVisible = PASOS.findIndex((paso) => paso.clave === PASO_INDICADOR[fase])
   const puedeContinuarTarifa = comparacion ? puedeContinuarDesdeTarifa(comparacion, aceptaCondiciones) : false
-  const textoTarifa = comparacion?.requierePago ? 'Continuar al pago' : 'Confirmar postergación'
+  const textoTarifa = comparacion?.requierePago ? 'Continuar al pago' : 'Confirmar cambio'
 
   return (
     <section className="seccion contenedor pagina-postergacion">
@@ -89,7 +89,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
           <button type="button" className="postergacion-encabezado__volver" onClick={pedirCancelacion}>
             <span aria-hidden="true">←</span> Mis pasajes
           </button>
-          <p className="postergacion-encabezado__eyebrow">POSTERGACIÓN DE PASAJE</p>
+          <p className="postergacion-encabezado__eyebrow">CAMBIO DE FECHA</p>
           <h1 className="postergacion-encabezado__titulo">Cambia la fecha de tu viaje</h1>
         </div>
         <span className="postergacion-encabezado__simulado" title="Los datos y los pagos de esta operación son simulados">
@@ -101,7 +101,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
 
       {!enResultado && fase !== FASES.VALIDANDO && (
         <div className="postergacion-progreso">
-          <IndicadorProgreso pasoActual={PASO_INDICADOR[fase]} pasos={pasosVisibles} etiqueta="Progreso de la postergación" />
+          <IndicadorProgreso pasoActual={PASO_INDICADOR[fase]} pasos={pasosVisibles} etiqueta="Progreso del cambio de fecha" />
           <p className="postergacion-progreso__movil" aria-hidden="true">
             Paso {indiceVisible + 1} de {PASOS.length} · {pasosVisibles[indiceVisible]?.etiqueta}
           </p>
@@ -192,7 +192,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
           {fase === FASES.CONFIRMANDO && (
             <PanelAsincrono
               variante="procesamiento"
-              mensaje="Confirmando tu postergación"
+              mensaje="Confirmando el cambio de fecha"
               detalle="Estamos actualizando tu pasaje. No cierres esta ventana."
               cargando
               compacto
@@ -228,11 +228,11 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
       <ModalBase
         abierto={cancelando}
         alCerrar={() => setCancelando(false)}
-        titulo="¿Cancelar la postergación?"
+        titulo="¿Cancelar el cambio de fecha?"
         subtitulo="Perderás el viaje y el asiento que elegiste. Tu pasaje original no cambia."
       >
         <div className="postergacion-modal__acciones">
-          <BotonPrincipal onClick={() => setCancelando(false)}>Seguir postergando</BotonPrincipal>
+          <BotonPrincipal onClick={() => setCancelando(false)}>Seguir con el cambio</BotonPrincipal>
           <BotonSecundario onClick={irAMisPasajes}>Sí, cancelar</BotonSecundario>
         </div>
       </ModalBase>
@@ -257,7 +257,7 @@ export function PaginaPostergarPasaje() {
         <EstadoRuta
           tipo="error"
           titulo="No encontramos este pasaje"
-          texto="Vuelve a Mis pasajes y elige el pasaje que quieres postergar."
+          texto="Vuelve a Mis pasajes y elige el pasaje al que quieres cambiarle la fecha."
           accion={{ texto: 'Ir a Mis pasajes', to: '/perfil/pasajes' }}
         />
       </section>
