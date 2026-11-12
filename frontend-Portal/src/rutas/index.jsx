@@ -10,6 +10,7 @@ import { PaginaDestinos } from '../paginas/destinos/PaginaDestinos'
 import { PaginaDetalleDestino } from '../paginas/destinos/PaginaDetalleDestino'
 import { PaginaServicios } from '../paginas/servicios/PaginaServicios'
 import { PaginaAyuda } from '../paginas/ayuda/PaginaAyuda'
+import { PaginaLibroReclamaciones } from '../paginas/libroReclamaciones/PaginaLibroReclamaciones'
 import { PaginaIniciarSesion } from '../paginas/autenticacion/PaginaIniciarSesion'
 import { PaginaPerfil } from '../paginas/perfil/PaginaPerfil'
 import { PaginaMisPasajes } from '../paginas/perfil/PaginaMisPasajes'
@@ -44,6 +45,7 @@ export function RutasApp() {
         <Route path="/destinos/:id" element={<PaginaDetalleDestino />} />
         <Route path="/servicios" element={<PaginaServicios />} />
         <Route path="/ayuda" element={<PaginaAyuda />} />
+        <Route path="/libro-reclamaciones" element={<PaginaLibroReclamaciones />} />
         <Route path="/iniciar-sesion" element={<PaginaIniciarSesion />} />
 
         <Route

@@ -116,6 +116,10 @@ public class ConfiguracionSeguridad {
                                                 .requestMatchers(HttpMethod.POST, "/api/pagos/webhook",
                                                                 "/api/pagos/webhook/*")
                                                 .permitAll()
+                                                // Libro de Reclamaciones: publico; el JWT es opcional y solo asocia
+                                                // la cuenta. La consulta exige el token de la constancia.
+                                                .requestMatchers(HttpMethod.POST, "/api/reclamos").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/reclamos/**").permitAll()
                                                 // Pagos: la venta se asocia al usuario autenticado.
                                                 .requestMatchers("/api/pagos/**").authenticated()
                                                 // Cualquier otra ruta (dominios aun no implementados,
@@ -132,7 +136,7 @@ public class ConfiguracionSeguridad {
                 configuracion.setAllowedOrigins(List.of(origenesPermitidos.split(",")).stream()
                                 .map(String::trim).filter(origen -> !origen.isEmpty() && !"*".equals(origen)).toList());
                 configuracion.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-                configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+                configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Token-Consulta"));
                 configuracion.setAllowCredentials(true);
 
                 UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();

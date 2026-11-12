@@ -74,6 +74,12 @@ public class ManejadorGlobalExcepciones {
                 "El cuerpo de la solicitud debe ser un JSON válido", request, null);
     }
 
+    @ExceptionHandler(com.transportes.reclamos.excepciones.ReclamoException.class)
+    public ResponseEntity<RespuestaError> manejarReclamo(
+            com.transportes.reclamos.excepciones.ReclamoException excepcion, HttpServletRequest request) {
+        return construirRespuesta(excepcion.getStatus(), excepcion.getMessage(), request, excepcion.getDetalles());
+    }
+
     @ExceptionHandler(com.transportes.pagos.excepciones.PagoException.class)
     public ResponseEntity<RespuestaError> manejarPago(
             com.transportes.pagos.excepciones.PagoException excepcion, HttpServletRequest request) {

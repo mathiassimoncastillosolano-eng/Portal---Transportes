@@ -72,6 +72,7 @@ export function PieDePagina() {
           <NavLink to="/" className="pie-de-pagina__enlace">Inicio</NavLink>
           <NavLink to="/servicios" className="pie-de-pagina__enlace">Servicios</NavLink>
           <NavLink to="/ayuda" className="pie-de-pagina__enlace">Ayuda</NavLink>
+          <NavLink to="/libro-reclamaciones" className="pie-de-pagina__enlace">Libro de Reclamaciones</NavLink>
         </div>
 
         <div className="pie-de-pagina__columna">
