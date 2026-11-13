@@ -9,6 +9,7 @@
 //    Para agregar una condición nueva solo se agrega una regla a la lista.
 
 import { buscarViajes } from './viajesServicio.js'
+import { solicitarApi } from './httpCliente.js'
 import { HORAS_MINIMAS_ANTICIPACION, salidaMsDe } from '../utilidades/postergacion.js'
 
 const MS_HORA = 60 * 60 * 1000
@@ -68,9 +69,33 @@ export function separarViajesPostergables(pasaje, viajes, ahoraMs) {
   return { viajes: disponibles, sinCupo: ocultos }
 }
 
-// Fachada: consulta la API real (/api/viajes/buscar) y aplica las reglas.
-// Si la API falla, el error sube a la pantalla para mostrar "No pudimos consultar".
+// Pasaje REAL: el servidor revisa que el pasaje sea del cliente, que esté
+// vigente y la regla de 6 h, y devuelve solo los viajes que se pueden elegir.
+// Si rechaza, el error trae el motivo (por ejemplo, "faltan menos de 6 horas").
+export async function consultarViajesEnServidor(pasaje, criterios) {
+  const parametros = new URLSearchParams({
+    origen: criterios.origen,
+    destino: criterios.destino,
+    fecha: criterios.fecha,
+  })
+  const respuesta = await solicitarApi(`/api/usuarios/postergaciones/${pasaje.idPasaje}/viajes?${parametros}`)
+  if (!respuesta || !Array.isArray(respuesta.viajes)) {
+    throw new Error('El servidor devolvió una respuesta de viajes no válida.')
+  }
+  return respuesta
+}
+
+// Fachada: la pantalla siempre llama a esta función.
+// - Pasaje real (viene de "Mis pasajes"): consulta el endpoint de postergación.
+// - Pasaje de prueba (mock): usa la búsqueda pública de viajes, como antes.
+// En los dos casos se aplican las reglas aquí también, para que la pantalla
+// se comporte igual. Si la API falla, el error sube a la pantalla.
 export async function buscarViajesPostergables(pasaje, criterios, ahoraMs = Date.now()) {
+  if (pasaje.deCompraReal) {
+    const respuesta = await consultarViajesEnServidor(pasaje, criterios)
+    const resultado = separarViajesPostergables(pasaje, respuesta.viajes, ahoraMs)
+    return { viajes: resultado.viajes, sinCupo: resultado.sinCupo + (respuesta.ocultos ?? 0) }
+  }
   const viajes = await buscarViajes({
     origen: criterios.origen,
     destino: criterios.destino,

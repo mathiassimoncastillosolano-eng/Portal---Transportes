@@ -10,7 +10,17 @@ import {
 import { fechaLocal } from '../utilidades/fechas.js'
 
 const fetchOriginal = globalThis.fetch
-afterEach(() => { globalThis.fetch = fetchOriginal })
+const almacenOriginal = globalThis.localStorage
+afterEach(() => {
+  globalThis.fetch = fetchOriginal
+  if (almacenOriginal === undefined) delete globalThis.localStorage
+  else globalThis.localStorage = almacenOriginal
+})
+
+// Sesión simulada: el endpoint de postergación exige el token del cliente.
+function conSesion() {
+  globalThis.localStorage = { getItem: () => 'token-prueba', setItem() {}, removeItem() {} }
+}
 
 const HORA = 60 * 60 * 1000
 // Pasaje original: Trujillo → Lima, viernes 13 de noviembre a las 08:00.
@@ -132,4 +142,32 @@ test('consulta la API con el origen y destino que eligió el cliente', async () 
   }
   const resultado = await buscarViajesPostergables(pasaje, { origen: 'Lima', destino: 'Piura', fecha: '2026-11-13' }, AHORA)
   assert.deepEqual(resultado.viajes.map((v) => v.id), [96])
+})
+
+test('un pasaje real consulta el endpoint de postergación con su id', async () => {
+  const real = { ...pasaje, idPasaje: 26, deCompraReal: true }
+  conSesion()
+  globalThis.fetch = async (url, opciones) => {
+    assert.equal(opciones.headers.Authorization, 'Bearer token-prueba')
+    const consulta = new URL(url)
+    assert.equal(consulta.pathname, '/api/usuarios/postergaciones/26/viajes')
+    assert.equal(consulta.searchParams.get('origen'), 'Trujillo')
+    assert.equal(consulta.searchParams.get('destino'), 'Lima')
+    assert.equal(consulta.searchParams.get('fecha'), '2026-11-13')
+    return new Response(JSON.stringify({ viajes: [viaje({ id: 71, salidaMs: ORIGINAL + 20 * HORA })], ocultos: 3 }))
+  }
+  const resultado = await buscarViajesPostergables(real, { origen: 'Trujillo', destino: 'Lima', fecha: '2026-11-13' }, AHORA)
+  assert.deepEqual(resultado.viajes.map((v) => v.id), [71])
+  assert.equal(resultado.sinCupo, 3)
+})
+
+test('si el servidor rechaza el cambio, el error trae el motivo', async () => {
+  const real = { ...pasaje, deCompraReal: true }
+  conSesion()
+  const motivo = 'Solo puedes cambiar tu pasaje hasta 6 horas antes de la salida.'
+  globalThis.fetch = async () => new Response(JSON.stringify({ mensaje: motivo }), { status: 409 })
+  await assert.rejects(
+    buscarViajesPostergables(real, { origen: 'Trujillo', destino: 'Lima', fecha: '2026-11-13' }, AHORA),
+    (error) => error.status === 409 && error.message === motivo,
+  )
 })
