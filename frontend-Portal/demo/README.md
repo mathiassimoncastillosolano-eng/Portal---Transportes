@@ -9,3 +9,5 @@ Para verla en local:
 3. Abrir `/vista-detalle-compra-cambiado.html` para el resultado propuesto y su PDF.
 
 Los archivos HTML de demostración no forman parte de la compilación de producción. La aplicación real seguirá usando los datos que entregue el backend para el detalle de compra y el PDF.
+
+En el portal local, entra a **Mis pasajes** y abre **Compra de prueba · 3 boletos**. Desde su detalle puedes iniciar el cambio de cualquiera de los tres boletos. Al confirmar, **Ver compra actualizada** muestra el viaje vigente de cada boleto y permite descargar un PDF de prueba generado con esos datos. Este recorrido solo aparece con `npm run dev` y el estado se reinicia al recargar la página.

@@ -138,6 +138,7 @@ test('adapta un boleto real conservando venta, boleto y precio pagado', () => {
   assert.equal(pasaje.idVenta, 5)
   assert.equal(pasaje.precioPagado, 90)
   assert.equal(pasaje.estado, 'VIGENTE')
+  assert.equal(pasaje.deCompraReal, true)
   assert.equal(puedeIniciarPostergacion(compra), true)
   assert.equal(puedeIniciarPostergacion({ ...compra, fase: 'REALIZADO', vigente: false }), false)
   assert.equal(adaptarBoletoReal({ ...compra, estado: 'REEMBOLSADA' }, boleto, 'u1').estado, 'CANCELADO')

@@ -100,9 +100,11 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir, 
       const respuesta = await consultarViajes(pasaje, criterios)
       if (consulta.current !== numero) return
       alGuardarBusqueda({ criterios, viajes: respuesta.viajes, sinCupo: respuesta.sinCupo })
-    } catch {
+    } catch (fallo) {
       if (consulta.current !== numero) return
-      setError('No pudimos consultar los viajes. Inténtalo nuevamente.')
+      // 404 y 409: el servidor rechazó el cambio y explica el motivo.
+      const rechazado = fallo?.status === 404 || fallo?.status === 409
+      setError(rechazado ? fallo.message : 'No pudimos consultar los viajes. Inténtalo nuevamente.')
     } finally {
       if (consulta.current === numero) setBuscando(false)
     }

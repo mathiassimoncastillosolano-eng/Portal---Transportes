@@ -62,6 +62,8 @@
   padding-top: 1.2rem; border-top: 2px solid var(--color-borde); font-weight: 700;
 }
 .tarjeta-ticket__total strong { font-family: var(--fuente-titulos); font-size: clamp(1.4rem, 3vw, 1.75rem); color: var(--color-texto-marca); }
+.tarjeta-ticket__total--con-cambio { font-weight: 400; color: var(--color-texto-secundario); }
+.tarjeta-ticket__total--con-cambio strong { font-family: inherit; font-size: 1rem; color: var(--color-texto-principal); }
 
 .tarjeta-ticket__acciones { display: grid; gap: .6rem; }
 .tarjeta-ticket__acciones p { margin: 0; font-size: .82rem; color: var(--color-texto-secundario); }
@@ -74,6 +76,10 @@
 .tarjeta-ticket__acciones button:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
 .tarjeta-ticket__acciones button:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
 .tarjeta-ticket__acciones button:disabled { opacity: .6; cursor: wait; }
+.tarjeta-ticket__botones-pdf { display: flex; flex-wrap: wrap; gap: .75rem; }
+.tarjeta-ticket__botones-pdf button { min-height: 3rem; }
+.tarjeta-ticket__botones-pdf .tarjeta-ticket__pdf-descargar { background: var(--color-superficie-marca); color: var(--color-texto-marca); border: 1px solid var(--color-borde-marca); }
+.tarjeta-ticket__botones-pdf .tarjeta-ticket__pdf-descargar:hover:not(:disabled) { filter: brightness(1.03); }
 
 @media (max-width: 720px) {
   .tarjeta-ticket__boleto { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -84,6 +90,7 @@
   .tarjeta-ticket__franja { padding: .9rem 1rem; }
   .tarjeta-ticket__viaje { grid-template-columns: 1fr; }
   .tarjeta-ticket__acciones button { justify-self: stretch; }
+  .tarjeta-ticket__botones-pdf { flex-direction: column; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tarjeta-ticket__acciones button { transition: none; }
@@ -91,3 +98,42 @@
 }
 
 .tarjeta-ticket__boleto > .tarjeta-ticket__boleto-accion { grid-column: 1 / -1; display: flex; }
+
+/* Un cambio simulado puede dejar boletos de la misma compra en viajes distintos. */
+.tarjeta-ticket__origen-compra { margin: 0 0 -.8rem; font-size: .7rem; font-weight: 800; letter-spacing: .12em; color: var(--color-texto-secundario); }
+.tarjeta-ticket__boleto--cambiado { border: 2px solid var(--color-verde-800); background: var(--color-superficie-exito); }
+.tarjeta-ticket__boleto > .tarjeta-ticket__boleto-estado { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: .7rem; color: var(--color-texto-secundario); font-size: .76rem; }
+.tarjeta-ticket__boleto-estado strong { padding: .25rem .65rem; border-radius: 100px; background: var(--color-superficie-marca); color: var(--color-texto-marca); font-size: .72rem !important; }
+.tarjeta-ticket__boleto--cambiado .tarjeta-ticket__boleto-estado strong { background: var(--color-verde-800); color: #fff; }
+.tarjeta-ticket__boleto > .tarjeta-ticket__boleto-viaje { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; padding-top: .7rem; border-top: 1px solid var(--color-borde); }
+.tarjeta-ticket__boleto-viaje > div { display: grid; gap: .2rem; min-width: 0; }
+/* Viaje anterior del boleto cambiado: datos en líneas cortas y la diferencia aparte. */
+.tarjeta-ticket__boleto > .tarjeta-ticket__boleto-anterior { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem .9rem; border-left: 3px solid var(--color-borde); border-radius: var(--radio-sm); background: var(--color-superficie-elevada); }
+.tarjeta-ticket__boleto-anterior > div { display: grid; gap: .15rem; min-width: 0; }
+.tarjeta-ticket__boleto-anterior span { color: var(--color-texto-secundario); font-size: .8rem; }
+.tarjeta-ticket__boleto-anterior span:first-of-type { text-decoration: line-through; }
+.tarjeta-ticket__boleto-anterior .tarjeta-ticket__diferencia { text-align: right; }
+.tarjeta-ticket__diferencia strong { color: var(--color-texto-exito); font-size: .95rem; }
+
+/* PDF de la vista simulada: uno por viaje (original y cada pasaje cambiado). */
+.tarjeta-ticket__pdfs { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; }
+.tarjeta-ticket__pdf { display: flex; align-items: center; gap: .6rem; padding: .7rem .8rem; border: 1px solid var(--color-borde); border-radius: var(--radio-sm); }
+.tarjeta-ticket__pdf--cambiado { border-color: var(--color-verde-800); background: var(--color-superficie-exito-2); }
+.tarjeta-ticket__pdf-texto { display: grid; gap: .15rem; flex: 1; min-width: 0; }
+.tarjeta-ticket__pdf-texto small { color: var(--color-texto-secundario); font-size: .78rem; }
+.tarjeta-ticket__acciones .tarjeta-ticket__pdf button { min-height: 2.6rem; padding-inline: 1rem; }
+.tarjeta-ticket__acciones .tarjeta-ticket__pdf .tarjeta-ticket__pdf-descargar { background: var(--color-superficie-marca); color: var(--color-texto-marca); border: 1px solid var(--color-borde-marca); }
+@media (max-width: 560px) {
+  .tarjeta-ticket__pdf { flex-wrap: wrap; }
+  .tarjeta-ticket__pdf-texto { flex-basis: 100%; }
+  .tarjeta-ticket__acciones .tarjeta-ticket__pdf button { flex: 1; }
+  .tarjeta-ticket__boleto > .tarjeta-ticket__boleto-anterior { align-items: flex-start; }
+}
+.tarjeta-ticket__totales-cambio { display: grid; grid-template-columns: 1fr auto; gap: .6rem; margin-top: -.8rem; }
+.tarjeta-ticket__totales-cambio span { color: var(--color-texto-secundario); }
+.tarjeta-ticket__totales-cambio strong { text-align: right; }
+.tarjeta-ticket__totales-cambio span:nth-last-child(2), .tarjeta-ticket__totales-cambio strong:last-child { padding-top: .7rem; border-top: 1px solid var(--color-borde); color: var(--color-texto-marca); font-family: var(--fuente-titulos); font-size: 1.15rem; }
+@media (max-width: 650px) {
+  .tarjeta-ticket__boleto .tarjeta-ticket__boleto-pasajero { order: 0; }
+  .tarjeta-ticket__boleto > .tarjeta-ticket__boleto-viaje { grid-template-columns: 1fr; }
+}

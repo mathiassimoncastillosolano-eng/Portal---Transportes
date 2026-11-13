@@ -71,3 +71,6 @@
 .pagina-mis-pasajes__mock summary { cursor: pointer; font-size: .82rem; font-weight: 700; color: var(--color-texto-secundario); }
 .pagina-mis-pasajes__mock ul { display: grid; gap: .5rem; margin: .8rem 0 0; padding: 0; list-style: none; }
 .pagina-mis-pasajes__mock li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; font-size: .85rem; color: var(--color-texto-principal); }
+.pagina-mis-pasajes__mock--compra { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .8rem; }
+.pagina-mis-pasajes__mock--compra > div { display: grid; gap: .25rem; }
+.pagina-mis-pasajes__mock--compra span { color: var(--color-texto-secundario); font-size: .85rem; }

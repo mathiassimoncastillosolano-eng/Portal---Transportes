@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { adaptarBoletoReal, puedeIniciarPostergacion } from '../../utilidades/postergacion'
 import { obtenerCompra } from '../../servicios/comprasServicio'
+import { descargarPdfDocumentoMock, verPdfDocumentoMock } from '../../servicios/pdfCompraMock'
+import { vistaCambioSimulado } from '../../utilidades/vistaCambioSimulado'
 import { TarjetaTicket } from '../../componentes/perfil/TarjetaTicket'
 import { PanelAsincrono } from '../../componentes/carga'
 import './paginaMisPasajes.css'
@@ -10,6 +12,7 @@ import './paginaMisPasajes.css'
 /** /perfil/pasajes/:idVenta — siempre consulta al backend, que solo entrega compras del usuario autenticado. */
 export function PaginaDetalleCompra() {
   const { idVenta } = useParams()
+  const { state } = useLocation()
   const { usuario } = useAutenticacion()
   const [compra, setCompra] = useState(null)
   const [estado, setEstado] = useState('cargando')
@@ -17,6 +20,8 @@ export function PaginaDetalleCompra() {
   const [intentos, setIntentos] = useState(0)
   const [descargando, setDescargando] = useState(false)
   const [errorPdf, setErrorPdf] = useState('')
+  const compraVisible = vistaCambioSimulado(compra, state?.cambioSimulado)
+  const vistaPrevia = compraVisible !== compra
 
   useEffect(() => {
     let cancelado = false
@@ -37,15 +42,32 @@ export function PaginaDetalleCompra() {
     return () => { cancelado = true }
   }, [idVenta, intentos])
 
-  async function descargarPdf() {
+  async function descargarPdf(documento) {
     if (!compra?.documentoDisponible) return
     setDescargando(true)
     setErrorPdf('')
     try {
-      const { descargarPdfCompra } = await import('../../servicios/pdfBoleto')
-      await descargarPdfCompra(compra)
+      if (vistaPrevia) {
+        await descargarPdfDocumentoMock(compraVisible, documento)
+      } else {
+        const { descargarPdfCompra } = await import('../../servicios/pdfBoleto')
+        await descargarPdfCompra(compra)
+      }
     } catch {
       setErrorPdf('No se pudo preparar el PDF. Inténtalo nuevamente.')
+    } finally {
+      setDescargando(false)
+    }
+  }
+
+  async function verPdf(documento) {
+    if (!vistaPrevia || !compra?.documentoDisponible) return
+    setDescargando(true)
+    setErrorPdf('')
+    try {
+      await verPdfDocumentoMock(compraVisible, documento)
+    } catch {
+      setErrorPdf('No se pudo abrir el PDF. Inténtalo nuevamente.')
     } finally {
       setDescargando(false)
     }
@@ -65,12 +87,19 @@ export function PaginaDetalleCompra() {
           estadoError={{ titulo: 'No pudimos abrir esta compra' }}
         >
           {() => compra && (
+            <>
+            {vistaPrevia && (
+              <p className="tarjeta-ticket__alerta" role="note">
+                Vista previa simulada: la compra y el pago registrados no cambiaron. Vuelve a Mis pasajes para consultar la compra original.
+              </p>
+            )}
             <TarjetaTicket
-              compra={compra}
+              compra={compraVisible}
               onDescargar={descargarPdf}
+              onVerPdf={vistaPrevia ? verPdf : undefined}
               descargando={descargando}
               errorPdf={errorPdf}
-              accionBoleto={(boleto) => puedeIniciarPostergacion(compra) && (
+              accionBoleto={(boleto) => !vistaPrevia && puedeIniciarPostergacion(compra) && (
                 <Link
                   className="pagina-mis-pasajes__postergar"
                   to={`/postergar/${boleto.idPasaje}`}
@@ -80,6 +109,7 @@ export function PaginaDetalleCompra() {
                 </Link>
               )}
             />
+            </>
           )}
         </PanelAsincrono>
       </div>

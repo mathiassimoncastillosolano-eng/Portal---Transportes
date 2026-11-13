@@ -1,5 +1,6 @@
 import { EstadoDisponibilidad } from '../comunes/EstadoDisponibilidad'
-import { formatearFechaHoraCompra, formatearFechaLarga, formatearPrecio } from '../../utilidades/formato'
+import { formatearFechaCorta, formatearFechaHoraCompra, formatearFechaLarga, formatearPrecio } from '../../utilidades/formato'
+import { documentosCambio, resumenDocumento } from '../../utilidades/documentosCambio'
 import { avisoTotal, datosFaltantes, estadoVisible } from '../../utilidades/pasajesVista'
 import './tarjetaTicket.css'
 
@@ -11,7 +12,7 @@ function motivoSinDocumento(compra) {
 }
 
 /** Detalle de una compra real: trayecto, datos del viaje, un elemento por boleto y total. */
-export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, accionBoleto }) {
+export function TarjetaTicket({ compra, onDescargar, onVerPdf, descargando, errorPdf, accionBoleto }) {
   const estado = estadoVisible(compra)
   const faltantes = compra.incompleta ? datosFaltantes(compra) : []
   const aviso = avisoTotal(compra)
@@ -19,6 +20,11 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
     ? `${formatearFechaLarga(compra.fechaSalida)} · ${compra.horaSalida}`
     : 'Por confirmar'
   const servicio = compra.tipoBus ? `${compra.empresa} · ${compra.tipoBus}` : 'Por confirmar'
+  const hayCambios = compra.boletos.some((boleto) => boleto.cambio)
+  const indicesCambiados = compra.boletos.flatMap((boleto, indice) => boleto.cambio ? [indice + 1] : [])
+  const etiquetaAdicional = indicesCambiados.length === 1
+    ? `Pago adicional del boleto ${indicesCambiados[0]}`
+    : 'Pagos adicionales por cambios'
 
   return (
     <article className="tarjeta-ticket">
@@ -34,6 +40,7 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
           </p>
         </header>
 
+        {hayCambios && <p className="tarjeta-ticket__origen-compra">VIAJE DE LA COMPRA ORIGINAL</p>}
         <div className="tarjeta-ticket__ruta">
           <div><small>Origen</small><strong>{compra.origen ?? '—'}</strong></div>
           <span className="tarjeta-ticket__linea" aria-hidden="true">
@@ -44,8 +51,8 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
         </div>
 
         <dl className="tarjeta-ticket__viaje">
-          <div><dt>Salida</dt><dd>{salida}</dd></div>
-          <div><dt>Servicio</dt><dd>{servicio}</dd></div>
+          <div><dt>{hayCambios ? 'Salida original' : 'Salida'}</dt><dd>{salida}</dd></div>
+          <div><dt>{hayCambios ? 'Servicio original' : 'Servicio'}</dt><dd>{servicio}</dd></div>
           <div><dt>Fecha de compra</dt><dd>{formatearFechaHoraCompra(compra.fechaCompra)}</dd></div>
         </dl>
 
@@ -61,9 +68,15 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
             <p className="tarjeta-ticket__sin-boletos">No hay boletos registrados para esta compra.</p>
           )}
           {compra.boletos.map((boleto, indice) => (
-            <div className="tarjeta-ticket__boleto" key={boleto.idPasaje}>
+            <div className={`tarjeta-ticket__boleto${boleto.cambio ? ' tarjeta-ticket__boleto--cambiado' : ''}`} key={boleto.idPasaje}>
+              {boleto.viajeVigente && (
+                <div className="tarjeta-ticket__boleto-estado">
+                  <span>Boleto {indice + 1}</span>
+                  <strong>{boleto.cambio ? 'Viaje cambiado' : 'Sin cambios'}</strong>
+                </div>
+              )}
               <div className="tarjeta-ticket__boleto-asiento">
-                <small>Boleto {indice + 1}</small>
+                <small>{boleto.viajeVigente ? 'Asiento vigente' : `Boleto ${indice + 1}`}</small>
                 <strong>Asiento {boleto.asiento ?? '—'}</strong>
               </div>
               <div className="tarjeta-ticket__boleto-pasajero">
@@ -76,24 +89,71 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
                 <strong className="tarjeta-ticket__codigo">{boleto.numeroBoleto}</strong>
               </div>
               <strong className="tarjeta-ticket__boleto-precio">{formatearPrecio(boleto.precio, compra.moneda)}</strong>
+              {boleto.viajeVigente && (
+                <div className="tarjeta-ticket__boleto-viaje">
+                  <div><small>Viaje vigente</small><strong>{boleto.viajeVigente.origen} → {boleto.viajeVigente.destino}</strong></div>
+                  <div><small>Salida</small><strong>{formatearFechaLarga(boleto.viajeVigente.fechaSalida)} · {boleto.viajeVigente.horaSalida}</strong></div>
+                  <div><small>Servicio</small><strong>{boleto.viajeVigente.empresa} · {boleto.viajeVigente.tipoBus}</strong></div>
+                </div>
+              )}
+              {boleto.cambio && (
+                <div className="tarjeta-ticket__boleto-anterior">
+                  <div>
+                    <small>Viaje anterior</small>
+                    <span>{boleto.cambio.anterior.origen} → {boleto.cambio.anterior.destino}</span>
+                    <span>{formatearFechaCorta(boleto.cambio.anterior.fechaSalida)} · {boleto.cambio.anterior.horaSalida} · Asiento {boleto.cambio.anterior.asiento}</span>
+                  </div>
+                  <div className="tarjeta-ticket__diferencia">
+                    <small>Diferencia pagada</small>
+                    <strong>{formatearPrecio(boleto.cambio.adicionalPagado, compra.moneda)}</strong>
+                  </div>
+                </div>
+              )}
               {accionBoleto && <div className="tarjeta-ticket__boleto-accion">{accionBoleto(boleto, compra)}</div>}
             </div>
           ))}
         </section>
 
-        <div className="tarjeta-ticket__total">
-          <span>Total de la compra</span>
+        <div className={`tarjeta-ticket__total${hayCambios ? ' tarjeta-ticket__total--con-cambio' : ''}`}>
+          <span>{hayCambios ? 'Compra original' : 'Total de la compra'}</span>
           <strong>{formatearPrecio(compra.total, compra.moneda)}</strong>
         </div>
+        {hayCambios && (
+          <div className="tarjeta-ticket__totales-cambio">
+            <span>{etiquetaAdicional}</span>
+            <strong>{formatearPrecio(compra.totalPagado - compra.total, compra.moneda)}</strong>
+            <span>Total pagado</span>
+            <strong>{formatearPrecio(compra.totalPagado, compra.moneda)}</strong>
+          </div>
+        )}
         {aviso && <p className="tarjeta-ticket__alerta" role="note">{aviso}</p>}
 
         <div className="tarjeta-ticket__acciones">
           {compra.documentoDisponible ? (
             <>
-              <button type="button" onClick={onDescargar} disabled={descargando}>
-                {descargando ? 'Preparando PDF…' : 'Descargar PDF'}
-              </button>
-              <p>Documento con los datos de tu compra registrada.</p>
+              {compra.esMock && onVerPdf ? (
+                <ul className="tarjeta-ticket__pdfs">
+                  {documentosCambio(compra).map((documento) => (
+                    <li key={documento.clave} className={`tarjeta-ticket__pdf${documento.tipo === 'cambiado' ? ' tarjeta-ticket__pdf--cambiado' : ''}`}>
+                      <div className="tarjeta-ticket__pdf-texto">
+                        <strong>{documento.titulo}</strong>
+                        <small>{resumenDocumento(documento)}</small>
+                      </div>
+                      <button type="button" onClick={() => onVerPdf(documento)} disabled={descargando}>Ver PDF ↗</button>
+                      <button type="button" className="tarjeta-ticket__pdf-descargar" onClick={() => onDescargar(documento)} disabled={descargando}>
+                        Descargar
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <>
+                  <button type="button" onClick={onDescargar} disabled={descargando}>
+                    {descargando ? 'Preparando PDF…' : 'Descargar PDF'}
+                  </button>
+                  <p>Documento con los datos de tu compra registrada.</p>
+                </>
+              )}
             </>
           ) : (
             <p>{motivoSinDocumento(compra)}</p>

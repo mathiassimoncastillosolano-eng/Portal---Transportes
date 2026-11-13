@@ -142,6 +142,7 @@ export function puedeIniciarPostergacion(compra) {
 
 export function adaptarBoletoReal(compra, boleto, idCliente) {
   return {
+    deCompraReal: true,
     idPasaje: boleto.idPasaje,
     numeroBoleto: boleto.numeroBoleto,
     idVenta: compra.idVenta,

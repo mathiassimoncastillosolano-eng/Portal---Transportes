@@ -16,6 +16,7 @@ import { PaginaPerfil } from '../paginas/perfil/PaginaPerfil'
 import { PaginaMisPasajes } from '../paginas/perfil/PaginaMisPasajes'
 import { PaginaHistorial } from '../paginas/perfil/PaginaHistorial'
 import { PaginaDetalleCompra } from '../paginas/perfil/PaginaDetalleCompra'
+import { PaginaDetalleCompraMock } from '../paginas/perfil/PaginaDetalleCompraMock'
 import { PaginaPostergarPasaje } from '../paginas/perfil/PaginaPostergarPasaje'
 import { PaginaNoEncontrada } from '../paginas/PaginaNoEncontrada'
 
@@ -58,6 +59,7 @@ export function RutasApp() {
         >
           <Route index element={<PaginaPerfil />} />
           <Route path="pasajes" element={<PaginaMisPasajes />} />
+          {import.meta.env.DEV && <Route path="pasajes/demo" element={<PaginaDetalleCompraMock />} />}
           <Route path="pasajes/:idVenta" element={<PaginaDetalleCompra />} />
           <Route path="historial" element={<PaginaHistorial />} />
         </Route>
