@@ -15,6 +15,7 @@ export function ResumenReserva({
   mostrarPiso,
   filasDetalle = [],
   precioTotal,
+  etiquetaTotal = 'Total',
   textoBoton,
   onContinuar,
   deshabilitado,
@@ -77,7 +78,7 @@ export function ResumenReserva({
 
       {typeof precioTotal === 'number' && (
         <div className="resumen-reserva__total">
-          <span>Total</span>
+          <span>{etiquetaTotal}</span>
           <span className="resumen-reserva__total-monto">{formatearPrecio(precioTotal)}</span>
         </div>
       )}

@@ -190,8 +190,10 @@
   background: linear-gradient(135deg, var(--color-superficie-exito), var(--color-superficie-exito-2));
   border: 1px solid rgba(16, 185, 129, 0.3);
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: var(--espacio-3);
+  white-space: nowrap;
   font-size: var(--tamano-sm);
   font-weight: 600;
   color: var(--color-texto-exito);
@@ -205,6 +207,9 @@
   line-height: 1;
   color: var(--color-texto-marca-fuerte);
   font-variant-numeric: tabular-nums;
+  /* "S/" y los números siempre en la misma línea; si falta espacio, se ajusta la etiqueta. */
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Si ya hay total, la fila de precio de la lista no se repite visualmente destacada */

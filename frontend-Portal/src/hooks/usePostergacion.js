@@ -3,12 +3,14 @@ import {
   CODIGO_ERROR_PROCESAMIENTO,
   ESTADOS_PAGO,
   aplicarTarifaDeEscenario,
-  calcularComparacion,
   confirmarPostergacionSimulada,
   consultarElegibilidad,
   procesarPagoSimulado,
 } from '../servicios/postergacionMock'
+import { borrarSesionAsientos } from '../servicios/viajesServicio'
 import { CODIGOS_RECHAZO, puedeContinuarDesdeTarifa } from '../utilidades/postergacion'
+import { calcularTarifaDelAsiento } from '../utilidades/reprogramacionAsientos'
+import { useReservaReprogramacion } from './useReservaReprogramacion'
 
 export const FASES = Object.freeze({
   VALIDANDO: 'validando',
@@ -40,6 +42,9 @@ function estadoInicial() {
     avisoPago: null,
     versionMapa: 0,
     resultado: null,
+    // Reserva del asiento: sesión del backend (con su hora de expiración) y aviso si venció.
+    sesion: null,
+    sesionVencida: false,
   }
 }
 
@@ -54,9 +59,16 @@ function reductor(estado, accion) {
     case 'guardar-busqueda':
       return { ...estado, busqueda: accion.busqueda }
     case 'elegir-viaje':
-      return { ...estado, viaje: accion.viaje, asiento: null, comparacion: null, aceptaCondiciones: false, avisoPago: null, fase: FASES.ASIENTO }
+      return { ...estado, viaje: accion.viaje, asiento: null, comparacion: null, aceptaCondiciones: false, avisoPago: null, sesion: null, sesionVencida: false, fase: FASES.ASIENTO }
     case 'elegir-asiento':
       return { ...estado, asiento: accion.asiento }
+    case 'guardar-sesion':
+      return { ...estado, sesion: accion.sesion }
+    case 'reserva-liberada':
+      return { ...estado, asiento: null, sesion: null }
+    case 'sesion-vencida':
+      // Se acabó el tiempo: el pasajero vuelve a elegir viaje (el pasaje original sigue igual).
+      return { ...estado, fase: FASES.VIAJE, viaje: null, asiento: null, sesion: null, comparacion: null, aceptaCondiciones: false, avisoPago: null, procesando: false, sesionVencida: true }
     case 'ir-a-tarifa':
       return { ...estado, comparacion: accion.comparacion, aceptaCondiciones: false, fase: FASES.TARIFA }
     case 'aceptar':
@@ -96,6 +108,23 @@ export function usePostergacion({ pasaje, idCliente, escenario, alEscenarioConsu
   const estadoRef = useRef(estado)
   estadoRef.current = estado
 
+  // Si se acaba el tiempo (o el backend dice que la sesión ya no existe), se vuelve a elegir viaje.
+  const vencerSesion = useCallback(() => {
+    const idViaje = estadoRef.current.viaje?.id
+    if (idViaje) borrarSesionAsientos(idViaje)
+    despachar({ tipo: 'sesion-vencida' })
+  }, [])
+
+  // Temporizador: corre mientras se elige, se pausa durante el pago y se detiene al terminar el cambio.
+  const { liberarReserva } = useReservaReprogramacion({
+    idViaje: estado.viaje?.id,
+    sesion: estado.sesion,
+    idAsiento: estado.asiento?.idAsiento,
+    pausada: estado.procesando || estado.fase === FASES.RESULTADO,
+    finalizada: estado.resultado?.exito === true,
+    alVencer: vencerSesion,
+  })
+
   useEffect(() => {
     let cancelado = false
     enVuelo.current = false
@@ -114,21 +143,28 @@ export function usePostergacion({ pasaje, idCliente, escenario, alEscenarioConsu
     despachar({ tipo: 'elegir-viaje', viaje: aplicarTarifaDeEscenario(viaje, pasaje, escenarioRef.current) })
   }, [pasaje])
 
-  const elegirAsiento = useCallback((asiento) => {
-    const actual = estadoRef.current.asiento
-    const mismo = actual && actual.idAsiento === asiento.idAsiento
-    despachar({ tipo: 'elegir-asiento', asiento: mismo ? null : asiento })
-  }, [])
+  // El asiento (o null) lo decide el mapa real: aquí solo se guarda.
+  const elegirAsiento = useCallback((asiento) => despachar({ tipo: 'elegir-asiento', asiento }), [])
+
+  const guardarSesion = useCallback((sesion) => despachar({ tipo: 'guardar-sesion', sesion }), [])
 
   const continuarDesdeAsiento = useCallback(() => {
     const { viaje, asiento } = estadoRef.current
     if (!viaje || !asiento) return
-    despachar({ tipo: 'ir-a-tarifa', comparacion: calcularComparacion(pasaje, viaje) })
+    // La tarifa se compara con el precio del asiento elegido, no con el precio "desde" del viaje.
+    despachar({ tipo: 'ir-a-tarifa', comparacion: calcularTarifaDelAsiento(pasaje, asiento) })
   }, [pasaje])
 
   const aceptarCondiciones = useCallback((valor) => despachar({ tipo: 'aceptar', valor }), [])
   const cambiarMetodo = useCallback((metodo) => despachar({ tipo: 'metodo', metodo }), [])
-  const volver = useCallback(() => despachar({ tipo: 'volver' }), [])
+  const volver = useCallback(() => {
+    // Volver de elegir asiento a elegir viaje: se suelta el asiento y se cierra la sesión.
+    if (estadoRef.current.fase === FASES.ASIENTO) {
+      liberarReserva()
+      despachar({ tipo: 'reserva-liberada' })
+    }
+    despachar({ tipo: 'volver' })
+  }, [liberarReserva])
   const reelegirAsiento = useCallback(() => despachar({ tipo: 'reelegir-asiento' }), [])
 
   const manejarFallo = useCallback((fallo) => {
@@ -212,6 +248,8 @@ export function usePostergacion({ pasaje, idCliente, escenario, alEscenarioConsu
       guardarBusqueda,
       elegirViaje,
       elegirAsiento,
+      guardarSesion,
+      vencerSesion,
       continuarDesdeAsiento,
       aceptarCondiciones,
       continuarDesdeTarifa,

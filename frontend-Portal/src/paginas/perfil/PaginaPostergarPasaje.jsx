@@ -8,7 +8,9 @@ import { BotonPrincipal } from '../../componentes/comunes/BotonPrincipal'
 import { BotonSecundario } from '../../componentes/comunes/BotonSecundario'
 import { EstadoRuta, PanelAsincrono } from '../../componentes/carga'
 import { TarjetaPasajeOriginal } from '../../componentes/postergacion/TarjetaPasajeOriginal'
-import { ResumenPostergacion } from '../../componentes/postergacion/ResumenPostergacion'
+import { Contador } from '../../componentes/reserva/Contador'
+import { ResumenReprogramacion } from '../../componentes/reprogramacion/ResumenReprogramacion'
+import { AvisoSesionVencida } from '../../componentes/reprogramacion/AvisoSesionVencida'
 import { BarraAcciones } from '../../componentes/postergacion/BarraAcciones'
 import { PasoNuevoViaje } from '../../componentes/postergacion/PasoNuevoViaje'
 import { PasoAsiento } from '../../componentes/postergacion/PasoAsiento'
@@ -38,6 +40,8 @@ const PASO_INDICADOR = {
 }
 
 const FASES_CON_RESUMEN = [FASES.ASIENTO, FASES.TARIFA, FASES.PAGO]
+// Mientras el asiento está reservado se muestra el tiempo que queda para terminar.
+const FASES_CON_CONTADOR = FASES_CON_RESUMEN
 const ID_AYUDA_TARIFA = 'ayuda-aceptacion-tarifa'
 
 function FlujoPostergacion({ pasajeInicial, idCliente }) {
@@ -55,7 +59,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
     escenario,
     alEscenarioConsumido: consumirEscenarioAsiento,
   })
-  const { fase, viaje, asiento, comparacion, aceptaCondiciones, metodo, procesando, avisoPago, intentos, busqueda, versionMapa, resultado } = estado
+  const { fase, viaje, asiento, comparacion, aceptaCondiciones, metodo, procesando, avisoPago, intentos, busqueda, versionMapa, resultado, sesion, sesionVencida } = estado
 
   useEffect(() => {
     if (primeraFase.current) {
@@ -92,10 +96,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
           <p className="postergacion-encabezado__eyebrow">CAMBIO DE FECHA</p>
           <h1 className="postergacion-encabezado__titulo">Cambia la fecha de tu viaje</h1>
         </div>
-        <span className="postergacion-encabezado__simulado" title="Los datos y los pagos de esta operación son simulados">
-          Modo simulado
-        </span>
-      </header>
+        {FASES_CON_CONTADOR.includes(fase) && <Contador expiraEn={sesion?.expiraEn} pausado={procesando} />}      </header>
 
       {!enResultado && <TarjetaPasajeOriginal pasaje={pasaje} />}
 
@@ -122,6 +123,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
 
           {fase === FASES.VIAJE && (
             <>
+              {sesionVencida && <AvisoSesionVencida />}
               <PasoNuevoViaje
                 pasaje={pasaje}
                 busqueda={busqueda}
@@ -134,7 +136,14 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
 
           {fase === FASES.ASIENTO && viaje && (
             <>
-              <PasoAsiento pasaje={pasaje} viaje={viaje} asiento={asiento} versionMapa={versionMapa} alElegir={acciones.elegirAsiento} />
+              <PasoAsiento
+                pasaje={pasaje}
+                viaje={viaje}
+                versionMapa={versionMapa}
+                alElegir={acciones.elegirAsiento}
+                alGuardarSesion={acciones.guardarSesion}
+                alSesionVencida={acciones.vencerSesion}
+              />
               <BarraAcciones
                 alVolver={acciones.volver}
                 alCancelar={pedirCancelacion}
@@ -211,7 +220,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
 
         {FASES_CON_RESUMEN.includes(fase) && (
           <aside className="postergacion-lateral">
-            <ResumenPostergacion pasaje={pasaje} viaje={viaje} asiento={asiento} comparacion={fase === FASES.ASIENTO ? null : comparacion} />
+            <ResumenReprogramacion pasaje={pasaje} viaje={viaje} asiento={asiento} />
           </aside>
         )}
       </div>

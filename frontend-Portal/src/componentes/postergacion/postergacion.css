@@ -141,6 +141,7 @@
 }
 .postergacion-paso__titulo:focus { outline: none; }
 .postergacion-paso__texto { margin: 0; max-width: 62ch; color: var(--color-texto-secundario); font-size: var(--tamano-sm); }
+.postergacion-paso__texto--ancho { max-width: none; }
 .postergacion-paso__lista { display: grid; gap: var(--espacio-4); }
 .postergacion-paso__conteo { margin: 0 0 var(--espacio-3); font-size: 0.85rem; font-weight: 700; color: var(--color-texto-secundario); }
 .postergacion-paso__nota { margin: var(--espacio-3) 0 0; font-size: 0.82rem; color: var(--color-texto-secundario); }
