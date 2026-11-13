@@ -148,12 +148,12 @@ class PostergacionServicioTest {
                 viaje(2, salida, 0, true),                           // lleno
                 viaje(3, salida, 5, false),                          // el servidor no permite reservarlo
                 viaje(VIAJE_ORIGINAL, salida, 8, true),              // es el mismo viaje del pasaje
-                viaje(4, AHORA.plusHours(5).plusMinutes(59), 9, true), // sale en menos de 6 h
-                viaje(5, AHORA.plusHours(6), 9, true)));             // sale en 6 h exactas: se ofrece
+                viaje(4, AHORA.plusHours(2), 9, true)));             // sale en 2 h: se ofrece (adelantar)
 
         ConsultaPostergacionDto resultado = consultar();
 
-        assertEquals(List.of(1L, 5L), resultado.viajes().stream().map(ViajeResumenDto::id).toList());
-        assertEquals(4, resultado.ocultos());
+        // La regla de 6 h es solo para el viaje original: el viaje 4 sale pronto y aun así se ofrece.
+        assertEquals(List.of(1L, 4L), resultado.viajes().stream().map(ViajeResumenDto::id).toList());
+        assertEquals(3, resultado.ocultos());
     }
 }

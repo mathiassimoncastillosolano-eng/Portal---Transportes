@@ -89,15 +89,15 @@ test('permite adelantar o postergar: ofrece salidas antes y después del viaje o
   assert.deepEqual(resultado.viajes.map((v) => v.id), [60, 61, 62, 63])
 })
 
-test('regla de 6 h en el viaje nuevo: con 6 h exactas se ofrece, con menos no', () => {
+test('el viaje nuevo NO necesita 6 h: se ofrece aunque salga pronto, si todavía no salió', () => {
   const viajes = [
-    viaje({ id: 70, salidaMs: AHORA + 6 * HORA }),
-    viaje({ id: 71, salidaMs: AHORA + 6 * HORA - 1 }),
-    viaje({ id: 72, salidaMs: AHORA + 2 * HORA }),
+    viaje({ id: 70, salidaMs: AHORA + 2 * HORA }), // sale en 2 h: se ofrece (adelantar)
+    viaje({ id: 71, salidaMs: AHORA + 30 * 60 * 1000 }), // sale en 30 min: se ofrece
+    viaje({ id: 72, salidaMs: AHORA - 60 * 1000 }), // ya salió: no se ofrece
   ]
   const resultado = separarViajesPostergables(pasaje, viajes, AHORA)
-  assert.deepEqual(resultado.viajes.map((v) => v.id), [70])
-  assert.equal(resultado.sinCupo, 2)
+  assert.deepEqual(resultado.viajes.map((v) => v.id), [70, 71])
+  assert.equal(resultado.sinCupo, 1)
 })
 
 test('regla de 6 h en el viaje original: con exactamente 6 h se puede, con menos ya no se ofrece ningún viaje', () => {

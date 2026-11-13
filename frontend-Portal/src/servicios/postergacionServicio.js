@@ -30,10 +30,11 @@ const ANTICIPACION_MINIMA_MS = HORAS_MINIMAS_ANTICIPACION * MS_HORA
 
 // Reglas de la HU-02. Cada regla recibe el viaje, el pasaje y la hora actual,
 // y devuelve true si el viaje cumple la condición.
-// La regla de 6 h (R2) se aplica a los dos viajes:
-//  - al original: solo se puede cambiar si faltan 6 h o más para su salida;
-//  - al nuevo: solo se ofrece si faltan 6 h o más para su salida.
-// Ejemplo: a las 08:00 se puede pasar a cualquier salida desde las 14:00.
+// La regla de 6 h (R2) es SOLO para el viaje original: el pasaje se puede
+// cambiar si faltan 6 h o más para su salida.
+// El viaje nuevo solo debe no haber salido, tener asientos y poder reservarse
+// (la reserva normal cierra 20 minutos antes de la salida).
+// Ejemplo: a las 08:00 se puede adelantar a un viaje que sale a las 10:00.
 export const REGLAS_POSTERGACION = [
   {
     nombre: 'Cambia la ruta, fecha u hora del viaje',
@@ -44,8 +45,8 @@ export const REGLAS_POSTERGACION = [
     cumple: (viaje, pasaje, ahoraMs) => salidaOriginalMs(pasaje) - ahoraMs >= ANTICIPACION_MINIMA_MS,
   },
   {
-    nombre: 'Faltan 6 h o más para la salida del nuevo viaje',
-    cumple: (viaje, pasaje, ahoraMs) => viaje.salidaMs - ahoraMs >= ANTICIPACION_MINIMA_MS,
+    nombre: 'El nuevo viaje todavía no sale',
+    cumple: (viaje, pasaje, ahoraMs) => viaje.salidaMs > ahoraMs,
   },
   {
     nombre: 'Tiene asientos disponibles',
