@@ -5,7 +5,8 @@ import {
   buscarViajesPostergables,
   esMismaSalida,
   salidaOriginalMs,
-  separarViajesPostergables,
+  esViajePostergable,
+  prepararViajesPostergables,
 } from './postergacionServicio.js'
 import { fechaLocal } from '../utilidades/fechas.js'
 
@@ -38,7 +39,7 @@ function viaje(datos) {
   return { origen: 'Trujillo', destino: 'Lima', fechaSalida, horaSalida, asientosDisponibles: 10, precio: 60, reservable: true, ...datos }
 }
 
-test('descarta el viaje original, los que ya salieron, los llenos y los que el servidor cerró', () => {
+test('muestra todos los viajes menos el original; solo se pueden elegir los abiertos con asientos', () => {
   const viajes = [
     viaje({ id: 50, salidaMs: ORIGINAL }),
     viaje({ id: 51, salidaMs: AHORA - HORA }),
@@ -47,9 +48,11 @@ test('descarta el viaje original, los que ya salieron, los llenos y los que el s
     viaje({ id: 55, salidaMs: ORIGINAL + 9 * HORA }),
     viaje({ id: 54, salidaMs: ORIGINAL + 8 * HORA }),
   ]
-  const resultado = separarViajesPostergables(pasaje, viajes, AHORA)
-  assert.deepEqual(resultado.viajes.map((v) => v.id), [55, 54])
-  assert.equal(resultado.sinCupo, 4)
+  const resultado = prepararViajesPostergables(pasaje, viajes, AHORA)
+  assert.deepEqual(resultado.viajes.map((v) => v.id), [51, 52, 53, 55, 54])
+  assert.equal(resultado.ocultos, 1)
+  const elegibles = resultado.viajes.filter((v) => esViajePostergable(v, pasaje, AHORA))
+  assert.deepEqual(elegibles.map((v) => v.id), [55, 54])
 })
 
 test('cada regla de la HU-02 se puede revisar por separado', () => {
@@ -85,25 +88,28 @@ test('permite adelantar o postergar: ofrece salidas antes y después del viaje o
     viaje({ id: 62, salidaMs: ORIGINAL + 3 * HORA }), // mismo día, más tarde: postergar
     viaje({ id: 63, salidaMs: ORIGINAL + 48 * HORA }), // dos días después: postergar
   ]
-  const resultado = separarViajesPostergables(pasaje, viajes, AHORA)
-  assert.deepEqual(resultado.viajes.map((v) => v.id), [60, 61, 62, 63])
+  const resultado = prepararViajesPostergables(pasaje, viajes, AHORA)
+  assert.deepEqual(resultado.viajes.filter((v) => esViajePostergable(v, pasaje, AHORA)).map((v) => v.id), [60, 61, 62, 63])
 })
 
-test('regla de 6 h en el viaje nuevo: con 6 h exactas se ofrece, con menos no', () => {
+test('el viaje nuevo NO necesita 6 h: se puede elegir aunque salga pronto, si todavía no salió', () => {
   const viajes = [
-    viaje({ id: 70, salidaMs: AHORA + 6 * HORA }),
-    viaje({ id: 71, salidaMs: AHORA + 6 * HORA - 1 }),
-    viaje({ id: 72, salidaMs: AHORA + 2 * HORA }),
+    viaje({ id: 70, salidaMs: AHORA + 2 * HORA }), // sale en 2 h: se ofrece (adelantar)
+    viaje({ id: 71, salidaMs: AHORA + 30 * 60 * 1000 }), // sale en 30 min: se ofrece
+    viaje({ id: 72, salidaMs: AHORA - 60 * 1000 }), // ya salió: se muestra, pero no se puede elegir
   ]
-  const resultado = separarViajesPostergables(pasaje, viajes, AHORA)
-  assert.deepEqual(resultado.viajes.map((v) => v.id), [70])
-  assert.equal(resultado.sinCupo, 2)
+  const resultado = prepararViajesPostergables(pasaje, viajes, AHORA)
+  assert.deepEqual(resultado.viajes.map((v) => v.id), [70, 71, 72])
+  assert.deepEqual(resultado.viajes.filter((v) => esViajePostergable(v, pasaje, AHORA)).map((v) => v.id), [70, 71])
 })
 
-test('regla de 6 h en el viaje original: con exactamente 6 h se puede, con menos ya no se ofrece ningún viaje', () => {
+test('regla de 6 h en el viaje original: con exactamente 6 h se puede, con menos se rechaza con el motivo', () => {
   const otro = [viaje({ id: 90, salidaMs: ORIGINAL + 10 * HORA })]
-  assert.equal(separarViajesPostergables(pasaje, otro, ORIGINAL - 6 * HORA).viajes.length, 1)
-  assert.equal(separarViajesPostergables(pasaje, otro, ORIGINAL - 6 * HORA + 1).viajes.length, 0)
+  assert.equal(prepararViajesPostergables(pasaje, otro, ORIGINAL - 6 * HORA).viajes.length, 1)
+  assert.throws(
+    () => prepararViajesPostergables(pasaje, otro, ORIGINAL - 6 * HORA + 1),
+    (error) => error.status === 409 && error.message === 'Solo puedes cambiar tu pasaje hasta 6 horas antes de la salida.',
+  )
 })
 
 test('no ofrece ninguna salida con la misma fecha y hora del pasaje, aunque sea otro tipo de bus', () => {
@@ -118,7 +124,7 @@ test('no ofrece ninguna salida con la misma fecha y hora del pasaje, aunque sea 
   assert.equal(esMismaSalida(otraHora, pasajeReal), false)
   assert.equal(esMismaSalida(otroDia, pasajeReal), false)
   const salida = salidaOriginalMs(pasajeReal)
-  const ofrecidos = separarViajesPostergables(pasajeReal, [
+  const ofrecidos = prepararViajesPostergables(pasajeReal, [
     { ...mismo, salidaMs: salida },
     { ...otroTipo, salidaMs: salida },
     { ...otraHora, salidaMs: salida + 3 * HORA },
@@ -130,7 +136,7 @@ test('no ofrece ninguna salida con la misma fecha y hora del pasaje, aunque sea 
 test('permite cambiar de destino incluso si la nueva salida tiene la misma fecha y hora', () => {
   const nuevaRuta = viaje({ id: 95, origen: 'Trujillo', destino: 'Cajamarca', salidaMs: ORIGINAL })
   assert.equal(esMismaSalida(nuevaRuta, pasaje), false)
-  assert.deepEqual(separarViajesPostergables(pasaje, [nuevaRuta], AHORA).viajes.map((v) => v.id), [95])
+  assert.deepEqual(prepararViajesPostergables(pasaje, [nuevaRuta], AHORA).viajes.map((v) => v.id), [95])
 })
 
 test('consulta la API con el origen y destino que eligió el cliente', async () => {
@@ -154,11 +160,11 @@ test('un pasaje real consulta el endpoint de postergación con su id', async () 
     assert.equal(consulta.searchParams.get('origen'), 'Trujillo')
     assert.equal(consulta.searchParams.get('destino'), 'Lima')
     assert.equal(consulta.searchParams.get('fecha'), '2026-11-13')
-    return new Response(JSON.stringify({ viajes: [viaje({ id: 71, salidaMs: ORIGINAL + 20 * HORA })], ocultos: 3 }))
+    return new Response(JSON.stringify({ viajes: [viaje({ id: 71, salidaMs: ORIGINAL + 20 * HORA })], ocultos: 1 }))
   }
   const resultado = await buscarViajesPostergables(real, { origen: 'Trujillo', destino: 'Lima', fecha: '2026-11-13' }, AHORA)
   assert.deepEqual(resultado.viajes.map((v) => v.id), [71])
-  assert.equal(resultado.sinCupo, 3)
+  assert.equal(resultado.ocultos, 1)
 })
 
 test('si el servidor rechaza el cambio, el error trae el motivo', async () => {

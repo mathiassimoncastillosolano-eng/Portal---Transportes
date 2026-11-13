@@ -13,7 +13,6 @@ export const CODIGOS_RECHAZO = Object.freeze({
   VIAJE_INICIADO: 'VIAJE_INICIADO',
   ANTICIPACION_INSUFICIENTE: 'ANTICIPACION_INSUFICIENTE',
   VIAJE_NO_FUTURO: 'VIAJE_NO_FUTURO',
-  NUEVO_VIAJE_MUY_PRONTO: 'NUEVO_VIAJE_MUY_PRONTO',
   VIAJE_SIN_DISPONIBILIDAD: 'VIAJE_SIN_DISPONIBILIDAD',
   MISMO_VIAJE: 'MISMO_VIAJE',
   ASIENTO_NO_DISPONIBLE: 'ASIENTO_NO_DISPONIBLE',
@@ -25,7 +24,6 @@ const MENSAJES_RECHAZO = {
   VIAJE_INICIADO: 'El viaje original ya inició o ya pasó, por lo que no se puede cambiar de fecha.',
   ANTICIPACION_INSUFICIENTE: `El cambio de fecha requiere al menos ${HORAS_MINIMAS_ANTICIPACION} horas de anticipación respecto a la salida original.`,
   VIAJE_NO_FUTURO: 'El nuevo viaje debe ser una salida futura.',
-  NUEVO_VIAJE_MUY_PRONTO: `El nuevo viaje debe salir dentro de ${HORAS_MINIMAS_ANTICIPACION} horas o más.`,
   VIAJE_SIN_DISPONIBILIDAD: 'El nuevo viaje no tiene asientos disponibles.',
   MISMO_VIAJE: 'Elige un viaje distinto al original.',
   ASIENTO_NO_DISPONIBLE: 'El asiento que elegiste dejó de estar disponible. Tu pasaje original no fue modificado.',
@@ -77,7 +75,6 @@ export function validarViajeNuevo(pasaje, viaje, ahoraMs) {
   if (esMismoViaje(pasaje, viaje)) return rechazo(CODIGOS_RECHAZO.MISMO_VIAJE)
   const salidaMs = Number.isFinite(viaje?.salidaMs) ? viaje.salidaMs : salidaMsDe(viaje?.fechaSalida, viaje?.horaSalida)
   if (!Number.isFinite(salidaMs) || salidaMs <= ahoraMs) return rechazo(CODIGOS_RECHAZO.VIAJE_NO_FUTURO)
-  if (salidaMs - ahoraMs < HORAS_MINIMAS_ANTICIPACION * MS_HORA) return rechazo(CODIGOS_RECHAZO.NUEVO_VIAJE_MUY_PRONTO)
   if (!(viaje.asientosDisponibles > 0)) return rechazo(CODIGOS_RECHAZO.VIAJE_SIN_DISPONIBILIDAD)
   return { valido: true, codigo: null, mensaje: null }
 }

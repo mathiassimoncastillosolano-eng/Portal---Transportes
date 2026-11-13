@@ -137,23 +137,26 @@ class PostergacionServicioTest {
         assertEquals(409, rechazo().getStatusCode().value());
     }
 
-    // ---------- criterio 3a: solo viajes que se pueden elegir ----------
+    // ---------- criterio 3a: se muestran todos los viajes menos el original ----------
 
     @Test
-    void soloOfreceViajesConAsientosReservablesYDistintosAlOriginal() {
+    void muestraTodosLosViajesMenosElOriginalConSuEstado() {
         when(compras.filasDelUsuario(USUARIO)).thenReturn(List.of(pasajeVigente(AHORA.plusDays(1))));
         LocalDateTime salida = FECHA_NUEVA.atTime(LocalTime.of(21, 0));
         when(viajes.buscar("Trujillo", "Lima", FECHA_NUEVA, "cualquiera")).thenReturn(List.of(
-                viaje(1, salida, 10, true),                          // se ofrece
-                viaje(2, salida, 0, true),                           // lleno
-                viaje(3, salida, 5, false),                          // el servidor no permite reservarlo
-                viaje(VIAJE_ORIGINAL, salida, 8, true),              // es el mismo viaje del pasaje
-                viaje(4, AHORA.plusHours(5).plusMinutes(59), 9, true), // sale en menos de 6 h
-                viaje(5, AHORA.plusHours(6), 9, true)));             // sale en 6 h exactas: se ofrece
+                viaje(1, salida, 10, true),                          // se puede elegir
+                viaje(2, salida, 0, true),                           // lleno: se muestra
+                viaje(3, salida, 5, false),                          // ya salió o cerró: se muestra
+                viaje(VIAJE_ORIGINAL, salida, 8, true),              // es el mismo viaje del pasaje: no se muestra
+                viaje(4, AHORA.plusHours(2), 9, true)));             // sale en 2 h: se puede elegir (adelantar)
 
         ConsultaPostergacionDto resultado = consultar();
 
-        assertEquals(List.of(1L, 5L), resultado.viajes().stream().map(ViajeResumenDto::id).toList());
-        assertEquals(4, resultado.ocultos());
+        // Solo se quita el viaje original. Cada viaje conserva "reservable" para que la pantalla
+        // sepa cuáles se pueden elegir (la regla de 6 h es solo para el viaje original).
+        assertEquals(List.of(1L, 2L, 3L, 4L), resultado.viajes().stream().map(ViajeResumenDto::id).toList());
+        assertEquals(List.of(true, true, false, true),
+                resultado.viajes().stream().map(ViajeResumenDto::reservable).toList());
+        assertEquals(1, resultado.ocultos());
     }
 }

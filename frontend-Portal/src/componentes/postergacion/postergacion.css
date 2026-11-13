@@ -159,6 +159,8 @@
   box-shadow: var(--sombra-flotante);
 }
 .postergacion-busqueda__encabezado { display: grid; gap: 0.3rem; }
+/* El texto del paso 1 usa todo el ancho del formulario (sin cortar la línea antes). */
+.postergacion-busqueda__encabezado .postergacion-paso__texto { max-width: none; }
 .postergacion-busqueda__campos {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 38px minmax(0, 1fr) minmax(0, 1fr);
