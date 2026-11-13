@@ -27,8 +27,8 @@ function indiceMes(fecha) {
   return fecha.getFullYear() * 12 + fecha.getMonth()
 }
 
-function textoDisparador(fecha) {
-  if (!fecha) return 'Selecciona una fecha'
+function textoDisparador(fecha, textoVacio) {
+  if (!fecha) return textoVacio
   return fecha.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 }
 
@@ -38,7 +38,7 @@ function textoDisparador(fecha) {
  * anteriores a hoy (igual que `min`) y publica el valor en un campo
  * `name="fecha"` para que el formulario siga leyéndolo con FormData.
  */
-export function SelectorFecha({ etiqueta, valor, alCambiar }) {
+export function SelectorFecha({ etiqueta, valor, alCambiar, textoVacio = 'Selecciona una fecha' }) {
   const hoy = fechaLocal()
   const fechaHoy = aFecha(hoy)
   const fechaValor = aFecha(valor)
@@ -182,7 +182,7 @@ export function SelectorFecha({ etiqueta, valor, alCambiar }) {
         type="button"
         ref={disparadorRef}
         className="selector-fecha__control"
-        aria-label={`${etiqueta}: ${textoDisparador(fechaValor)}`}
+        aria-label={`${etiqueta}: ${textoDisparador(fechaValor, textoVacio)}`}
         aria-haspopup="dialog"
         aria-expanded={abierto}
         onClick={() => (abierto ? cerrar() : abrir())}
@@ -191,7 +191,7 @@ export function SelectorFecha({ etiqueta, valor, alCambiar }) {
           <rect x="4" y="5.5" width="16" height="15" rx="2.4" stroke="currentColor" strokeWidth="1.7" />
           <path d="M4 9.5h16M8 3.5v3M16 3.5v3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
         </svg>
-        <span className="selector-fecha__texto">{textoDisparador(fechaValor)}</span>
+        <span className="selector-fecha__texto">{textoDisparador(fechaValor, textoVacio)}</span>
         <svg className="selector-fecha__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="m3.5 5.5 3.5 3.5 3.5-3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

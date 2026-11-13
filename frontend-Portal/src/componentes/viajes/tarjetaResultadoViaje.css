@@ -263,10 +263,32 @@
 
 @media (max-width: 420px) {
   .tarjeta-resultado-viaje__horario {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--espacio-2);
   }
 
   .tarjeta-resultado-viaje__punto {
-    min-width: 56px;
+    min-width: 0;
+  }
+
+  .tarjeta-resultado-viaje__punto--derecha {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .tarjeta-resultado-viaje__linea {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+  }
+
+  .tarjeta-resultado-viaje__lateral {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tarjeta-resultado-viaje__lateral .boton-principal {
+    width: 100% !important;
   }
 }

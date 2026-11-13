@@ -14,7 +14,7 @@ export function PasajesMockPostergacion({ idCliente }) {
             <span>
               {pasaje.numeroBoleto} · {pasaje.origen} → {pasaje.destino} · {formatearFechaCorta(pasaje.fechaSalida)} {pasaje.horaSalida} · {pasaje.etiquetaMock ?? 'Pasaje'}
             </span>
-            <Link className="pagina-mis-pasajes__postergar" to={`/postergar/${pasaje.idPasaje}`}>Postergar</Link>
+            <Link className="pagina-mis-pasajes__postergar" to={`/postergar/${pasaje.idPasaje}`}>Cambiar viaje</Link>
           </li>
         ))}
       </ul>
