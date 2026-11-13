@@ -20,7 +20,7 @@ export function BarraAcciones({
           {alVolver && (
             <BotonSecundario variante="fantasma" onClick={alVolver} deshabilitado={bloqueado}>← Atrás</BotonSecundario>
           )}
-          <BotonSecundario variante="fantasma" onClick={alCancelar} deshabilitado={bloqueado}>Cancelar</BotonSecundario>
+          <BotonSecundario onClick={alCancelar} deshabilitado={bloqueado}>Cancelar cambio</BotonSecundario>
         </div>
         {alContinuar && (
           <BotonPrincipal

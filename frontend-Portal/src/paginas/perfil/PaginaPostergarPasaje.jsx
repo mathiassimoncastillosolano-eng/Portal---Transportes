@@ -92,9 +92,6 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
           <p className="postergacion-encabezado__eyebrow">CAMBIO DE FECHA</p>
           <h1 className="postergacion-encabezado__titulo">Cambia la fecha de tu viaje</h1>
         </div>
-        <span className="postergacion-encabezado__simulado" title="Los datos y los pagos de esta operación son simulados">
-          Modo simulado
-        </span>
       </header>
 
       {!enResultado && <TarjetaPasajeOriginal pasaje={pasaje} />}
