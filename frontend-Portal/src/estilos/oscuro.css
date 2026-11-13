@@ -1221,3 +1221,11 @@
     animation: none;
   }
 }
+
+/* Viajes no reservables: tonos más claros para que se lean sobre fondo oscuro */
+[data-theme='dark'] .tarjeta-resultado-viaje--no-reservable { --tono-estado: #5EC4D4; }
+[data-theme='dark'] .tarjeta-resultado-viaje--salida-realizada { --tono-estado: #A3B1C2; }
+[data-theme='dark'] .tarjeta-resultado-viaje--reserva-cerrada { --tono-estado: #F5B451; }
+[data-theme='dark'] .tarjeta-resultado-viaje--lleno { --tono-estado: #F48A8A; }
+[data-theme='dark'] .tarjeta-resultado-viaje--no-reservable,
+[data-theme='dark'] .tarjeta-resultado-viaje--no-reservable:hover { border-left: 5px solid var(--tono-estado); }

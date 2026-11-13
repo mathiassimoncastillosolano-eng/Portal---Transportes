@@ -98,9 +98,8 @@ test('el nuevo viaje no puede ser el original, pasado ni estar lleno', () => {
   assert.equal(validarViajeNuevo(base, { ...futuro, id: 'V1' }, AHORA).codigo, CODIGOS_RECHAZO.MISMO_VIAJE)
   assert.equal(validarViajeNuevo(base, { ...futuro, fechaSalida: '2026-11-09' }, AHORA).codigo, CODIGOS_RECHAZO.VIAJE_NO_FUTURO)
   assert.equal(validarViajeNuevo(base, { ...futuro, asientosDisponibles: 0 }, AHORA).codigo, CODIGOS_RECHAZO.VIAJE_SIN_DISPONIBILIDAD)
-  // Regla de 6 h para el viaje nuevo: a las 08:00, una salida a las 13:00 es muy pronto; a las 14:00 ya vale.
-  assert.equal(validarViajeNuevo(base, { ...futuro, fechaSalida: '2026-11-10', horaSalida: '13:00' }, AHORA).codigo, CODIGOS_RECHAZO.NUEVO_VIAJE_MUY_PRONTO)
-  assert.equal(validarViajeNuevo(base, { ...futuro, fechaSalida: '2026-11-10', horaSalida: '14:00' }, AHORA).valido, true)
+  // La regla de 6 h no aplica al viaje nuevo: a las 08:00 se puede elegir uno que sale a las 10:00.
+  assert.equal(validarViajeNuevo(base, { ...futuro, fechaSalida: '2026-11-10', horaSalida: '10:00' }, AHORA).valido, true)
   assert.equal(filtrarViajesPostergables(base, [futuro, { ...futuro, id: 'V1' }, { ...futuro, id: 'V3', asientosDisponibles: 0 }], AHORA).length, 1)
 })
 

@@ -19,7 +19,6 @@ import com.transportes.compras.repositorios.CompraRepositorio;
 import com.transportes.postergacion.dto.ConsultaPostergacionDto;
 import com.transportes.postergacion.reglas.PoliticaPostergacion;
 import com.transportes.viajes.dto.ViajeResumenDto;
-import com.transportes.viajes.reglas.PoliticaReservaViaje;
 import com.transportes.viajes.servicios.ViajeService;
 
 /**
@@ -71,7 +70,7 @@ public class PostergacionServicio {
         // 3) Criterio 3 (primera mitad): solo viajes que se pueden elegir.
         List<ViajeResumenDto> encontrados = viajes.buscar(origen, destino, fecha, "cualquiera");
         List<ViajeResumenDto> ofrecidos = encontrados.stream()
-                .filter(viaje -> sePuedeOfrecer(viaje, pasaje.idViaje(), ahora))
+                .filter(viaje -> sePuedeOfrecer(viaje, pasaje.idViaje()))
                 .toList();
         return new ConsultaPostergacionDto(ofrecidos, encontrados.size() - ofrecidos.size());
     }
@@ -94,13 +93,15 @@ public class PostergacionServicio {
         return ReglasCompra.esVigente(estado, fase);
     }
 
-    /** Un viaje se ofrece si es otro viaje, se puede reservar, tiene asientos y sale en 6 h o más. */
-    private static boolean sePuedeOfrecer(ViajeResumenDto viaje, Long idViajeOriginal, LocalDateTime ahora) {
+    /**
+     * Un viaje se ofrece si es otro viaje, se puede reservar y tiene asientos.
+     * La regla de 6 h NO aplica aquí: es solo para el viaje original. "Se puede reservar" ya descarta los viajes
+     * que salieron o que salen en menos de 20 minutos (PoliticaReservaViaje, igual que en una compra normal).
+     */
+    private static boolean sePuedeOfrecer(ViajeResumenDto viaje, Long idViajeOriginal) {
         boolean esOtroViaje = !Objects.equals(viaje.id(), idViajeOriginal);
         boolean tieneAsientos = viaje.asientosDisponibles() > 0;
-        boolean saleEn6Horas = viaje.salidaMs() - PoliticaReservaViaje.aEpochMs(ahora)
-                >= PoliticaPostergacion.ANTICIPACION_MINIMA.toMillis();
-        return esOtroViaje && viaje.reservable() && tieneAsientos && saleEn6Horas;
+        return esOtroViaje && viaje.reservable() && tieneAsientos;
     }
 
     private static ResponseStatusException rechazo(String motivo) {
