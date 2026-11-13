@@ -11,7 +11,7 @@ function motivoSinDocumento(compra) {
 }
 
 /** Detalle de una compra real: trayecto, datos del viaje, un elemento por boleto y total. */
-export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, accionBoleto }) {
+export function TarjetaTicket({ compra, onDescargar, onVerPdf, descargando, errorPdf, accionBoleto }) {
   const estado = estadoVisible(compra)
   const faltantes = compra.incompleta ? datosFaltantes(compra) : []
   const aviso = avisoTotal(compra)
@@ -20,6 +20,10 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
     : 'Por confirmar'
   const servicio = compra.tipoBus ? `${compra.empresa} · ${compra.tipoBus}` : 'Por confirmar'
   const hayCambios = compra.boletos.some((boleto) => boleto.cambio)
+  const indicesCambiados = compra.boletos.flatMap((boleto, indice) => boleto.cambio ? [indice + 1] : [])
+  const etiquetaAdicional = indicesCambiados.length === 1
+    ? `Pago adicional del boleto ${indicesCambiados[0]}`
+    : 'Pagos adicionales por cambios'
 
   return (
     <article className="tarjeta-ticket">
@@ -102,13 +106,13 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
           ))}
         </section>
 
-        <div className="tarjeta-ticket__total">
+        <div className={`tarjeta-ticket__total${hayCambios ? ' tarjeta-ticket__total--con-cambio' : ''}`}>
           <span>{hayCambios ? 'Compra original' : 'Total de la compra'}</span>
           <strong>{formatearPrecio(compra.total, compra.moneda)}</strong>
         </div>
         {hayCambios && (
           <div className="tarjeta-ticket__totales-cambio">
-            <span>Pagos adicionales por cambios</span>
+            <span>{etiquetaAdicional}</span>
             <strong>{formatearPrecio(compra.totalPagado - compra.total, compra.moneda)}</strong>
             <span>Total pagado</span>
             <strong>{formatearPrecio(compra.totalPagado, compra.moneda)}</strong>
@@ -119,10 +123,23 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
         <div className="tarjeta-ticket__acciones">
           {compra.documentoDisponible ? (
             <>
-              <button type="button" onClick={onDescargar} disabled={descargando}>
-                {descargando ? 'Preparando PDF…' : compra.esMock ? 'Descargar PDF de prueba' : 'Descargar PDF'}
-              </button>
-              <p>{compra.esMock ? 'Documento de ejemplo sin validez para viajar.' : 'Documento con los datos de tu compra registrada.'}</p>
+              {compra.esMock && onVerPdf ? (
+                <div className="tarjeta-ticket__botones-pdf">
+                  <button type="button" onClick={onVerPdf} disabled={descargando}>
+                    {descargando ? 'Preparando PDF…' : hayCambios ? 'Ver PDF actualizado ↗' : 'Ver PDF de ejemplo ↗'}
+                  </button>
+                  <button type="button" className="tarjeta-ticket__pdf-descargar" onClick={onDescargar} disabled={descargando}>
+                    Descargar PDF de ejemplo
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button type="button" onClick={onDescargar} disabled={descargando}>
+                    {descargando ? 'Preparando PDF…' : 'Descargar PDF'}
+                  </button>
+                  <p>Documento con los datos de tu compra registrada.</p>
+                </>
+              )}
             </>
           ) : (
             <p>{motivoSinDocumento(compra)}</p>

@@ -62,6 +62,8 @@
   padding-top: 1.2rem; border-top: 2px solid var(--color-borde); font-weight: 700;
 }
 .tarjeta-ticket__total strong { font-family: var(--fuente-titulos); font-size: clamp(1.4rem, 3vw, 1.75rem); color: var(--color-texto-marca); }
+.tarjeta-ticket__total--con-cambio { font-weight: 400; color: var(--color-texto-secundario); }
+.tarjeta-ticket__total--con-cambio strong { font-family: inherit; font-size: 1rem; color: var(--color-texto-principal); }
 
 .tarjeta-ticket__acciones { display: grid; gap: .6rem; }
 .tarjeta-ticket__acciones p { margin: 0; font-size: .82rem; color: var(--color-texto-secundario); }
@@ -74,6 +76,10 @@
 .tarjeta-ticket__acciones button:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
 .tarjeta-ticket__acciones button:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
 .tarjeta-ticket__acciones button:disabled { opacity: .6; cursor: wait; }
+.tarjeta-ticket__botones-pdf { display: flex; flex-wrap: wrap; gap: .75rem; }
+.tarjeta-ticket__botones-pdf button { min-height: 3rem; }
+.tarjeta-ticket__botones-pdf .tarjeta-ticket__pdf-descargar { background: var(--color-superficie-marca); color: var(--color-texto-marca); border: 1px solid var(--color-borde-marca); }
+.tarjeta-ticket__botones-pdf .tarjeta-ticket__pdf-descargar:hover:not(:disabled) { filter: brightness(1.03); }
 
 @media (max-width: 720px) {
   .tarjeta-ticket__boleto { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -84,6 +90,7 @@
   .tarjeta-ticket__franja { padding: .9rem 1rem; }
   .tarjeta-ticket__viaje { grid-template-columns: 1fr; }
   .tarjeta-ticket__acciones button { justify-self: stretch; }
+  .tarjeta-ticket__botones-pdf { flex-direction: column; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tarjeta-ticket__acciones button { transition: none; }

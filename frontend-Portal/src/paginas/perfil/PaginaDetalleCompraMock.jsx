@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { obtenerCompraDemo } from '../../mock/postergacion/pasajes'
 import { TarjetaTicket } from '../../componentes/perfil/TarjetaTicket'
-import { descargarPdfCompraMock } from '../../servicios/pdfCompraMock'
+import { descargarPdfCompraMock, verPdfCompraMock } from '../../servicios/pdfCompraMock'
 import './paginaMisPasajes.css'
 
 /** Compra de tres boletos para recorrer el cambio simulado desde la interfaz real. */
@@ -26,6 +26,18 @@ export function PaginaDetalleCompraMock() {
     }
   }
 
+  async function verPdf() {
+    setDescargando(true)
+    setErrorPdf('')
+    try {
+      await verPdfCompraMock(compra)
+    } catch {
+      setErrorPdf('No se pudo abrir el PDF de prueba. Inténtalo nuevamente.')
+    } finally {
+      setDescargando(false)
+    }
+  }
+
   return (
     <section className="pagina-mis-pasajes">
       <div className="pagina-mis-pasajes__detalle">
@@ -34,6 +46,7 @@ export function PaginaDetalleCompraMock() {
         <TarjetaTicket
           compra={{ ...compra, esMock: true }}
           onDescargar={descargarPdf}
+          onVerPdf={verPdf}
           descargando={descargando}
           errorPdf={errorPdf}
           accionBoleto={(boleto) => (

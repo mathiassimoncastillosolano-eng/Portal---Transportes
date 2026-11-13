@@ -1,7 +1,7 @@
 import { formatearFechaCorta, formatearPrecio } from '../utilidades/formato.js'
 
 /** PDF de la compra simulada. Se genera con el estado actual de cada boleto. */
-export async function descargarPdfCompraMock(compra) {
+export async function crearPdfCompraMock(compra) {
   const { jsPDF } = await import('jspdf')
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
   const azul = [15, 76, 92]
@@ -84,5 +84,24 @@ export async function descargarPdfCompraMock(compra) {
     texto('Vista previa simulada. Ningún cambio ni pago se registró en el sistema.', 15, 287)
     texto(`${pagina}/${paginas}`, 195, 287, { align: 'right' })
   }
+  return pdf
+}
+
+export async function descargarPdfCompraMock(compra) {
+  const pdf = await crearPdfCompraMock(compra)
   pdf.save(`RutaLibre-${compra.codigoCompra}-prueba.pdf`)
+}
+
+export async function verPdfCompraMock(compra) {
+  // Abrir la pestaña antes del await evita que el navegador bloquee el visor.
+  const pestaña = window.open('', '_blank')
+  if (!pestaña) throw new Error('No se pudo abrir una pestaña para el PDF.')
+  pestaña.opener = null
+  try {
+    const pdf = await crearPdfCompraMock(compra)
+    pestaña.location.replace(pdf.output('bloburl'))
+  } catch (error) {
+    pestaña.close()
+    throw error
+  }
 }

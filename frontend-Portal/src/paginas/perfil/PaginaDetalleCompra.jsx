@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { adaptarBoletoReal, puedeIniciarPostergacion } from '../../utilidades/postergacion'
 import { obtenerCompra } from '../../servicios/comprasServicio'
+import { descargarPdfCompraMock, verPdfCompraMock } from '../../servicios/pdfCompraMock'
 import { vistaCambioSimulado } from '../../utilidades/vistaCambioSimulado'
 import { TarjetaTicket } from '../../componentes/perfil/TarjetaTicket'
 import { PanelAsincrono } from '../../componentes/carga'
@@ -47,7 +48,6 @@ export function PaginaDetalleCompra() {
     setErrorPdf('')
     try {
       if (vistaPrevia) {
-        const { descargarPdfCompraMock } = await import('../../servicios/pdfCompraMock')
         await descargarPdfCompraMock(compraVisible)
       } else {
         const { descargarPdfCompra } = await import('../../servicios/pdfBoleto')
@@ -55,6 +55,19 @@ export function PaginaDetalleCompra() {
       }
     } catch {
       setErrorPdf('No se pudo preparar el PDF. Inténtalo nuevamente.')
+    } finally {
+      setDescargando(false)
+    }
+  }
+
+  async function verPdf() {
+    if (!vistaPrevia || !compra?.documentoDisponible) return
+    setDescargando(true)
+    setErrorPdf('')
+    try {
+      await verPdfCompraMock(compraVisible)
+    } catch {
+      setErrorPdf('No se pudo abrir el PDF. Inténtalo nuevamente.')
     } finally {
       setDescargando(false)
     }
@@ -83,6 +96,7 @@ export function PaginaDetalleCompra() {
             <TarjetaTicket
               compra={compraVisible}
               onDescargar={descargarPdf}
+              onVerPdf={vistaPrevia ? verPdf : undefined}
               descargando={descargando}
               errorPdf={errorPdf}
               accionBoleto={(boleto) => !vistaPrevia && puedeIniciarPostergacion(compra) && (
