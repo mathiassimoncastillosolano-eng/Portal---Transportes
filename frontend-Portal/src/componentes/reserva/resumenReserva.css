@@ -193,6 +193,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--espacio-3);
+  /* Permite que el monto se ajuste al ancho de la tarjeta (ver cqi abajo). */
+  container-type: inline-size;
   white-space: nowrap;
   font-size: var(--tamano-sm);
   font-weight: 600;
@@ -201,13 +203,14 @@
 
 .resumen-reserva__total-monto {
   font-family: var(--fuente-titulos);
-  font-size: var(--tamano-2xl);
+  /* Tamaño normal, pero nunca más del 12 % del ancho disponible: así no se sale del recuadro. */
+  font-size: min(var(--tamano-2xl), 12cqi);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--color-texto-marca-fuerte);
   font-variant-numeric: tabular-nums;
-  /* "S/" y los números siempre en la misma línea; si falta espacio, se ajusta la etiqueta. */
+  /* "S/" y los números siempre en la misma línea. */
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -350,6 +353,11 @@
     padding: 0;
     border: none;
     background: none;
+  }
+
+  /* En la barra inferior el ancho lo da su contenido: sin contenedor de tamaño. */
+  .resumen-reserva__total {
+    container-type: normal;
   }
 
   .resumen-reserva__lista > .resumen-reserva__fila-precio {

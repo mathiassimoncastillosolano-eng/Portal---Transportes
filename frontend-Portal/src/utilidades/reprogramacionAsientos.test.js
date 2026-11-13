@@ -68,17 +68,22 @@ test('sin asiento o sin precio no hay tarifa', () => {
 })
 
 test('describirTarifaLateral explica si paga más, nada o le sobra', () => {
-  assert.match(describirTarifaLateral(calcularTarifaDelAsiento(pasaje, { precio: 90 }), 'PEN').diferencia, /Pagas S\/ 20\.00 más/)
-  assert.equal(describirTarifaLateral(calcularTarifaDelAsiento(pasaje, { precio: 70 }), 'PEN').diferencia, 'Sin diferencia')
+  const masCaro = describirTarifaLateral(calcularTarifaDelAsiento(pasaje, { precio: 90 }), 'PEN')
+  assert.equal(masCaro.montoDiferencia, 20)
+  assert.match(masCaro.ayuda, /Pagarás solo la diferencia de S\/ 20\.00/)
+
+  const igual = describirTarifaLateral(calcularTarifaDelAsiento(pasaje, { precio: 70 }), 'PEN')
+  assert.equal(igual.montoDiferencia, 0)
+  assert.match(igual.ayuda, /No pagas nada: la tarifa es igual/)
+
   const sobra = describirTarifaLateral(calcularTarifaDelAsiento(pasaje, { precio: 55 }), 'PEN')
-  assert.match(sobra.diferencia, /Te sobran S\/ 15\.00/)
-  assert.equal(sobra.montoAPagar, 0)
+  assert.equal(sobra.montoDiferencia, 15)
+  assert.match(sobra.ayuda, /No pagas nada\. La diferencia de S\/ 15\.00 no se devuelve/)
 })
 
 test('describirTarifaLateral sin tarifa pide elegir un asiento', () => {
   const textos = describirTarifaLateral(null, 'PEN')
-  assert.equal(textos.diferencia, null)
-  assert.equal(textos.montoAPagar, null)
+  assert.equal(textos.montoDiferencia, null)
   assert.match(textos.ayuda, /Elige un asiento/)
 })
 

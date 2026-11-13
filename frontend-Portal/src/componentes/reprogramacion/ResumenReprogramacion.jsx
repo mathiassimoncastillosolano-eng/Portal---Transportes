@@ -6,8 +6,8 @@ import {
   viajeParaMostrar,
 } from '../../utilidades/reprogramacionAsientos'
 
-// Filas de la lista de la tarjeta: datos del viaje y, si ya hay asiento, la tarifa.
-function construirFilas(pasaje, viaje, comparacion, textosTarifa) {
+// Filas de la lista de la tarjeta: datos del viaje y, si ya hay asiento, los dos precios.
+function construirFilas(pasaje, viaje, comparacion) {
   const filas = [
     { etiqueta: 'Servicio', valor: viaje.tipoBus },
     { etiqueta: 'Asiento original', valor: pasaje.asiento },
@@ -21,7 +21,6 @@ function construirFilas(pasaje, viaje, comparacion, textosTarifa) {
   filas.push(
     { etiqueta: 'Pagaste', valor: formatearPrecio(comparacion.original, pasaje.moneda) },
     { etiqueta: 'Precio del asiento', valor: formatearPrecio(comparacion.nueva, pasaje.moneda) },
-    { etiqueta: 'Diferencia', valor: textosTarifa.diferencia },
   )
   return filas
 }
@@ -31,7 +30,8 @@ function construirFilas(pasaje, viaje, comparacion, textosTarifa) {
 //  - un único asiento en lugar de varios,
 //  - la diferencia de tarifa entre el pasaje original y el asiento elegido,
 //    visible desde que se elige el asiento.
-export function ResumenReprogramacion({ pasaje, viaje, asiento }) {
+// Si recibe alContinuar, muestra el botón de continuar dentro de la tarjeta.
+export function ResumenReprogramacion({ pasaje, viaje, asiento, alContinuar, textoContinuar = 'Continuar', continuarDeshabilitado = false }) {
   if (!viaje) return null
 
   const comparacion = calcularTarifaDelAsiento(pasaje, asiento)
@@ -46,11 +46,15 @@ export function ResumenReprogramacion({ pasaje, viaje, asiento }) {
       fecha={viaje.fechaSalida}
       asientosSeleccionados={asientosSeleccionados}
       mostrarPiso={Boolean(asiento && asiento.piso > 1)}
-      filasDetalle={construirFilas(pasaje, viaje, comparacion, textosTarifa)}
-      precioTotal={textosTarifa.montoAPagar ?? undefined}
-      etiquetaTotal="A pagar ahora"
+      filasDetalle={construirFilas(pasaje, viaje, comparacion)}
+      precioTotal={textosTarifa.montoDiferencia ?? undefined}
+      etiquetaTotal="Diferencia"
       mensajeAyuda={textosTarifa.ayuda}
-      mostrarBoton={false}
+      mostrarAyudaSiempre
+      mostrarBoton={Boolean(alContinuar)}
+      textoBoton={textoContinuar}
+      onContinuar={alContinuar}
+      deshabilitado={continuarDeshabilitado}
     />
   )
 }

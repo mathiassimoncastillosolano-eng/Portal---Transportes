@@ -83,31 +83,26 @@ export function calcularTarifaDelAsiento(pasaje, asiento) {
   return compararTarifas(pasaje.precioPagado, Number(asiento.precio))
 }
 
-const RESUMEN_POR_ESCENARIO = {
-  [ESCENARIO_TARIFA.SUPERIOR]: (comparacion, moneda) => ({
-    diferencia: `Pagas ${formatearPrecio(comparacion.diferencia, moneda)} más`,
-    ayuda: `Pagarás solo la diferencia de ${formatearPrecio(comparacion.montoAPagar, moneda)} en el siguiente paso.`,
-  }),
-  [ESCENARIO_TARIFA.IGUAL]: () => ({
-    diferencia: 'Sin diferencia',
-    ayuda: 'No pagas nada: la tarifa es igual a la de tu pasaje.',
-  }),
-  [ESCENARIO_TARIFA.INFERIOR]: (comparacion, moneda) => ({
-    diferencia: `Te sobran ${formatearPrecio(comparacion.diferencia, moneda)}`,
-    ayuda: `No pagas nada. La diferencia de ${formatearPrecio(comparacion.montoNoDevuelto, moneda)} no se devuelve ni genera saldo a favor.`,
-  }),
+// Explicación que acompaña al monto de la diferencia, según quién la asume.
+const AYUDA_POR_ESCENARIO = {
+  [ESCENARIO_TARIFA.SUPERIOR]: (comparacion, moneda) =>
+    `Pagarás solo la diferencia de ${formatearPrecio(comparacion.montoAPagar, moneda)} en el siguiente paso.`,
+  [ESCENARIO_TARIFA.IGUAL]: () => 'No pagas nada: la tarifa es igual a la de tu pasaje.',
+  [ESCENARIO_TARIFA.INFERIOR]: (comparacion, moneda) =>
+    `No pagas nada. La diferencia de ${formatearPrecio(comparacion.montoNoDevuelto, moneda)} no se devuelve ni genera saldo a favor.`,
 }
 
-// Textos de la tarjeta lateral según la diferencia de tarifa:
-// { diferencia, ayuda, montoAPagar }.
+// Datos de la tarjeta lateral según la diferencia de tarifa:
+// { ayuda, montoDiferencia } (montoDiferencia es null mientras no hay asiento elegido).
 export function describirTarifaLateral(comparacion, moneda) {
   if (!comparacion) {
     return {
-      diferencia: null,
       ayuda: 'Elige un asiento para ver la diferencia de tarifa.',
-      montoAPagar: null,
+      montoDiferencia: null,
     }
   }
-  const textos = RESUMEN_POR_ESCENARIO[comparacion.escenario](comparacion, moneda)
-  return { ...textos, montoAPagar: comparacion.montoAPagar }
+  return {
+    ayuda: AYUDA_POR_ESCENARIO[comparacion.escenario](comparacion, moneda),
+    montoDiferencia: comparacion.diferencia,
+  }
 }

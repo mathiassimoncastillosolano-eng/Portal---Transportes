@@ -40,8 +40,6 @@ const PASO_INDICADOR = {
 }
 
 const FASES_CON_RESUMEN = [FASES.ASIENTO, FASES.TARIFA, FASES.PAGO]
-// Mientras el asiento está reservado se muestra el tiempo que queda para terminar.
-const FASES_CON_CONTADOR = FASES_CON_RESUMEN
 const ID_AYUDA_TARIFA = 'ayuda-aceptacion-tarifa'
 
 function FlujoPostergacion({ pasajeInicial, idCliente }) {
@@ -123,7 +121,6 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
           <p className="postergacion-encabezado__eyebrow">CAMBIO DE VIAJE</p>
           <h1 className="postergacion-encabezado__titulo">Cambia tu viaje</h1>
         </div>
-        {FASES_CON_CONTADOR.includes(fase) && <Contador expiraEn={sesion?.expiraEn} pausado={procesando} />}
       </header>
 
       {!enResultado && <TarjetaPasajeOriginal pasaje={pasaje} />}
@@ -172,13 +169,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
                 alGuardarSesion={acciones.guardarSesion}
                 alSesionVencida={acciones.vencerSesion}
               />
-              <BarraAcciones
-                alVolver={acciones.volver}
-                alCancelar={pedirCancelacion}
-                alContinuar={acciones.continuarDesdeAsiento}
-                textoContinuar="Continuar"
-                deshabilitado={!asiento}
-              />
+              <BarraAcciones alVolver={acciones.volver} alCancelar={pedirCancelacion} />
             </>
           )}
 
@@ -250,7 +241,17 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
 
         {FASES_CON_RESUMEN.includes(fase) && (
           <aside className="postergacion-lateral">
-            <ResumenReprogramacion pasaje={pasaje} viaje={viaje} asiento={asiento} />
+            {/* Mientras el asiento está reservado se muestra el tiempo que queda, a la altura del título del paso. */}
+            <div className="postergacion-lateral__tiempo">
+              <Contador expiraEn={sesion?.expiraEn} pausado={procesando} />
+            </div>
+            <ResumenReprogramacion
+              pasaje={pasaje}
+              viaje={viaje}
+              asiento={asiento}
+              alContinuar={fase === FASES.ASIENTO ? acciones.continuarDesdeAsiento : undefined}
+              continuarDeshabilitado={!asiento}
+            />
           </aside>
         )}
       </div>

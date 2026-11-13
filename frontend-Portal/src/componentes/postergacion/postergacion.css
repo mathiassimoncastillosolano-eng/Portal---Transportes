@@ -128,7 +128,10 @@
   min-width: 0;
   animation: postergacion-entrada 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.postergacion-lateral { position: sticky; top: 5.5rem; }
+.postergacion-lateral { position: sticky; top: 5.5rem; display: grid; gap: var(--espacio-5); }
+/* Misma altura que el título y el texto del paso: así la tarjeta de resumen
+   arranca a la altura de la tarjeta oscura del viaje y el contador queda junto al título. */
+.postergacion-lateral__tiempo { display: flex; align-items: flex-start; min-height: 3.5rem; }
 
 @keyframes postergacion-entrada {
   from { opacity: 0; transform: translateY(10px); }
@@ -351,7 +354,8 @@
 .postergacion-acciones { display: grid; gap: 0.5rem; padding-top: var(--espacio-4); border-top: 1px solid var(--color-borde); }
 .postergacion-acciones__fila { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--espacio-3); }
 .postergacion-acciones__secundarias { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-.postergacion-acciones__secundarias .boton-secundario--contorno {
+/* "Atrás": azul de la marca. */
+.postergacion-acciones__secundarias .boton-secundario--fantasma {
   min-height: 46px;
   border-color: var(--color-borde-marca);
   background: var(--color-texto-marca);
@@ -359,12 +363,30 @@
   font-weight: 700;
   box-shadow: var(--sombra-tenue);
 }
-.postergacion-acciones__secundarias .boton-secundario--contorno:hover:not(:disabled) {
+.postergacion-acciones__secundarias .boton-secundario--fantasma:hover:not(:disabled) {
   background: var(--color-texto-marca);
+  border-color: var(--color-borde-marca);
   filter: brightness(1.1);
 }
-.postergacion-acciones__secundarias .boton-secundario--contorno:focus-visible {
+.postergacion-acciones__secundarias .boton-secundario--fantasma:focus-visible {
   outline: 2.5px solid var(--color-borde-marca);
+  outline-offset: 3px;
+}
+/* "Cancelar cambio": el mismo rojo de la acción destructiva y del estado "agotado". */
+.postergacion-acciones__secundarias .boton-secundario--contorno {
+  min-height: 46px;
+  border-color: var(--color-estado-agotado);
+  background: var(--color-error-fondo);
+  color: var(--color-error-texto);
+  font-weight: 700;
+}
+.postergacion-acciones__secundarias .boton-secundario--contorno:hover:not(:disabled) {
+  background: var(--color-destructivo-fondo);
+  border-color: var(--color-destructivo-fondo);
+  color: #fff;
+}
+.postergacion-acciones__secundarias .boton-secundario--contorno:focus-visible {
+  outline: 2.5px solid var(--color-estado-agotado);
   outline-offset: 3px;
 }
 .postergacion-acciones__ayuda { margin: 0; text-align: right; font-size: 0.85rem; color: var(--color-texto-secundario); }
@@ -498,6 +520,7 @@
   .postergacion-paso__grilla > aside { width: min(100%, 360px); }
   .postergacion-cuerpo--con-resumen { grid-template-columns: minmax(0, 1fr); }
   .postergacion-lateral { position: static; }
+  .postergacion-lateral__tiempo { min-height: 0; }
   .pasaje-original { grid-template-columns: 150px minmax(0, 1fr); }
   .pasaje-original__datos { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); border-left: 0; border-top: 1px solid var(--color-borde); }
 }
@@ -535,7 +558,8 @@
   .postergacion-acciones__fila { flex-direction: column-reverse; align-items: stretch; }
   .postergacion-acciones__fila > .boton-principal { width: 100%; }
   .postergacion-acciones__secundarias { justify-content: center; }
-  .postergacion-acciones__secundarias .boton-secundario--contorno { width: 100%; }
+  .postergacion-acciones__secundarias .boton-secundario--contorno,
+  .postergacion-acciones__secundarias .boton-secundario--fantasma { width: 100%; }
   .postergacion-acciones__ayuda { text-align: center; }
   .postergacion-pago { padding: var(--espacio-4); }
   .postergacion-pago__metodos { flex-direction: column; }

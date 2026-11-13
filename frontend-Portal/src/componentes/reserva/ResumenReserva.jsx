@@ -22,6 +22,7 @@ export function ResumenReserva({
   cargando,
   mensajeAyuda,
   mostrarBoton = true,
+  mostrarAyudaSiempre = false,
 }) {
   const cantidad = asientosSeleccionados.length
   // Solo presentación: el panel cambia de aspecto cuando el usuario puede avanzar.
@@ -83,7 +84,7 @@ export function ResumenReserva({
         </div>
       )}
 
-      {mensajeAyuda && (mostrarBoton ? deshabilitado && !cargando : true) && (
+      {mensajeAyuda && (mostrarAyudaSiempre || (mostrarBoton ? deshabilitado && !cargando : true)) && (
         <p className="resumen-reserva__ayuda" role="status">{mensajeAyuda}</p>
       )}
 
