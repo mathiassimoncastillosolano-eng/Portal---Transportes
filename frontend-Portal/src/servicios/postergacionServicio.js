@@ -1,6 +1,6 @@
 // H2 · Consulta de viajes (Portal)
-// Busca los viajes a los que el cliente puede mover su pasaje: a una salida
-// más tarde (postergar) o más temprano (adelantar), en la misma ruta.
+// Busca los viajes a los que el cliente puede mover su pasaje: a otra salida,
+// con la ruta que elija entre las disponibles en el portal.
 //
 // Patrones de diseño usados:
 // 1) Fachada: la pantalla solo llama a buscarViajesPostergables() y no
@@ -10,7 +10,6 @@
 
 import { buscarViajes } from './viajesServicio.js'
 import { HORAS_MINIMAS_ANTICIPACION, salidaMsDe } from '../utilidades/postergacion.js'
-import { fechaLocal } from '../utilidades/fechas.js'
 
 const MS_HORA = 60 * 60 * 1000
 
@@ -19,11 +18,10 @@ export function salidaOriginalMs(pasaje) {
   return salidaMsDe(pasaje.fechaSalida, pasaje.horaSalida)
 }
 
-// ¿Sale el mismo día y a la misma hora que el viaje del pasaje?
-// El cambio es de fecha u hora, así que una salida con la misma fecha y hora
-// no cuenta como cambio, aunque sea otro bus u otro tipo de servicio.
+// Una ruta distinta sí es un viaje nuevo, aunque salga a la misma hora.
 export function esMismaSalida(viaje, pasaje) {
-  return viaje.fechaSalida === pasaje.fechaSalida && viaje.horaSalida === pasaje.horaSalida
+  return viaje.origen === pasaje.origen && viaje.destino === pasaje.destino
+    && viaje.fechaSalida === pasaje.fechaSalida && viaje.horaSalida === pasaje.horaSalida
 }
 
 // Anticipación mínima de la regla R2, en milisegundos (6 h).
@@ -37,7 +35,7 @@ const ANTICIPACION_MINIMA_MS = HORAS_MINIMAS_ANTICIPACION * MS_HORA
 // Ejemplo: a las 08:00 se puede pasar a cualquier salida desde las 14:00.
 export const REGLAS_POSTERGACION = [
   {
-    nombre: 'Cambia la fecha o la hora del viaje',
+    nombre: 'Cambia la ruta, fecha u hora del viaje',
     cumple: (viaje, pasaje) => !esMismaSalida(viaje, pasaje),
   },
   {
@@ -61,20 +59,6 @@ export const REGLAS_POSTERGACION = [
 // Un viaje se puede ofrecer solo si cumple TODAS las reglas.
 export function esViajePostergable(viaje, pasaje, ahoraMs) {
   return REGLAS_POSTERGACION.every((regla) => regla.cumple(viaje, pasaje, ahoraMs))
-}
-
-// El cambio de fecha mueve el pasaje a otra fecha u hora, no a otra ruta.
-// Por eso el buscador solo muestra la ruta del pasaje original.
-export function rutasDePostergacion(pasaje) {
-  if (!pasaje) return []
-  return [{ origen: pasaje.origen, destino: pasaje.destino }]
-}
-
-// Fecha con la que se abre la búsqueda: el día del viaje original.
-// El cliente puede cambiarla a días antes o después (desde hoy).
-// Si ese día ya pasó en el calendario (no debería), se usa hoy.
-export function fechaInicialDeBusqueda(pasaje, hoy = fechaLocal()) {
-  return pasaje.fechaSalida > hoy ? pasaje.fechaSalida : hoy
 }
 
 // Separa los viajes en dos grupos: los que se muestran y cuántos se ocultan.

@@ -59,11 +59,12 @@
 
 .pagina-mis-pasajes__postergar {
   display: inline-flex; align-items: center; gap: .4rem; min-height: 2.5rem; padding: .5rem 1rem;
-  border: 1.5px solid var(--color-borde-marca); border-radius: var(--radio-pastilla);
-  color: var(--color-texto-marca); font-size: .88rem; font-weight: 700; text-decoration: none;
+  border: 1.5px solid var(--color-verde-800); border-radius: var(--radio-pastilla);
+  background: var(--color-verde-800); color: var(--color-texto-invertido);
+  font-size: .88rem; font-weight: 700; text-decoration: none;
   transition: background var(--transicion-rapida), transform var(--transicion-rapida);
 }
-.pagina-mis-pasajes__postergar:hover { background: var(--color-superficie-marca); transform: translateY(-1px); }
+.pagina-mis-pasajes__postergar:hover { background: #09612f; border-color: #09612f; color: var(--color-texto-invertido); transform: translateY(-1px); }
 .pagina-mis-pasajes__postergar:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
 
 .pagina-mis-pasajes__mock { padding: .75rem 1rem; border: 1px dashed var(--color-borde-fuerte); border-radius: var(--radio-md); background: var(--color-superficie-1); }

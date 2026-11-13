@@ -4,8 +4,6 @@ import {
   REGLAS_POSTERGACION,
   buscarViajesPostergables,
   esMismaSalida,
-  fechaInicialDeBusqueda,
-  rutasDePostergacion,
   salidaOriginalMs,
   separarViajesPostergables,
 } from './postergacionServicio.js'
@@ -29,11 +27,6 @@ function viaje(datos) {
   const horaSalida = `${String(salida.getHours()).padStart(2, '0')}:${String(salida.getMinutes()).padStart(2, '0')}`
   return { origen: 'Trujillo', destino: 'Lima', fechaSalida, horaSalida, asientosDisponibles: 10, precio: 60, reservable: true, ...datos }
 }
-
-test('la postergación solo ofrece la ruta del pasaje original', () => {
-  assert.deepEqual(rutasDePostergacion(pasaje), [{ origen: 'Trujillo', destino: 'Lima' }])
-  assert.deepEqual(rutasDePostergacion(null), [])
-})
 
 test('descarta el viaje original, los que ya salieron, los llenos y los que el servidor cerró', () => {
   const viajes = [
@@ -103,12 +96,6 @@ test('regla de 6 h en el viaje original: con exactamente 6 h se puede, con menos
   assert.equal(separarViajesPostergables(pasaje, otro, ORIGINAL - 6 * HORA + 1).viajes.length, 0)
 })
 
-test('la búsqueda se abre en el día del viaje original', () => {
-  assert.equal(fechaInicialDeBusqueda(pasaje, '2026-11-12'), '2026-11-13')
-  assert.equal(fechaInicialDeBusqueda(pasaje, '2026-11-13'), '2026-11-13')
-  assert.equal(fechaInicialDeBusqueda(pasaje, '2026-11-14'), '2026-11-14')
-})
-
 test('no ofrece ninguna salida con la misma fecha y hora del pasaje, aunque sea otro tipo de bus', () => {
   // La compra del perfil no envía idViaje: así llega el pasaje real.
   const pasajeReal = { ...pasaje, idViaje: undefined, fechaSalida: '2026-11-16', horaSalida: '08:00', tipoBus: 'Estándar' }
@@ -128,4 +115,21 @@ test('no ofrece ninguna salida con la misma fecha y hora del pasaje, aunque sea 
     { ...otroDia, salidaMs: salida + 24 * HORA },
   ], salida - 20 * HORA)
   assert.deepEqual(ofrecidos.viajes.map((v) => v.id), [902, 903])
+})
+
+test('permite cambiar de destino incluso si la nueva salida tiene la misma fecha y hora', () => {
+  const nuevaRuta = viaje({ id: 95, origen: 'Trujillo', destino: 'Cajamarca', salidaMs: ORIGINAL })
+  assert.equal(esMismaSalida(nuevaRuta, pasaje), false)
+  assert.deepEqual(separarViajesPostergables(pasaje, [nuevaRuta], AHORA).viajes.map((v) => v.id), [95])
+})
+
+test('consulta la API con el origen y destino que eligió el cliente', async () => {
+  globalThis.fetch = async (url) => {
+    const consulta = new URL(url)
+    assert.equal(consulta.searchParams.get('origen'), 'Lima')
+    assert.equal(consulta.searchParams.get('destino'), 'Piura')
+    return new Response(JSON.stringify([viaje({ id: 96, origen: 'Lima', destino: 'Piura', salidaMs: ORIGINAL + HORA })]))
+  }
+  const resultado = await buscarViajesPostergables(pasaje, { origen: 'Lima', destino: 'Piura', fecha: '2026-11-13' }, AHORA)
+  assert.deepEqual(resultado.viajes.map((v) => v.id), [96])
 })

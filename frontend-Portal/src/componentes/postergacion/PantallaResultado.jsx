@@ -31,15 +31,15 @@ function Exito({ resultado, pasajeOriginal, alIrAMisPasajes }) {
   return (
     <div className="resultado resultado--exito">
       <span className="resultado-icono resultado-icono--exito"><IconoExito /></span>
-      <h2 className="resultado__titulo" tabIndex={-1} data-foco-paso>¡Postergación confirmada!</h2>
+      <h2 className="resultado__titulo" tabIndex={-1} data-foco-paso>¡Cambio de viaje confirmado!</h2>
       <p className="resultado__texto">
-        Tu pasaje <strong>{pasaje.numeroBoleto}</strong> ahora viaja en la nueva fecha. Es el mismo pasaje: conserva tu compra y tu pago original.
+        Tu pasaje <strong>{pasaje.numeroBoleto}</strong> ahora corresponde al nuevo viaje. Conserva tu compra y tu pago original.
       </p>
 
       <article className="resultado-ticket" aria-label="Nuevo viaje del pasaje">
         <div className="resultado-ticket__franja">
           <span>Nuevo viaje</span>
-          <EstadoDisponibilidad estado="confirmado" etiqueta="Fecha cambiada" />
+          <EstadoDisponibilidad estado="confirmado" etiqueta="Viaje cambiado" />
         </div>
         <div className="resultado-ticket__ruta">
           <span>{pasaje.origen}</span>
@@ -75,7 +75,7 @@ function Rechazo({ resultado, pasajeOriginal, alIrAMisPasajes, alReelegirAsiento
   return (
     <div className="resultado resultado--rechazo">
       <span className="resultado-icono resultado-icono--rechazo"><IconoRechazo /></span>
-      <h2 className="resultado__titulo" tabIndex={-1} data-foco-paso>No se pudo postergar tu pasaje</h2>
+      <h2 className="resultado__titulo" tabIndex={-1} data-foco-paso>No se pudo cambiar tu viaje</h2>
       <p className="resultado__texto resultado__texto--motivo" role="alert">
         <strong>Motivo:</strong> {resultado.mensaje}
       </p>

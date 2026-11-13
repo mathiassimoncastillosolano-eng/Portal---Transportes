@@ -89,8 +89,8 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
           <button type="button" className="postergacion-encabezado__volver" onClick={pedirCancelacion}>
             <span aria-hidden="true">←</span> Mis pasajes
           </button>
-          <p className="postergacion-encabezado__eyebrow">CAMBIO DE FECHA</p>
-          <h1 className="postergacion-encabezado__titulo">Cambia la fecha de tu viaje</h1>
+          <p className="postergacion-encabezado__eyebrow">CAMBIO DE VIAJE</p>
+          <h1 className="postergacion-encabezado__titulo">Cambia tu viaje</h1>
         </div>
       </header>
 
@@ -98,7 +98,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
 
       {!enResultado && fase !== FASES.VALIDANDO && (
         <div className="postergacion-progreso">
-          <IndicadorProgreso pasoActual={PASO_INDICADOR[fase]} pasos={pasosVisibles} etiqueta="Progreso del cambio de fecha" />
+          <IndicadorProgreso pasoActual={PASO_INDICADOR[fase]} pasos={pasosVisibles} etiqueta="Progreso del cambio de viaje" />
           <p className="postergacion-progreso__movil" aria-hidden="true">
             Paso {indiceVisible + 1} de {PASOS.length} · {pasosVisibles[indiceVisible]?.etiqueta}
           </p>
@@ -124,8 +124,8 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
                 busqueda={busqueda}
                 alGuardarBusqueda={acciones.guardarBusqueda}
                 alElegir={acciones.elegirViaje}
+                alCancelar={pedirCancelacion}
               />
-              <BarraAcciones alCancelar={pedirCancelacion} />
             </>
           )}
 
@@ -189,7 +189,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
           {fase === FASES.CONFIRMANDO && (
             <PanelAsincrono
               variante="procesamiento"
-              mensaje="Confirmando el cambio de fecha"
+              mensaje="Confirmando el cambio de viaje"
               detalle="Estamos actualizando tu pasaje. No cierres esta ventana."
               cargando
               compacto
@@ -225,7 +225,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
       <ModalBase
         abierto={cancelando}
         alCerrar={() => setCancelando(false)}
-        titulo="¿Cancelar el cambio de fecha?"
+        titulo="¿Cancelar el cambio de viaje?"
         subtitulo="Perderás el viaje y el asiento que elegiste. Tu pasaje original no cambia."
       >
         <div className="postergacion-modal__acciones">
@@ -254,7 +254,7 @@ export function PaginaPostergarPasaje() {
         <EstadoRuta
           tipo="error"
           titulo="No encontramos este pasaje"
-          texto="Vuelve a Mis pasajes y elige el pasaje al que quieres cambiarle la fecha."
+          texto="Vuelve a Mis pasajes y elige el pasaje cuyo viaje quieres cambiar."
           accion={{ texto: 'Ir a Mis pasajes', to: '/perfil/pasajes' }}
         />
       </section>

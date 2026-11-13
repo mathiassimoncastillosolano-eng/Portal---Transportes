@@ -76,7 +76,7 @@ export function PaginaDetalleCompra() {
                   to={`/postergar/${boleto.idPasaje}`}
                   state={{ pasaje: adaptarBoletoReal(compra, boleto, usuario?.id) }}
                 >
-                  Cambiar fecha
+                  Cambiar viaje
                 </Link>
               )}
             />
