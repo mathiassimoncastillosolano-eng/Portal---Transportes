@@ -39,7 +39,7 @@ const viajes = horarios.map(([horaSalida, tipoBus, precio, asientosDisponibles, 
 function consultarViajesDeEjemplo(_pasaje, criterios) {
   // La vista local solo ilustra fechas del 18 al 27 de noviembre.
   if (criterios.fecha < '2026-11-18' || criterios.fecha > '2026-11-27') {
-    return { viajes: [], sinCupo: 0 }
+    return { viajes: [], ocultos: 0 }
   }
   const diaSiguiente = new Date(Date.parse(`${criterios.fecha}T00:00:00Z`) + 86_400_000)
     .toISOString().slice(0, 10)
@@ -53,7 +53,7 @@ function consultarViajesDeEjemplo(_pasaje, criterios) {
       salidaMs: new Date(`${criterios.fecha}T${viaje.horaSalida}:00-05:00`).getTime(),
       limiteReservaMs: new Date(`${criterios.fecha}T${viaje.horaSalida}:00-05:00`).getTime() - 20 * 60_000,
     })),
-    sinCupo: 0,
+    ocultos: 0,
   }
 }
 
