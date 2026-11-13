@@ -1,0 +1,47 @@
+.detalle-cambiado__aviso {
+  margin: 0;
+  padding: .75rem 1rem;
+  border: 1px solid var(--color-aviso-borde);
+  border-radius: var(--radio-sm);
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso-texto);
+  font-size: .85rem;
+}
+.detalle-cambiado__original {
+  display: grid;
+  gap: .35rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  background: var(--color-superficie-marca);
+}
+.detalle-cambiado__original span { font-size: .7rem; font-weight: 800; letter-spacing: .1em; color: var(--color-texto-secundario); }
+.detalle-cambiado__original strong { font-family: var(--fuente-titulos); font-size: 1.35rem; color: var(--color-texto-marca); }
+.detalle-cambiado__original p { margin: 0; color: var(--color-texto-secundario); font-size: .86rem; }
+.tarjeta-ticket__boletos h2 { display: flex; align-items: center; gap: .5rem; margin: 0 0 .9rem; font-size: 1rem; color: var(--color-texto-marca); }
+.tarjeta-ticket__boletos h2 span { border-radius: 100px; background: var(--color-superficie-marca); color: var(--color-texto-marca); padding: .15rem .55rem; font-size: .75rem; }
+.detalle-cambiado__boleto--cambiado { border: 2px solid var(--color-verde-800); background: var(--color-superficie-exito); }
+.tarjeta-ticket__boleto > .detalle-cambiado__estado,
+.tarjeta-ticket__boleto > .detalle-cambiado__itinerario { grid-column: 1 / -1; }
+.detalle-cambiado__estado { display: flex !important; align-items: center; justify-content: space-between; gap: .7rem; font-size: .76rem; color: var(--color-texto-secundario); }
+.detalle-cambiado__estado strong { padding: .25rem .65rem; border-radius: 100px; background: var(--color-superficie-marca); color: var(--color-texto-marca); font-size: .72rem !important; }
+.detalle-cambiado__boleto--cambiado .detalle-cambiado__estado strong { background: var(--color-verde-800); color: #fff; }
+.detalle-cambiado__itinerario { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; padding-top: .7rem; border-top: 1px solid var(--color-borde); }
+.detalle-cambiado__itinerario > div { display: grid; gap: .2rem; min-width: 0; }
+.detalle-cambiado__itinerario strong { color: var(--color-texto-principal); font-size: .83rem !important; }
+.tarjeta-ticket__boleto > .detalle-cambiado__anterior { grid-column: 1 / -1; margin: 0; padding: .65rem .8rem; border-radius: var(--radio-sm); background: var(--color-superficie-elevada); color: var(--color-texto-secundario); font-size: .78rem; }
+.detalle-cambiado__totales { display: grid; gap: .55rem; margin: 0; padding-top: 1.2rem; border-top: 2px solid var(--color-borde); }
+.detalle-cambiado__totales > div { display: flex; justify-content: space-between; gap: 1rem; }
+.detalle-cambiado__totales dt { color: var(--color-texto-secundario); }
+.detalle-cambiado__totales dd { margin: 0; font-weight: 700; }
+.detalle-cambiado__total-final { padding-top: .6rem; border-top: 1px solid var(--color-borde); color: var(--color-texto-marca); font-family: var(--fuente-titulos); font-size: 1.2rem; }
+.detalle-cambiado__acciones { display: flex; flex-wrap: wrap; gap: .7rem; }
+.detalle-cambiado__acciones a { display: inline-flex; align-items: center; min-height: 2.8rem; padding: .7rem 1rem; border-radius: var(--radio-sm); background: var(--color-azul-800); color: #fff; font-weight: 700; text-decoration: none; }
+.detalle-cambiado__acciones a + a { background: var(--color-superficie-marca); color: var(--color-texto-marca); border: 1px solid var(--color-borde-marca); }
+.detalle-cambiado__acciones a:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+@media (max-width: 650px) {
+  .detalle-cambiado__boleto .tarjeta-ticket__boleto-pasajero { order: 0; }
+  .detalle-cambiado__itinerario { grid-template-columns: 1fr; }
+  .detalle-cambiado__acciones { flex-direction: column; }
+  .detalle-cambiado__acciones a { justify-content: center; }
+}
