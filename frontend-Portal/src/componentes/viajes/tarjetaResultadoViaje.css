@@ -16,32 +16,68 @@
   transform: translateY(-3px);
 }
 
+/*
+ * Viajes que no se pueden elegir (ya salió, reserva cerrada, lleno…).
+ * En vez de verse grises, cada estado tiene su color (--tono-estado): una franja a la izquierda,
+ * la etiqueta de estado, el aviso y una etiqueta con ícono en lugar del botón.
+ */
 .tarjeta-resultado-viaje--no-reservable {
-  background: var(--color-fondo-alterno);
+  --tono-estado: var(--color-azul-700);
+  border-left: 5px solid var(--tono-estado);
 }
+
+.tarjeta-resultado-viaje--salida-realizada { --tono-estado: #64748B; }
+.tarjeta-resultado-viaje--reserva-cerrada { --tono-estado: #B45309; }
+.tarjeta-resultado-viaje--lleno { --tono-estado: var(--color-error-texto); }
 
 .tarjeta-resultado-viaje--no-reservable:hover {
   transform: none;
-  box-shadow: var(--sombra-tenue);
+  border-color: var(--color-borde);
+  border-left-color: var(--tono-estado);
+  box-shadow: var(--sombra-tarjeta);
 }
 
-/* Se atenúa el contenido, pero el estado y el aviso conservan contraste completo. */
-.tarjeta-resultado-viaje--no-reservable .tarjeta-resultado-viaje__empresa,
-.tarjeta-resultado-viaje--no-reservable .tarjeta-resultado-viaje__horario,
-.tarjeta-resultado-viaje--no-reservable .tarjeta-resultado-viaje__servicios,
-.tarjeta-resultado-viaje--no-reservable .tarjeta-resultado-viaje__precio-columna {
-  opacity: 0.68;
+/* Solo el precio se suaviza: ya no se puede pagar ese viaje. */
+.tarjeta-resultado-viaje--no-reservable .tarjeta-resultado-viaje__precio {
+  color: var(--color-texto-secundario);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: color-mix(in srgb, var(--tono-estado) 55%, transparent);
+}
+
+.tarjeta-resultado-viaje--no-reservable .estado-disponibilidad {
+  color: var(--tono-estado);
+  background: color-mix(in srgb, var(--tono-estado) 12%, transparent);
 }
 
 .tarjeta-resultado-viaje__aviso {
   margin: 0;
   font-size: var(--tamano-sm, 0.875rem);
   font-weight: 600;
-  color: var(--color-texto-secundario);
+  color: var(--tono-estado, var(--color-texto-secundario));
 }
 
-.tarjeta-resultado-viaje--no-reservable .boton-principal:disabled {
-  cursor: not-allowed;
+.tarjeta-resultado-viaje__estado-final {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 3rem;
+  padding: 0.7rem 0.75rem;
+  border: 1.5px solid color-mix(in srgb, var(--tono-estado) 45%, transparent);
+  border-radius: var(--radio-pastilla);
+  background: color-mix(in srgb, var(--tono-estado) 10%, transparent);
+  color: var(--tono-estado);
+  font-size: 0.92rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tarjeta-resultado-viaje__estado-final svg { flex-shrink: 0; }
+
+/* La columna del precio toma un toque del color del estado (no gris). */
+.tarjeta-resultado-viaje--no-reservable .tarjeta-resultado-viaje__lateral {
+  background: color-mix(in srgb, var(--tono-estado) 6%, var(--color-superficie));
 }
 
 .tarjeta-resultado-viaje__insignia {

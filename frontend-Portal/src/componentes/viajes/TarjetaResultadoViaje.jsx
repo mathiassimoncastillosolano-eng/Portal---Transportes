@@ -43,6 +43,33 @@ const ICONOS_SERVICIO = {
   ),
 }
 
+// Ícono de cada estado que no se puede reservar (en vez de un botón gris deshabilitado).
+const ICONOS_ESTADO = {
+  SALIDA_REALIZADA: (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M5 17V3.5M5 4h9l-2 3.25L14 10.5H5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  RESERVA_CERRADA: (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="10" cy="10" r="7.25" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M10 6v4.2l2.8 1.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  LLENO: (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="10" cy="10" r="7.25" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M7.5 7.5l5 5M12.5 7.5l-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  ),
+  OTRO: (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="10" cy="10" r="7.25" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M10 9v4.5M10 6.6v.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  ),
+}
+
 /**
  * Tarjeta de resultado de viaje. Dos columnas en escritorio: contenido
  * (empresa, horario, comodidades) y una franja de precio + CTA, similar en
@@ -127,14 +154,17 @@ export function TarjetaResultadoViaje({ resultado, esMasEconomico, alSeleccionar
           <span className="tarjeta-resultado-viaje__precio-etiqueta">Desde, por persona</span>
           <span className="tarjeta-resultado-viaje__precio">{resultado.precio == null ? 'No disponible' : formatearPrecio(resultado.precio)}</span>
         </div>
-        <BotonPrincipal
-          deshabilitado={!reservable}
-          onClick={() => { if (reservable) alSeleccionar(resultado) }}
-          ancho="100%"
-          descritoPor={reservable ? undefined : idAviso}
-        >
-          {reservable ? textoAccion : textos?.boton ?? 'No disponible'}
-        </BotonPrincipal>
+        {reservable ? (
+          <BotonPrincipal onClick={() => alSeleccionar(resultado)} ancho="100%">
+            {textoAccion}
+          </BotonPrincipal>
+        ) : (
+          // Sin botón gris: una etiqueta de color con ícono que explica por qué no se puede elegir.
+          <span className="tarjeta-resultado-viaje__estado-final" aria-describedby={idAviso}>
+            {ICONOS_ESTADO[estadoActual] ?? ICONOS_ESTADO.OTRO}
+            {textos?.boton ?? 'No disponible'}
+          </span>
+        )}
       </div>
     </article>
   )

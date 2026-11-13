@@ -149,7 +149,6 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir, 
           <h2 className="postergacion-paso__titulo" tabIndex={-1} data-foco-paso>¿A dónde y cuándo quieres viajar?</h2>
           <p className="postergacion-paso__texto">
             Origen y destino vienen de tu pasaje. Cámbialos si lo necesitas; la fecha es obligatoria.
-            Puedes adelantar o postergar: se muestran las salidas que todavía se pueden reservar.
           </p>
         </div>
         <div className="postergacion-busqueda__campos">
