@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { obtenerCompraDemo } from '../../mock/postergacion/pasajes'
 import { TarjetaTicket } from '../../componentes/perfil/TarjetaTicket'
-import { descargarPdfCompraMock, verPdfCompraMock } from '../../servicios/pdfCompraMock'
+import { descargarPdfDocumentoMock, verPdfDocumentoMock } from '../../servicios/pdfCompraMock'
 import './paginaMisPasajes.css'
 
 /** Compra de tres boletos para recorrer el cambio simulado desde la interfaz real. */
@@ -11,14 +11,15 @@ export function PaginaDetalleCompraMock() {
   const { usuario } = useAutenticacion()
   const idCliente = usuario?.id ?? 'cliente-mock'
   const compra = obtenerCompraDemo(idCliente)
+  const compraMock = { ...compra, esMock: true }
   const [descargando, setDescargando] = useState(false)
   const [errorPdf, setErrorPdf] = useState('')
 
-  async function descargarPdf() {
+  async function descargarPdf(documento) {
     setDescargando(true)
     setErrorPdf('')
     try {
-      await descargarPdfCompraMock(compra)
+      await descargarPdfDocumentoMock(compraMock, documento)
     } catch {
       setErrorPdf('No se pudo preparar el PDF de prueba. Inténtalo nuevamente.')
     } finally {
@@ -26,11 +27,11 @@ export function PaginaDetalleCompraMock() {
     }
   }
 
-  async function verPdf() {
+  async function verPdf(documento) {
     setDescargando(true)
     setErrorPdf('')
     try {
-      await verPdfCompraMock(compra)
+      await verPdfDocumentoMock(compraMock, documento)
     } catch {
       setErrorPdf('No se pudo abrir el PDF de prueba. Inténtalo nuevamente.')
     } finally {
@@ -44,7 +45,7 @@ export function PaginaDetalleCompraMock() {
         <Link to="/perfil/pasajes" className="pagina-mis-pasajes__volver">← Volver a mis pasajes</Link>
         <p className="tarjeta-ticket__alerta" role="note">Compra de prueba: los cambios y pagos se simulan durante esta sesión local.</p>
         <TarjetaTicket
-          compra={{ ...compra, esMock: true }}
+          compra={compraMock}
           onDescargar={descargarPdf}
           onVerPdf={verPdf}
           descargando={descargando}

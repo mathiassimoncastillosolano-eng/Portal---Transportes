@@ -1,5 +1,6 @@
 import { EstadoDisponibilidad } from '../comunes/EstadoDisponibilidad'
-import { formatearFechaHoraCompra, formatearFechaLarga, formatearPrecio } from '../../utilidades/formato'
+import { formatearFechaCorta, formatearFechaHoraCompra, formatearFechaLarga, formatearPrecio } from '../../utilidades/formato'
+import { documentosCambio, resumenDocumento } from '../../utilidades/documentosCambio'
 import { avisoTotal, datosFaltantes, estadoVisible } from '../../utilidades/pasajesVista'
 import './tarjetaTicket.css'
 
@@ -96,10 +97,17 @@ export function TarjetaTicket({ compra, onDescargar, onVerPdf, descargando, erro
                 </div>
               )}
               {boleto.cambio && (
-                <p className="tarjeta-ticket__boleto-anterior">
-                  Antes: {boleto.cambio.anterior.origen} → {boleto.cambio.anterior.destino} · {formatearFechaLarga(boleto.cambio.anterior.fechaSalida)} · {boleto.cambio.anterior.horaSalida} · asiento {boleto.cambio.anterior.asiento}.
-                  {' '}Diferencia pagada: {formatearPrecio(boleto.cambio.adicionalPagado, compra.moneda)}.
-                </p>
+                <div className="tarjeta-ticket__boleto-anterior">
+                  <div>
+                    <small>Viaje anterior</small>
+                    <span>{boleto.cambio.anterior.origen} → {boleto.cambio.anterior.destino}</span>
+                    <span>{formatearFechaCorta(boleto.cambio.anterior.fechaSalida)} · {boleto.cambio.anterior.horaSalida} · Asiento {boleto.cambio.anterior.asiento}</span>
+                  </div>
+                  <div className="tarjeta-ticket__diferencia">
+                    <small>Diferencia pagada</small>
+                    <strong>{formatearPrecio(boleto.cambio.adicionalPagado, compra.moneda)}</strong>
+                  </div>
+                </div>
               )}
               {accionBoleto && <div className="tarjeta-ticket__boleto-accion">{accionBoleto(boleto, compra)}</div>}
             </div>
@@ -124,14 +132,20 @@ export function TarjetaTicket({ compra, onDescargar, onVerPdf, descargando, erro
           {compra.documentoDisponible ? (
             <>
               {compra.esMock && onVerPdf ? (
-                <div className="tarjeta-ticket__botones-pdf">
-                  <button type="button" onClick={onVerPdf} disabled={descargando}>
-                    {descargando ? 'Preparando PDF…' : hayCambios ? 'Ver PDF actualizado ↗' : 'Ver PDF de ejemplo ↗'}
-                  </button>
-                  <button type="button" className="tarjeta-ticket__pdf-descargar" onClick={onDescargar} disabled={descargando}>
-                    Descargar PDF de ejemplo
-                  </button>
-                </div>
+                <ul className="tarjeta-ticket__pdfs">
+                  {documentosCambio(compra).map((documento) => (
+                    <li key={documento.clave} className={`tarjeta-ticket__pdf${documento.tipo === 'cambiado' ? ' tarjeta-ticket__pdf--cambiado' : ''}`}>
+                      <div className="tarjeta-ticket__pdf-texto">
+                        <strong>{documento.titulo}</strong>
+                        <small>{resumenDocumento(documento)}</small>
+                      </div>
+                      <button type="button" onClick={() => onVerPdf(documento)} disabled={descargando}>Ver PDF ↗</button>
+                      <button type="button" className="tarjeta-ticket__pdf-descargar" onClick={() => onDescargar(documento)} disabled={descargando}>
+                        Descargar
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               ) : (
                 <>
                   <button type="button" onClick={onDescargar} disabled={descargando}>
