@@ -10,28 +10,43 @@ const ESTADOS = {
 
 export function TarjetaPasajeOriginal({ pasaje, titulo = 'Pasaje a cambiar' }) {
   const estado = ESTADOS[pasaje.estado] ?? ESTADOS.NO_VALIDO
+  const [anio, mes, dia] = pasaje.fechaSalida.split('-').map(Number)
+  const fecha = new Date(anio, mes - 1, dia)
+  const nombreMes = fecha.toLocaleDateString('es-PE', { month: 'short' }).replace('.', '').toUpperCase()
+  const diaSemana = fecha.toLocaleDateString('es-PE', { weekday: 'long' })
 
   return (
     <article className="pasaje-original" aria-label={titulo}>
-      <div className="pasaje-original__lado">
-        <span className="pasaje-original__etiqueta">{titulo}</span>
-        <strong className="pasaje-original__codigo">{pasaje.numeroBoleto}</strong>
-        <EstadoDisponibilidad estado={estado.clave} etiqueta={estado.etiqueta} />
+      <time className="pasaje-original__fecha" dateTime={pasaje.fechaSalida} aria-label={formatearFechaCorta(pasaje.fechaSalida)}>
+        <span className="pasaje-original__mes">{nombreMes}</span>
+        <strong className="pasaje-original__dia">{dia}</strong>
+        <span className="pasaje-original__anio">{anio}</span>
+        <span className="pasaje-original__semana">{diaSemana}</span>
+      </time>
+
+      <div className="pasaje-original__contenido">
+        <div className="pasaje-original__cabecera">
+          <div className="pasaje-original__identidad">
+            <span className="pasaje-original__etiqueta">{titulo}</span>
+            <strong className="pasaje-original__codigo">{pasaje.numeroBoleto}</strong>
+          </div>
+          <EstadoDisponibilidad estado={estado.clave} etiqueta={estado.etiqueta} />
+        </div>
+        <div className="pasaje-original__trayecto">
+          <div className="pasaje-original__parada">
+            <span className="pasaje-original__punto" aria-hidden="true" />
+            <div><strong>{pasaje.origen}</strong><span>Salida {pasaje.horaSalida}</span></div>
+          </div>
+          <div className="pasaje-original__parada">
+            <span className="pasaje-original__punto pasaje-original__punto--destino" aria-hidden="true" />
+            <div><strong>{pasaje.destino}</strong><span>Destino</span></div>
+          </div>
+        </div>
       </div>
-      <div className="pasaje-original__ruta">
-        <span className="pasaje-original__ciudad">{pasaje.origen}</span>
-        <span className="pasaje-original__flecha" aria-hidden="true">
-          <svg width="36" height="12" viewBox="0 0 36 12" fill="none">
-            <path d="M1 6h32m0 0-5-5m5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
-        <span className="pasaje-original__ciudad">{pasaje.destino}</span>
-      </div>
+
       <dl className="pasaje-original__datos">
-        <div><dt>Fecha</dt><dd>{formatearFechaCorta(pasaje.fechaSalida)}</dd></div>
-        <div><dt>Salida</dt><dd>{pasaje.horaSalida}</dd></div>
         <div><dt>Asiento</dt><dd>{pasaje.asiento}</dd></div>
-        <div><dt>Pagado</dt><dd>{formatearPrecio(pasaje.precioPagado, pasaje.moneda)}</dd></div>
+        <div><dt>Pagado</dt><dd className="pasaje-original__precio">{formatearPrecio(pasaje.precioPagado, pasaje.moneda)}</dd></div>
         {pasaje.fechaCompra && <div><dt>Comprado</dt><dd>{formatearFechaHoraCompra(pasaje.fechaCompra)}</dd></div>}
       </dl>
     </article>
