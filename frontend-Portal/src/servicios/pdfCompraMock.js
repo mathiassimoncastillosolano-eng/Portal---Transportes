@@ -81,7 +81,7 @@ export async function descargarPdfCompraMock(compra) {
     pdf.setFont('helvetica', 'normal')
     pdf.setFontSize(7)
     pdf.setTextColor(...gris)
-    texto('Ejemplo local. Ningún cambio ni pago se registró en el sistema.', 15, 287)
+    texto('Vista previa simulada. Ningún cambio ni pago se registró en el sistema.', 15, 287)
     texto(`${pagina}/${paginas}`, 195, 287, { align: 'right' })
   }
   pdf.save(`RutaLibre-${compra.codigoCompra}-prueba.pdf`)

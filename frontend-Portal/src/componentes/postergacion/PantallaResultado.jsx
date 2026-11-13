@@ -24,22 +24,22 @@ function IconoRechazo() {
   )
 }
 
-function Exito({ resultado, pasajeOriginal, alIrAMisPasajes, etiquetaVolver }) {
+function Exito({ resultado, pasajeOriginal, alVerCompra, etiquetaVolver }) {
   const { pasaje, montoAdicional, pago } = resultado
   const moneda = pasaje.moneda
 
   return (
     <div className="resultado resultado--exito">
       <span className="resultado-icono resultado-icono--exito"><IconoExito /></span>
-      <h2 className="resultado__titulo" tabIndex={-1} data-foco-paso>¡Cambio de viaje confirmado!</h2>
+      <h2 className="resultado__titulo" tabIndex={-1} data-foco-paso>Así quedaría tu nuevo viaje</h2>
       <p className="resultado__texto">
-        Tu pasaje <strong>{pasaje.numeroBoleto}</strong> ahora corresponde al nuevo viaje. Conserva tu compra y tu pago original.
+        El pasaje <strong>{pasaje.numeroBoleto}</strong> se mostraría con estos datos. Esta simulación no modifica tu compra ni realiza un pago real.
       </p>
 
       <article className="resultado-ticket" aria-label="Nuevo viaje del pasaje">
         <div className="resultado-ticket__franja">
           <span>Nuevo viaje</span>
-          <EstadoDisponibilidad estado="confirmado" etiqueta="Viaje cambiado" />
+          <EstadoDisponibilidad estado="confirmado" etiqueta="Vista previa" />
         </div>
         <div className="resultado-ticket__ruta">
           <span>{pasaje.origen}</span>
@@ -65,7 +65,7 @@ function Exito({ resultado, pasajeOriginal, alIrAMisPasajes, etiquetaVolver }) {
       </article>
 
       <div className="resultado__acciones">
-        <BotonPrincipal onClick={alIrAMisPasajes}>{etiquetaVolver}</BotonPrincipal>
+        <BotonPrincipal onClick={alVerCompra}>{etiquetaVolver}</BotonPrincipal>
       </div>
     </div>
   )
@@ -103,8 +103,8 @@ function Rechazo({ resultado, pasajeOriginal, alIrAMisPasajes, alReelegirAsiento
   )
 }
 
-export function PantallaResultado({ resultado, pasajeOriginal, alIrAMisPasajes, alReelegirAsiento, etiquetaVolver = 'Volver a Mis pasajes' }) {
+export function PantallaResultado({ resultado, pasajeOriginal, alIrAMisPasajes, alVerCompra, alReelegirAsiento, etiquetaVolver = 'Ver compra actualizada' }) {
   return resultado.exito
-    ? <Exito resultado={resultado} pasajeOriginal={pasajeOriginal} alIrAMisPasajes={alIrAMisPasajes} etiquetaVolver={etiquetaVolver} />
+    ? <Exito resultado={resultado} pasajeOriginal={pasajeOriginal} alVerCompra={alVerCompra ?? alIrAMisPasajes} etiquetaVolver={etiquetaVolver} />
     : <Rechazo resultado={resultado} pasajeOriginal={pasajeOriginal} alIrAMisPasajes={alIrAMisPasajes} alReelegirAsiento={alReelegirAsiento} />
 }

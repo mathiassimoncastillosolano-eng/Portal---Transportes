@@ -71,6 +71,32 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
 
   const compraDemo = import.meta.env.DEV && esPasajeCompraDemo(pasaje)
   const irAMisPasajes = () => navegar(compraDemo ? '/perfil/pasajes/demo' : '/perfil/pasajes')
+  function verCompraActualizada() {
+    if (compraDemo) {
+      navegar('/perfil/pasajes/demo')
+      return
+    }
+    if (!resultado?.exito || !pasaje.deCompraReal || !pasaje.idVenta) {
+      irAMisPasajes()
+      return
+    }
+    const nuevo = resultado.pasaje
+    navegar(`/perfil/pasajes/${pasaje.idVenta}`, {
+      state: {
+        cambioSimulado: {
+          idVenta: pasaje.idVenta,
+          idPasaje: pasaje.idPasaje,
+          numeroBoleto: pasaje.numeroBoleto,
+          viaje: {
+            origen: nuevo.origen, destino: nuevo.destino, fechaSalida: nuevo.fechaSalida,
+            horaSalida: nuevo.horaSalida, empresa: nuevo.empresa, tipoBus: nuevo.tipoBus,
+          },
+          asiento: nuevo.asiento,
+          montoAdicional: resultado.montoAdicional,
+        },
+      },
+    })
+  }
 
   function pedirCancelacion() {
     if (fase !== FASES.RESULTADO && fase !== FASES.VALIDANDO && viaje) setCancelando(true)
@@ -190,8 +216,8 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
           {fase === FASES.CONFIRMANDO && (
             <PanelAsincrono
               variante="procesamiento"
-              mensaje="Confirmando el cambio de viaje"
-              detalle="Estamos actualizando tu pasaje. No cierres esta ventana."
+              mensaje="Preparando la vista del nuevo viaje"
+              detalle="Calculamos cómo quedaría tu pasaje sin modificar la compra registrada."
               cargando
               compacto
             />
@@ -202,7 +228,8 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
               resultado={resultado}
               pasajeOriginal={pasaje}
               alIrAMisPasajes={irAMisPasajes}
-              etiquetaVolver={compraDemo ? 'Ver compra actualizada' : 'Volver a Mis pasajes'}
+              alVerCompra={verCompraActualizada}
+              etiquetaVolver={compraDemo ? 'Ver compra actualizada' : pasaje.deCompraReal ? 'Ver compra simulada' : 'Volver a Mis pasajes'}
               alReelegirAsiento={acciones.reelegirAsiento}
             />
           )}
