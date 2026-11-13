@@ -19,6 +19,7 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
     ? `${formatearFechaLarga(compra.fechaSalida)} · ${compra.horaSalida}`
     : 'Por confirmar'
   const servicio = compra.tipoBus ? `${compra.empresa} · ${compra.tipoBus}` : 'Por confirmar'
+  const hayCambios = compra.boletos.some((boleto) => boleto.cambio)
 
   return (
     <article className="tarjeta-ticket">
@@ -34,6 +35,7 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
           </p>
         </header>
 
+        {hayCambios && <p className="tarjeta-ticket__origen-compra">VIAJE DE LA COMPRA ORIGINAL</p>}
         <div className="tarjeta-ticket__ruta">
           <div><small>Origen</small><strong>{compra.origen ?? '—'}</strong></div>
           <span className="tarjeta-ticket__linea" aria-hidden="true">
@@ -44,8 +46,8 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
         </div>
 
         <dl className="tarjeta-ticket__viaje">
-          <div><dt>Salida</dt><dd>{salida}</dd></div>
-          <div><dt>Servicio</dt><dd>{servicio}</dd></div>
+          <div><dt>{hayCambios ? 'Salida original' : 'Salida'}</dt><dd>{salida}</dd></div>
+          <div><dt>{hayCambios ? 'Servicio original' : 'Servicio'}</dt><dd>{servicio}</dd></div>
           <div><dt>Fecha de compra</dt><dd>{formatearFechaHoraCompra(compra.fechaCompra)}</dd></div>
         </dl>
 
@@ -61,9 +63,15 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
             <p className="tarjeta-ticket__sin-boletos">No hay boletos registrados para esta compra.</p>
           )}
           {compra.boletos.map((boleto, indice) => (
-            <div className="tarjeta-ticket__boleto" key={boleto.idPasaje}>
+            <div className={`tarjeta-ticket__boleto${boleto.cambio ? ' tarjeta-ticket__boleto--cambiado' : ''}`} key={boleto.idPasaje}>
+              {boleto.viajeVigente && (
+                <div className="tarjeta-ticket__boleto-estado">
+                  <span>Boleto {indice + 1}</span>
+                  <strong>{boleto.cambio ? 'Viaje cambiado' : 'Sin cambios'}</strong>
+                </div>
+              )}
               <div className="tarjeta-ticket__boleto-asiento">
-                <small>Boleto {indice + 1}</small>
+                <small>{boleto.viajeVigente ? 'Asiento vigente' : `Boleto ${indice + 1}`}</small>
                 <strong>Asiento {boleto.asiento ?? '—'}</strong>
               </div>
               <div className="tarjeta-ticket__boleto-pasajero">
@@ -76,24 +84,45 @@ export function TarjetaTicket({ compra, onDescargar, descargando, errorPdf, acci
                 <strong className="tarjeta-ticket__codigo">{boleto.numeroBoleto}</strong>
               </div>
               <strong className="tarjeta-ticket__boleto-precio">{formatearPrecio(boleto.precio, compra.moneda)}</strong>
+              {boleto.viajeVigente && (
+                <div className="tarjeta-ticket__boleto-viaje">
+                  <div><small>Viaje vigente</small><strong>{boleto.viajeVigente.origen} → {boleto.viajeVigente.destino}</strong></div>
+                  <div><small>Salida</small><strong>{formatearFechaLarga(boleto.viajeVigente.fechaSalida)} · {boleto.viajeVigente.horaSalida}</strong></div>
+                  <div><small>Servicio</small><strong>{boleto.viajeVigente.empresa} · {boleto.viajeVigente.tipoBus}</strong></div>
+                </div>
+              )}
+              {boleto.cambio && (
+                <p className="tarjeta-ticket__boleto-anterior">
+                  Antes: {boleto.cambio.anterior.origen} → {boleto.cambio.anterior.destino} · {formatearFechaLarga(boleto.cambio.anterior.fechaSalida)} · {boleto.cambio.anterior.horaSalida} · asiento {boleto.cambio.anterior.asiento}.
+                  {' '}Diferencia pagada: {formatearPrecio(boleto.cambio.adicionalPagado, compra.moneda)}.
+                </p>
+              )}
               {accionBoleto && <div className="tarjeta-ticket__boleto-accion">{accionBoleto(boleto, compra)}</div>}
             </div>
           ))}
         </section>
 
         <div className="tarjeta-ticket__total">
-          <span>Total de la compra</span>
+          <span>{hayCambios ? 'Compra original' : 'Total de la compra'}</span>
           <strong>{formatearPrecio(compra.total, compra.moneda)}</strong>
         </div>
+        {hayCambios && (
+          <div className="tarjeta-ticket__totales-cambio">
+            <span>Pagos adicionales por cambios</span>
+            <strong>{formatearPrecio(compra.totalPagado - compra.total, compra.moneda)}</strong>
+            <span>Total pagado</span>
+            <strong>{formatearPrecio(compra.totalPagado, compra.moneda)}</strong>
+          </div>
+        )}
         {aviso && <p className="tarjeta-ticket__alerta" role="note">{aviso}</p>}
 
         <div className="tarjeta-ticket__acciones">
           {compra.documentoDisponible ? (
             <>
               <button type="button" onClick={onDescargar} disabled={descargando}>
-                {descargando ? 'Preparando PDF…' : 'Descargar PDF'}
+                {descargando ? 'Preparando PDF…' : compra.esMock ? 'Descargar PDF de prueba' : 'Descargar PDF'}
               </button>
-              <p>Documento con los datos de tu compra registrada.</p>
+              <p>{compra.esMock ? 'Documento de ejemplo sin validez para viajar.' : 'Documento con los datos de tu compra registrada.'}</p>
             </>
           ) : (
             <p>{motivoSinDocumento(compra)}</p>

@@ -1,5 +1,5 @@
-import { fechaLocal } from '../../utilidades/fechas'
-import { salidaMsDe } from '../../utilidades/postergacion'
+import { fechaLocal } from '../../utilidades/fechas.js'
+import { salidaMsDe } from '../../utilidades/postergacion.js'
 
 const MINUTOS_LIMITE_RESERVA = 20
 

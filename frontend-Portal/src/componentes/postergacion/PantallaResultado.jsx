@@ -24,7 +24,7 @@ function IconoRechazo() {
   )
 }
 
-function Exito({ resultado, pasajeOriginal, alIrAMisPasajes }) {
+function Exito({ resultado, pasajeOriginal, alIrAMisPasajes, etiquetaVolver }) {
   const { pasaje, montoAdicional, pago } = resultado
   const moneda = pasaje.moneda
 
@@ -65,7 +65,7 @@ function Exito({ resultado, pasajeOriginal, alIrAMisPasajes }) {
       </article>
 
       <div className="resultado__acciones">
-        <BotonPrincipal onClick={alIrAMisPasajes}>Volver a Mis pasajes</BotonPrincipal>
+        <BotonPrincipal onClick={alIrAMisPasajes}>{etiquetaVolver}</BotonPrincipal>
       </div>
     </div>
   )
@@ -103,8 +103,8 @@ function Rechazo({ resultado, pasajeOriginal, alIrAMisPasajes, alReelegirAsiento
   )
 }
 
-export function PantallaResultado({ resultado, pasajeOriginal, alIrAMisPasajes, alReelegirAsiento }) {
+export function PantallaResultado({ resultado, pasajeOriginal, alIrAMisPasajes, alReelegirAsiento, etiquetaVolver = 'Volver a Mis pasajes' }) {
   return resultado.exito
-    ? <Exito resultado={resultado} pasajeOriginal={pasajeOriginal} alIrAMisPasajes={alIrAMisPasajes} />
+    ? <Exito resultado={resultado} pasajeOriginal={pasajeOriginal} alIrAMisPasajes={alIrAMisPasajes} etiquetaVolver={etiquetaVolver} />
     : <Rechazo resultado={resultado} pasajeOriginal={pasajeOriginal} alIrAMisPasajes={alIrAMisPasajes} alReelegirAsiento={alReelegirAsiento} />
 }

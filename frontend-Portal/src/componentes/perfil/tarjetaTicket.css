@@ -91,3 +91,21 @@
 }
 
 .tarjeta-ticket__boleto > .tarjeta-ticket__boleto-accion { grid-column: 1 / -1; display: flex; }
+
+/* Un cambio simulado puede dejar boletos de la misma compra en viajes distintos. */
+.tarjeta-ticket__origen-compra { margin: 0 0 -.8rem; font-size: .7rem; font-weight: 800; letter-spacing: .12em; color: var(--color-texto-secundario); }
+.tarjeta-ticket__boleto--cambiado { border: 2px solid var(--color-verde-800); background: var(--color-superficie-exito); }
+.tarjeta-ticket__boleto > .tarjeta-ticket__boleto-estado { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: .7rem; color: var(--color-texto-secundario); font-size: .76rem; }
+.tarjeta-ticket__boleto-estado strong { padding: .25rem .65rem; border-radius: 100px; background: var(--color-superficie-marca); color: var(--color-texto-marca); font-size: .72rem !important; }
+.tarjeta-ticket__boleto--cambiado .tarjeta-ticket__boleto-estado strong { background: var(--color-verde-800); color: #fff; }
+.tarjeta-ticket__boleto > .tarjeta-ticket__boleto-viaje { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; padding-top: .7rem; border-top: 1px solid var(--color-borde); }
+.tarjeta-ticket__boleto-viaje > div { display: grid; gap: .2rem; min-width: 0; }
+.tarjeta-ticket__boleto > .tarjeta-ticket__boleto-anterior { grid-column: 1 / -1; margin: 0; padding: .65rem .8rem; border-radius: var(--radio-sm); background: var(--color-superficie-elevada); color: var(--color-texto-secundario); font-size: .78rem; }
+.tarjeta-ticket__totales-cambio { display: grid; grid-template-columns: 1fr auto; gap: .6rem; margin-top: -.8rem; }
+.tarjeta-ticket__totales-cambio span { color: var(--color-texto-secundario); }
+.tarjeta-ticket__totales-cambio strong { text-align: right; }
+.tarjeta-ticket__totales-cambio span:nth-last-child(2), .tarjeta-ticket__totales-cambio strong:last-child { padding-top: .7rem; border-top: 1px solid var(--color-borde); color: var(--color-texto-marca); font-family: var(--fuente-titulos); font-size: 1.15rem; }
+@media (max-width: 650px) {
+  .tarjeta-ticket__boleto .tarjeta-ticket__boleto-pasajero { order: 0; }
+  .tarjeta-ticket__boleto > .tarjeta-ticket__boleto-viaje { grid-template-columns: 1fr; }
+}

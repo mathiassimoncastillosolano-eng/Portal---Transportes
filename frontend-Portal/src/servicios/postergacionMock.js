@@ -138,7 +138,9 @@ export async function confirmarPostergacionSimulada({ pasaje, viaje, asiento, co
   if (!pago) verificarAsientoDisponible(viaje, asiento, escenario)
   else if (asientoOcupado(viaje.id, asiento.numero)) throw new ErrorPostergacion(CODIGOS_RECHAZO.ASIENTO_NO_DISPONIBLE)
 
-  const actualizado = aplicarPostergacion(pasaje, viaje, asiento, comparacion.montoAPagar)
+  const actualizado = aplicarPostergacion(
+    pasaje, viaje, asiento, (pasaje.montoAdicionalPagado ?? 0) + comparacion.montoAPagar,
+  )
   guardarPasajeMock(actualizado, idCliente)
   ocuparAsientoSimulado(viaje.id, asiento.numero)
   return { pasaje: copiar(actualizado), pago: pago ? copiar(pago) : null }

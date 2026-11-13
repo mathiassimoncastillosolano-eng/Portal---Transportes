@@ -17,7 +17,7 @@ import { PasoPago } from '../../componentes/postergacion/PasoPago'
 import { PantallaResultado } from '../../componentes/postergacion/PantallaResultado'
 import { SelectorEscenarios } from '../../componentes/postergacion/SelectorEscenarios'
 import { ESCENARIO_INICIAL } from '../../mock/postergacion/escenarios'
-import { obtenerPasajeMock, registrarPasajeExterno } from '../../mock/postergacion/pasajes'
+import { esPasajeCompraDemo, obtenerPasajeMock, registrarPasajeExterno } from '../../mock/postergacion/pasajes'
 import { formatearPrecio } from '../../utilidades/formato'
 import { puedeContinuarDesdeTarifa } from '../../utilidades/postergacion'
 import '../../componentes/postergacion/postergacion.css'
@@ -69,7 +69,8 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
     return () => cancelAnimationFrame(frame)
   }, [fase])
 
-  const irAMisPasajes = () => navegar('/perfil/pasajes')
+  const compraDemo = import.meta.env.DEV && esPasajeCompraDemo(pasaje)
+  const irAMisPasajes = () => navegar(compraDemo ? '/perfil/pasajes/demo' : '/perfil/pasajes')
 
   function pedirCancelacion() {
     if (fase !== FASES.RESULTADO && fase !== FASES.VALIDANDO && viaje) setCancelando(true)
@@ -201,6 +202,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
               resultado={resultado}
               pasajeOriginal={pasaje}
               alIrAMisPasajes={irAMisPasajes}
+              etiquetaVolver={compraDemo ? 'Ver compra actualizada' : 'Volver a Mis pasajes'}
               alReelegirAsiento={acciones.reelegirAsiento}
             />
           )}
