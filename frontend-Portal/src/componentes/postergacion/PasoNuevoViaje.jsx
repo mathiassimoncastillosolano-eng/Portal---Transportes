@@ -7,8 +7,8 @@ import { BotonPrincipal } from '../comunes/BotonPrincipal'
 import { BotonSecundario } from '../comunes/BotonSecundario'
 import { PanelAsincrono } from '../carga'
 import { obtenerRutasCiudad } from '../../servicios/destinosServicio'
-import { buscarViajesPostergables } from '../../servicios/postergacionServicio'
-import { estadoReservaActual } from '../../utilidades/estadoReserva'
+import { buscarViajesPostergables, esViajePostergable } from '../../servicios/postergacionServicio'
+import { esReservable, estadoReservaActual } from '../../utilidades/estadoReserva'
 import { formatearFechaLarga } from '../../utilidades/formato'
 import { filtrarViajes } from '../../utilidades/filtrarViajes'
 
@@ -99,7 +99,7 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir, 
     try {
       const respuesta = await consultarViajes(pasaje, criterios)
       if (consulta.current !== numero) return
-      alGuardarBusqueda({ criterios, viajes: respuesta.viajes, sinCupo: respuesta.sinCupo })
+      alGuardarBusqueda({ criterios, viajes: respuesta.viajes, ocultos: respuesta.ocultos })
     } catch (fallo) {
       if (consulta.current !== numero) return
       // 404 y 409: el servidor rechazó el cambio y explica el motivo.
@@ -141,6 +141,13 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir, 
   const hayFiltrosActivos = horario !== 'cualquiera' || serviciosSeleccionados.size > 0
   const mostrarFiltros = !buscando && !error && viajes.length > 0
   const ahora = Date.now()
+  // Se muestran todos los viajes; solo se pueden elegir los que siguen abiertos a reserva.
+  const elegibles = viajesFiltrados.filter((viaje) => esReservable(viaje, ahora)).length
+
+  // Doble control: aunque la tarjeta ya oculta el botón, solo se avanza con un viaje válido.
+  function elegirViaje(viaje) {
+    if (esViajePostergable(viaje, pasaje, Date.now())) alElegir(viaje)
+  }
 
   return (
     <div className="postergacion-paso">
@@ -217,7 +224,7 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir, 
                 titulo: hayFiltrosActivos && viajes.length > 0 ? 'Sin viajes con estos filtros' : 'Sin viajes disponibles',
                 texto: hayFiltrosActivos && viajes.length > 0
                   ? 'Prueba con otra hora de salida o tipo de servicio.'
-                  : `No hay salidas con asientos para el ${formatearFechaLarga(criterios.fecha)}. Prueba con otra fecha.`,
+                  : `No hay salidas para el ${formatearFechaLarga(criterios.fecha)}. Prueba con otra fecha.`,
                 accion: hayFiltrosActivos && viajes.length > 0
                   ? { texto: 'Limpiar filtros', alClick: limpiarFiltros }
                   : undefined,
@@ -226,7 +233,7 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir, 
             >
               <>
                 <p className="postergacion-paso__conteo">
-                  {viajesFiltrados.length} {viajesFiltrados.length === 1 ? 'viaje disponible' : 'viajes disponibles'}{hayFiltrosActivos ? ' con estos filtros' : ''} · {formatearFechaLarga(criterios.fecha)}
+                  {viajesFiltrados.length} {viajesFiltrados.length === 1 ? 'viaje' : 'viajes'}{hayFiltrosActivos ? ' con estos filtros' : ''} · {elegibles} {elegibles === 1 ? 'disponible' : 'disponibles'} · {formatearFechaLarga(criterios.fecha)}
                 </p>
                 <div className="postergacion-paso__lista">
                   {viajesFiltrados.map((viaje) => (
@@ -234,7 +241,7 @@ export function PasoNuevoViaje({ pasaje, busqueda, alGuardarBusqueda, alElegir, 
                       key={viaje.id}
                       resultado={viaje}
                       estadoReserva={estadoReservaActual(viaje, ahora)}
-                      alSeleccionar={alElegir}
+                      alSeleccionar={elegirViaje}
                       textoAccion="Elegir este viaje →"
                     />
                   ))}

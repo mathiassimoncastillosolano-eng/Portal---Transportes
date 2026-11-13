@@ -44,7 +44,7 @@ public class PostergacionServicio {
     }
 
     /**
-     * Viajes a los que el usuario puede mover su pasaje.
+     * Viajes de la ruta y fecha elegidas para cambiar el pasaje (todos menos el original, cada uno con su estado).
      *
      * @throws ResponseStatusException 404 si el pasaje no existe o es de otra cuenta;
      *                                 409 con el motivo si el pasaje no se puede cambiar
@@ -67,12 +67,15 @@ public class PostergacionServicio {
             throw rechazo(resultado.mensaje());
         }
 
-        // 3) Criterio 3 (primera mitad): solo viajes que se pueden elegir.
+        // 3) Criterio 3 (primera mitad): todos los viajes de esa ruta y fecha, menos el viaje original.
+        //    Se devuelven también los que ya salieron, están llenos o cerraron su reserva, igual que en la
+        //    búsqueda normal: cada viaje trae su estadoReserva y "reservable", y la pantalla solo deja
+        //    elegir los reservables. Al bloquear el asiento y al pagar el servidor vuelve a validar.
         List<ViajeResumenDto> encontrados = viajes.buscar(origen, destino, fecha, "cualquiera");
-        List<ViajeResumenDto> ofrecidos = encontrados.stream()
-                .filter(viaje -> sePuedeOfrecer(viaje, pasaje.idViaje()))
+        List<ViajeResumenDto> mostrados = encontrados.stream()
+                .filter(viaje -> esOtroViaje(viaje, pasaje.idViaje()))
                 .toList();
-        return new ConsultaPostergacionDto(ofrecidos, encontrados.size() - ofrecidos.size());
+        return new ConsultaPostergacionDto(mostrados, encontrados.size() - mostrados.size());
     }
 
     /** Busca el pasaje entre las compras del usuario: si es de otra cuenta, no aparece (404). */
@@ -93,15 +96,9 @@ public class PostergacionServicio {
         return ReglasCompra.esVigente(estado, fase);
     }
 
-    /**
-     * Un viaje se ofrece si es otro viaje, se puede reservar y tiene asientos.
-     * La regla de 6 h NO aplica aquí: es solo para el viaje original. "Se puede reservar" ya descarta los viajes
-     * que salieron o que salen en menos de 20 minutos (PoliticaReservaViaje, igual que en una compra normal).
-     */
-    private static boolean sePuedeOfrecer(ViajeResumenDto viaje, Long idViajeOriginal) {
-        boolean esOtroViaje = !Objects.equals(viaje.id(), idViajeOriginal);
-        boolean tieneAsientos = viaje.asientosDisponibles() > 0;
-        return esOtroViaje && viaje.reservable() && tieneAsientos;
+    /** El viaje original del pasaje no se muestra: cambiar al mismo viaje no es un cambio. */
+    private static boolean esOtroViaje(ViajeResumenDto viaje, Long idViajeOriginal) {
+        return !Objects.equals(viaje.id(), idViajeOriginal);
     }
 
     private static ResponseStatusException rechazo(String motivo) {
