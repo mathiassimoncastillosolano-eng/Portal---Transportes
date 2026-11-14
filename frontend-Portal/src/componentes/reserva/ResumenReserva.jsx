@@ -15,12 +15,14 @@ export function ResumenReserva({
   mostrarPiso,
   filasDetalle = [],
   precioTotal,
+  etiquetaTotal = 'Total',
   textoBoton,
   onContinuar,
   deshabilitado,
   cargando,
   mensajeAyuda,
   mostrarBoton = true,
+  mostrarAyudaSiempre = false,
 }) {
   const cantidad = asientosSeleccionados.length
   // Solo presentación: el panel cambia de aspecto cuando el usuario puede avanzar.
@@ -77,12 +79,12 @@ export function ResumenReserva({
 
       {typeof precioTotal === 'number' && (
         <div className="resumen-reserva__total">
-          <span>Total</span>
+          <span>{etiquetaTotal}</span>
           <span className="resumen-reserva__total-monto">{formatearPrecio(precioTotal)}</span>
         </div>
       )}
 
-      {mensajeAyuda && (mostrarBoton ? deshabilitado && !cargando : true) && (
+      {mensajeAyuda && (mostrarAyudaSiempre || (mostrarBoton ? deshabilitado && !cargando : true)) && (
         <p className="resumen-reserva__ayuda" role="status">{mensajeAyuda}</p>
       )}
 

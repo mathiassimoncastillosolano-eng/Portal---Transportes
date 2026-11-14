@@ -1,4 +1,5 @@
 import { solicitarApi, URL_BASE_API } from './httpCliente.js'
+import { reclamarSesion } from './propiedadSesionPestana.js'
 
 // Búsqueda de viajes y asientos: consultan el backend real. Las compras del usuario
 // (Mis pasajes, historial, resumen) viven en comprasServicio.js.
@@ -169,6 +170,7 @@ function leerSesionGuardada(idViaje) {
  */
 export function guardarSesionAsientos(idViaje, { tokenSesion, segundosRestantes }) {
   const sesion = { tokenSesion, expiraEn: Date.now() + segundosRestantes * 1000 }
+  reclamarSesion(tokenSesion) // el token renovado también debe pertenecer a esta pestaña
   try {
     sessionStorage.setItem(`${PREFIJO_SESION}${idViaje}`, JSON.stringify(sesion))
   } catch {
@@ -185,40 +187,46 @@ export function borrarSesionAsientos(idViaje) {
   }
 }
 
+const sesionesEnCurso = new Map() // idViaje -> promesa
+
 /**
  * Reutiliza la sesión guardada del viaje (sobrevive a recargas) o crea una
  * nueva. `expiraEn` es un timestamp en ms calculado con segundosRestantes
  * del servidor + Date.now() al recibirlo (no depende del reloj del PC).
+ * Una sesión pertenece a una sola pestaña: si la guardada ya la usa otra pestaña
+ * (el navegador copia sessionStorage al duplicar pestañas), se crea una nueva.
  * @returns {Promise<{ tokenSesion: string, expiraEn: number }>}
  */
-const sesionesEnCurso = new Map() // idViaje -> promesa
-
 export function obtenerOCrearSesion(idViaje) {
-  const guardada = leerSesionGuardada(idViaje)
-  if (guardada) return Promise.resolve(guardada)
-
   if (sesionesEnCurso.has(idViaje)) return sesionesEnCurso.get(idViaje)
 
-  const promesa = solicitarApi(`/api/viajes/${idViaje}/sesiones`, {
+  const promesa = reutilizarOCrearSesion(idViaje).finally(() => sesionesEnCurso.delete(idViaje))
+  sesionesEnCurso.set(idViaje, promesa)
+  return promesa
+}
+
+async function reutilizarOCrearSesion(idViaje) {
+  const guardada = leerSesionGuardada(idViaje)
+  if (guardada && (await reclamarSesion(guardada.tokenSesion))) return guardada
+  return crearSesionNueva(idViaje)
+}
+
+async function crearSesionNueva(idViaje) {
+  const respuesta = await solicitarApi(`/api/viajes/${idViaje}/sesiones`, {
     method: 'POST',
     autenticar: false,
   })
-    .then((respuesta) => {
-      const sesion = {
-        tokenSesion: respuesta.tokenSesion,
-        expiraEn: Date.now() + respuesta.segundosRestantes * 1000,
-      }
-      try {
-        sessionStorage.setItem(`${PREFIJO_SESION}${idViaje}`, JSON.stringify(sesion))
-      } catch {
-        // no bloqueante
-      }
-      return sesion
-    })
-    .finally(() => sesionesEnCurso.delete(idViaje))
-
-  sesionesEnCurso.set(idViaje, promesa)
-  return promesa
+  const sesion = {
+    tokenSesion: respuesta.tokenSesion,
+    expiraEn: Date.now() + respuesta.segundosRestantes * 1000,
+  }
+  await reclamarSesion(sesion.tokenSesion)
+  try {
+    sessionStorage.setItem(`${PREFIJO_SESION}${idViaje}`, JSON.stringify(sesion))
+  } catch {
+    // no bloqueante
+  }
+  return sesion
 }
 
 export async function obtenerMapaAsientosViaje(idViaje, tokenSesion) {

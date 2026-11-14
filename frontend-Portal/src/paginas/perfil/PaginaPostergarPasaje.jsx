@@ -8,7 +8,9 @@ import { BotonPrincipal } from '../../componentes/comunes/BotonPrincipal'
 import { BotonSecundario } from '../../componentes/comunes/BotonSecundario'
 import { EstadoRuta, PanelAsincrono } from '../../componentes/carga'
 import { TarjetaPasajeOriginal } from '../../componentes/postergacion/TarjetaPasajeOriginal'
-import { ResumenPostergacion } from '../../componentes/postergacion/ResumenPostergacion'
+import { Contador } from '../../componentes/reserva/Contador'
+import { ResumenReprogramacion } from '../../componentes/reprogramacion/ResumenReprogramacion'
+import { AvisoSesionVencida } from '../../componentes/reprogramacion/AvisoSesionVencida'
 import { BarraAcciones } from '../../componentes/postergacion/BarraAcciones'
 import { PasoNuevoViaje } from '../../componentes/postergacion/PasoNuevoViaje'
 import { PasoAsiento } from '../../componentes/postergacion/PasoAsiento'
@@ -55,7 +57,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
     escenario,
     alEscenarioConsumido: consumirEscenarioAsiento,
   })
-  const { fase, viaje, asiento, comparacion, aceptaCondiciones, metodo, procesando, avisoPago, intentos, busqueda, versionMapa, resultado } = estado
+  const { fase, viaje, asiento, comparacion, aceptaCondiciones, metodo, procesando, avisoPago, intentos, busqueda, versionMapa, resultado, sesion, sesionVencida } = estado
 
   useEffect(() => {
     if (primeraFase.current) {
@@ -146,6 +148,7 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
 
           {fase === FASES.VIAJE && (
             <>
+              {sesionVencida && <AvisoSesionVencida />}
               <PasoNuevoViaje
                 pasaje={pasaje}
                 busqueda={busqueda}
@@ -158,14 +161,15 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
 
           {fase === FASES.ASIENTO && viaje && (
             <>
-              <PasoAsiento pasaje={pasaje} viaje={viaje} asiento={asiento} versionMapa={versionMapa} alElegir={acciones.elegirAsiento} />
-              <BarraAcciones
-                alVolver={acciones.volver}
-                alCancelar={pedirCancelacion}
-                alContinuar={acciones.continuarDesdeAsiento}
-                textoContinuar="Continuar"
-                deshabilitado={!asiento}
+              <PasoAsiento
+                pasaje={pasaje}
+                viaje={viaje}
+                versionMapa={versionMapa}
+                alElegir={acciones.elegirAsiento}
+                alGuardarSesion={acciones.guardarSesion}
+                alSesionVencida={acciones.vencerSesion}
               />
+              <BarraAcciones alVolver={acciones.volver} alCancelar={pedirCancelacion} />
             </>
           )}
 
@@ -237,7 +241,17 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
 
         {FASES_CON_RESUMEN.includes(fase) && (
           <aside className="postergacion-lateral">
-            <ResumenPostergacion pasaje={pasaje} viaje={viaje} asiento={asiento} comparacion={fase === FASES.ASIENTO ? null : comparacion} />
+            {/* Mientras el asiento está reservado se muestra el tiempo que queda, a la altura del título del paso. */}
+            <div className="postergacion-lateral__tiempo">
+              <Contador expiraEn={sesion?.expiraEn} pausado={procesando} />
+            </div>
+            <ResumenReprogramacion
+              pasaje={pasaje}
+              viaje={viaje}
+              asiento={asiento}
+              alContinuar={fase === FASES.ASIENTO ? acciones.continuarDesdeAsiento : undefined}
+              continuarDeshabilitado={!asiento}
+            />
           </aside>
         )}
       </div>
