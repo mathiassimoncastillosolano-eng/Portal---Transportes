@@ -50,36 +50,48 @@ export function PasoTarifa({ pasaje, viaje, comparacion, aceptaCondiciones, alAc
         <p className="postergacion-aviso postergacion-aviso--error" role="alert">{avisoPago.mensaje}</p>
       )}
 
-      <div className="tarifa-comparacion">
-        <div className="tarifa-comparacion__columna">
-          <span className="tarifa-comparacion__etiqueta">Pagaste</span>
-          <strong className="tarifa-comparacion__monto">{formatearPrecio(comparacion.original, moneda)}</strong>
-          <span className="tarifa-comparacion__detalle">{pasaje.origen} → {pasaje.destino}</span>
+      <div className="tarifa-panel">
+        <div className="tarifa-comparacion">
+          <div className="tarifa-comparacion__columna">
+            <span className="tarifa-comparacion__etiqueta">Pagaste</span>
+            <strong className="tarifa-comparacion__monto">{formatearPrecio(comparacion.original, moneda)}</strong>
+            <span className="tarifa-comparacion__detalle">{pasaje.origen} → {pasaje.destino}</span>
+          </div>
+          <span className="tarifa-comparacion__separador" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 10h13m0 0-4-4m4 4-4 4" />
+            </svg>
+          </span>
+          <div className="tarifa-comparacion__columna">
+            <span className="tarifa-comparacion__etiqueta">Nueva tarifa</span>
+            <strong className="tarifa-comparacion__monto">{formatearPrecio(comparacion.nueva, moneda)}</strong>
+            <span className="tarifa-comparacion__detalle">{viaje.origen} → {viaje.destino}</span>
+          </div>
         </div>
-        <span className="tarifa-comparacion__separador" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 10h13m0 0-4-4m4 4-4 4" />
-          </svg>
-        </span>
-        <div className="tarifa-comparacion__columna">
-          <span className="tarifa-comparacion__etiqueta">Nueva tarifa</span>
-          <strong className="tarifa-comparacion__monto">{formatearPrecio(comparacion.nueva, moneda)}</strong>
-          <span className="tarifa-comparacion__detalle">{viaje.origen} → {viaje.destino}</span>
-        </div>
-      </div>
 
-      <div className={`tarifa-resultado tarifa-resultado--${comparacion.escenario.toLowerCase()}`} role="status">
-        <span className="tarifa-resultado__icono"><Icono tipo={mensaje.icono} /></span>
-        <div className="tarifa-resultado__cuerpo">
-          <h3 className="tarifa-resultado__titulo">{mensaje.titulo}</h3>
-          <p className="tarifa-resultado__texto">{mensaje.texto}</p>
+        <div className={`tarifa-resultado tarifa-resultado--${comparacion.escenario.toLowerCase()}`} role="status">
+          <span className="tarifa-resultado__icono"><Icono tipo={mensaje.icono} /></span>
+          <div className="tarifa-resultado__cuerpo">
+            <h3 className="tarifa-resultado__titulo">{mensaje.titulo}</h3>
+            <p className="tarifa-resultado__texto">{mensaje.texto}</p>
+          </div>
+          <div className="tarifa-resultado__importe">
+            <span>{comparacion.requierePago ? 'A pagar' : inferior ? 'Diferencia' : 'Por pagar'}</span>
+            <strong>
+              {formatearPrecio(comparacion.requierePago ? comparacion.montoAPagar : inferior ? comparacion.diferencia : 0, moneda)}
+            </strong>
+          </div>
         </div>
-        <div className="tarifa-resultado__importe">
-          <span>{comparacion.requierePago ? 'A pagar' : inferior ? 'Diferencia' : 'Por pagar'}</span>
-          <strong>
-            {formatearPrecio(comparacion.requierePago ? comparacion.montoAPagar : inferior ? comparacion.diferencia : 0, moneda)}
-          </strong>
-        </div>
+
+        <ul className="tarifa-consecuencias">
+          <li>Tu pasaje mantiene su código, su compra y tu pago original.</li>
+          <li>Cambian únicamente el viaje y el asiento.</li>
+          <li>
+            {comparacion.requierePago
+              ? `Se cobrarán ${formatearPrecio(comparacion.montoAPagar, moneda)} en el siguiente paso.`
+              : 'No se realiza ningún cobro adicional.'}
+          </li>
+        </ul>
       </div>
 
       {inferior && (
@@ -97,16 +109,6 @@ export function PasoTarifa({ pasaje, viaje, comparacion, aceptaCondiciones, alAc
           </span>
         </label>
       )}
-
-      <ul className="tarifa-consecuencias">
-        <li>Tu pasaje mantiene su código, su compra y tu pago original.</li>
-        <li>Cambian únicamente el viaje y el asiento.</li>
-        <li>
-          {comparacion.requierePago
-            ? `Se cobrarán ${formatearPrecio(comparacion.montoAPagar, moneda)} en el siguiente paso.`
-            : 'No se realiza ningún cobro adicional.'}
-        </li>
-      </ul>
     </div>
   )
 }
