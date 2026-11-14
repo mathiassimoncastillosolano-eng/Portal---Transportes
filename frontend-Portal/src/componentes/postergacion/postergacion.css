@@ -128,10 +128,42 @@
   min-width: 0;
   animation: postergacion-entrada 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.postergacion-lateral { position: sticky; top: 5.5rem; display: grid; gap: var(--espacio-5); }
+.postergacion-lateral { display: grid; gap: var(--espacio-5); }
 /* Misma altura que el título y el texto del paso: así la tarjeta de resumen
    arranca a la altura de la tarjeta oscura del viaje y el contador queda junto al título. */
 .postergacion-lateral__tiempo { display: flex; align-items: flex-start; min-height: 3.5rem; }
+
+/* Tarjeta de resumen de la reprogramación: sin posición fija ni barra de desplazamiento propia. Crece según
+   su contenido y se mueve con la página. `overflow: hidden` (no `visible`) recorta el filo de color superior
+   a las esquinas redondeadas; con `visible` quedaba una línea recta flotando fuera de la tarjeta.
+   En móvil se mantiene la barra inferior de la compra. */
+@media (min-width: 641px) {
+  .postergacion-lateral .resumen-reserva {
+    position: relative; /* ancla el filo superior de la tarjeta */
+    top: auto;
+    max-height: none;
+    overflow: hidden;
+    padding: var(--espacio-5);
+  }
+}
+
+/* Solo en el mapa de asientos: el temporizador queda en su sitio y la tarjeta acompaña el desplazamiento de
+   la página hasta donde termina el mapa. Para eso la columna lateral ocupa toda la altura de la izquierda
+   (menos la barra de botones de abajo, que no forma parte del mapa) y la tarjeta se mueve dentro de su fila.
+   `:has(.mapa-asientos)` limita esto al paso de asientos; en los demás pasos todo sigue estático.
+   Con una sola columna (≤960 px) no aplica. */
+@media (min-width: 961px) {
+  .postergacion-cuerpo--con-resumen:has(.mapa-asientos) .postergacion-lateral {
+    align-self: stretch;
+    grid-template-rows: auto 1fr;
+    margin-bottom: calc(var(--espacio-5) + var(--espacio-4) + 49px); /* separación + relleno de la barra + su línea (1px) y botones (48px) */
+  }
+  .postergacion-cuerpo--con-resumen:has(.mapa-asientos) .postergacion-lateral .resumen-reserva {
+    align-self: start;
+    position: sticky;
+    top: calc(76px + var(--espacio-5)); /* 76px = barra de navegación fija */
+  }
+}
 
 @keyframes postergacion-entrada {
   from { opacity: 0; transform: translateY(10px); }
@@ -237,41 +269,93 @@
 }
 .postergacion-asiento__disponibles { font-size: 0.82rem; color: var(--color-texto-secundario); }
 
-.tarifa-comparacion { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; gap: var(--espacio-4); }
+/* Panel de la diferencia tarifaria: una sola tarjeta con tres franjas
+   (comparación, resultado y consecuencias), igual de redondeada que la tarjeta del pasaje. */
+.tarifa-panel {
+  overflow: hidden;
+  display: grid;
+  background: var(--color-superficie-elevada);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-xl);
+  box-shadow: var(--sombra-tarjeta);
+}
+
+/* Franja 1: lo que pagaste frente a la nueva tarifa, separadas por una línea sutil con la flecha encima. */
+.tarifa-comparacion { display: grid; grid-template-columns: minmax(0, 1fr) 3.5rem minmax(0, 1fr); align-items: stretch; }
 .tarifa-comparacion__columna {
   display: grid;
   align-content: center;
-  gap: 0.3rem;
-  padding: var(--espacio-5);
-  background: var(--color-superficie-elevada);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-lg);
-  box-shadow: var(--sombra-tarjeta);
+  justify-items: start;
+  gap: 0.35rem;
+  padding: var(--espacio-6) var(--espacio-6) var(--espacio-5);
+  min-width: 0;
 }
 .tarifa-comparacion__etiqueta { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-texto-secundario); }
 .tarifa-comparacion__monto {
   font-family: var(--fuente-titulos);
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-size: clamp(2rem, 4vw, 2.6rem);
   line-height: 1.1;
   color: var(--color-texto-marca-fuerte);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.tarifa-comparacion__detalle { font-size: 0.85rem; color: var(--color-texto-secundario); }
-.tarifa-comparacion__separador { display: grid; place-items: center; color: var(--color-texto-terciario); }
+.tarifa-comparacion__detalle {
+  padding: 0.2rem 0.75rem;
+  border-radius: var(--radio-pastilla);
+  background: var(--color-superficie-marca);
+  font-size: var(--tamano-xs);
+  font-weight: 700;
+  color: var(--color-texto-marca);
+}
+.tarifa-comparacion__separador { position: relative; display: grid; place-items: center; color: var(--color-texto-acento); }
+.tarifa-comparacion__separador::before {
+  content: '';
+  position: absolute;
+  top: var(--espacio-5);
+  bottom: var(--espacio-4);
+  left: 50%;
+  width: 1px;
+  background: var(--color-borde);
+}
+.tarifa-comparacion__separador svg {
+  position: relative;
+  box-sizing: content-box;
+  padding: 0.4rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 50%;
+  background: var(--color-superficie-elevada);
+  box-shadow: var(--sombra-tenue);
+}
 
+/* Franja 2: el resultado. A la derecha, el monto va en un bloque de color sólido, como la fecha de la tarjeta del pasaje. */
 .tarifa-resultado {
+  --tono-fondo: var(--color-aviso-fondo);
+  --tono-fondo-fuerte: var(--color-aviso-fondo-2);
+  --tono-borde: var(--color-aviso-borde);
+  --tono-texto: var(--color-aviso-texto);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: stretch;
   gap: var(--espacio-4);
-  padding: var(--espacio-5);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-lg);
+  padding-left: var(--espacio-6);
+  border-top: 1px solid var(--tono-borde);
+  background: var(--tono-fondo);
+  color: var(--tono-texto);
 }
-.tarifa-resultado--igual { background: var(--color-superficie-exito); border-color: var(--acento-tinte-borde); color: var(--color-texto-exito); }
-.tarifa-resultado--superior { background: var(--color-aviso-fondo); border-color: var(--color-aviso-borde); color: var(--color-aviso-texto); }
-.tarifa-resultado--inferior { background: var(--color-superficie-marca); border-color: var(--color-borde-marca); color: var(--color-texto-marca); }
+.tarifa-resultado--igual {
+  --tono-fondo: var(--color-superficie-exito-2);
+  --tono-fondo-fuerte: var(--color-superficie-exito);
+  --tono-borde: var(--acento-tinte-borde);
+  --tono-texto: var(--color-texto-exito);
+}
+.tarifa-resultado--inferior {
+  --tono-fondo: var(--color-superficie-marca);
+  --tono-fondo-fuerte: var(--color-superficie-marca-2);
+  --tono-borde: var(--color-borde-marca);
+  --tono-texto: var(--color-texto-marca);
+}
 .tarifa-resultado__icono {
+  align-self: center;
   display: grid;
   place-items: center;
   width: 44px;
@@ -280,11 +364,22 @@
   border-radius: 50%;
   background: var(--color-superficie-elevada);
 }
+.tarifa-resultado__cuerpo { align-self: center; padding-block: var(--espacio-5); }
 .tarifa-resultado__titulo { margin: 0 0 0.2rem; font-family: var(--fuente-titulos); font-size: 1.1rem; color: inherit; }
 .tarifa-resultado__texto { margin: 0; font-size: 0.9rem; color: var(--color-texto-principal); }
-.tarifa-resultado__importe { display: grid; justify-items: end; gap: 0.1rem; text-align: right; }
+.tarifa-resultado__importe {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.2rem;
+  min-width: 10.5rem;
+  padding: var(--espacio-5) var(--espacio-6);
+  background: var(--tono-fondo-fuerte);
+  border-left: 1px solid var(--tono-borde);
+  text-align: center;
+}
 .tarifa-resultado__importe span { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
-.tarifa-resultado__importe strong { font-family: var(--fuente-titulos); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.tarifa-resultado__importe strong { font-family: var(--fuente-titulos); font-size: clamp(1.7rem, 3vw, 2.1rem); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .tarifa-aceptacion {
   display: grid;
@@ -304,9 +399,32 @@
 .tarifa-aceptacion:focus-within { box-shadow: var(--sombra-foco-verde); border-color: var(--color-borde-marca); }
 .tarifa-aceptacion--marcada { border-color: var(--color-borde-marca); background: var(--acento-tinte); }
 
-.tarifa-consecuencias { display: grid; gap: 0.4rem; margin: 0; padding: 0; list-style: none; font-size: 0.88rem; color: var(--color-texto-secundario); }
-.tarifa-consecuencias li { display: flex; gap: 0.5rem; }
-.tarifa-consecuencias li::before { content: '✓'; color: var(--color-texto-acento); font-weight: 800; }
+/* Franja 3: los tres puntos informativos, en columnas para no dejar la tarjeta vacía a la derecha. */
+.tarifa-consecuencias {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--espacio-4);
+  margin: 0;
+  padding: var(--espacio-5) var(--espacio-6);
+  list-style: none;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--color-texto-secundario);
+}
+.tarifa-consecuencias li { display: flex; align-items: flex-start; gap: 0.6rem; }
+.tarifa-consecuencias li::before {
+  content: '✓';
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  background: var(--color-superficie-exito);
+  color: var(--color-texto-exito);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
 
 .postergacion-aviso { margin: 0; padding: 0.8rem 1rem; border: 1px solid var(--color-borde); border-radius: var(--radio-sm); font-size: 0.9rem; line-height: 1.45; }
 .postergacion-aviso--error { background: var(--color-error-fondo); border-color: var(--color-error-texto); color: var(--color-error-texto); }
@@ -390,6 +508,29 @@
 .postergacion-acciones__secundarias .boton-secundario--contorno:focus-visible {
   outline: 2.5px solid var(--color-estado-agotado);
   outline-offset: 3px;
+}
+/* Modo oscuro: los estilos globales de botones secundarios (oscuro.css) los dejan transparentes o grises.
+   Se repiten los mismos dos colores con los tokens oscuros: acento de marca para "Atrás" y rojo para "Cancelar". */
+[data-theme='dark'] .postergacion-acciones__secundarias .boton-secundario--fantasma {
+  background: var(--acento-tinte);
+  border: 1.5px solid var(--acento-tinte-borde);
+  color: var(--acento-texto);
+  box-shadow: none;
+}
+[data-theme='dark'] .postergacion-acciones__secundarias .boton-secundario--fantasma:hover:not(:disabled) {
+  background: var(--acento-tinte);
+  border-color: var(--acento);
+  filter: brightness(1.2);
+}
+[data-theme='dark'] .postergacion-acciones__secundarias .boton-secundario--contorno {
+  background: var(--color-error-fondo);
+  border: 1.5px solid var(--color-estado-agotado);
+  color: var(--color-error-texto);
+}
+[data-theme='dark'] .postergacion-acciones__secundarias .boton-secundario--contorno:hover:not(:disabled) {
+  background: var(--color-destructivo-fondo);
+  border-color: var(--color-destructivo-fondo);
+  color: #fff;
 }
 .postergacion-acciones__ayuda { margin: 0; text-align: right; font-size: 0.85rem; color: var(--color-texto-secundario); }
 
@@ -554,9 +695,15 @@
   .pasaje-original__datos { grid-column: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--espacio-5); }
   .pasaje-original__datos > div:last-child:nth-child(3) { grid-column: 1 / -1; }
   .tarifa-comparacion { grid-template-columns: minmax(0, 1fr); }
-  .tarifa-comparacion__separador { transform: rotate(90deg); }
-  .tarifa-resultado { grid-template-columns: auto minmax(0, 1fr); }
-  .tarifa-resultado__importe { grid-column: 1 / -1; justify-items: start; text-align: left; }
+  .tarifa-comparacion__columna { padding: var(--espacio-5); }
+  .tarifa-comparacion__separador { height: 3rem; }
+  .tarifa-comparacion__separador::before { top: 50%; bottom: auto; left: var(--espacio-5); right: var(--espacio-5); width: auto; height: 1px; }
+  .tarifa-comparacion__separador svg { transform: rotate(90deg); }
+  .tarifa-resultado { grid-template-columns: auto minmax(0, 1fr); padding: var(--espacio-4) 0 0 var(--espacio-5); }
+  .tarifa-resultado__cuerpo { padding-block: 0 var(--espacio-4); padding-right: var(--espacio-5); }
+  .tarifa-resultado__icono { align-self: start; }
+  .tarifa-resultado__importe { grid-column: 1 / -1; margin-left: calc(var(--espacio-5) * -1); border-left: 0; border-top: 1px solid var(--tono-borde); padding: var(--espacio-4) var(--espacio-5); }
+  .tarifa-consecuencias { grid-template-columns: minmax(0, 1fr); gap: var(--espacio-3); padding: var(--espacio-5); }
   .postergacion-acciones__fila { flex-direction: column-reverse; align-items: stretch; }
   .postergacion-acciones__fila > .boton-principal { width: 100%; }
   .postergacion-acciones__secundarias { justify-content: center; }

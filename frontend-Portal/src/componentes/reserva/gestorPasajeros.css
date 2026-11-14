@@ -29,7 +29,14 @@
   gap: var(--espacio-3);
   overflow-x: auto;
   padding: 0.4rem 0.5rem var(--espacio-2);
+  /* Barra discreta: invisible en reposo y visible solo al pasar el cursor o enfocar las tarjetas. */
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.gestor-pasajeros__tickets:hover,
+.gestor-pasajeros__tickets:focus-within {
+  scrollbar-color: var(--color-borde-fuerte) transparent;
 }
 
 .gestor-pasajeros__subtitulo {

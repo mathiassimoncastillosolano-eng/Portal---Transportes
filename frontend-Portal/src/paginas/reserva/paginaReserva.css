@@ -89,6 +89,38 @@
   min-width: 0;
 }
 
+/* Tarjeta de resumen: sin posición fija ni barra de desplazamiento propia. Crece según su contenido y se
+   mueve con la página (igual que en el cambio de viaje). `overflow: hidden` recorta el filo de color superior
+   a las esquinas redondeadas. Se compactan ligeramente los espacios para que quepa todo.
+   En móvil se mantiene la barra inferior fija. */
+@media (min-width: 641px) {
+  .pagina-reserva__cuerpo .resumen-reserva {
+    position: relative; /* ancla el filo superior de la tarjeta */
+    top: auto;
+    max-height: none;
+    overflow: hidden;
+    padding: var(--espacio-5);
+  }
+  .pagina-reserva__cuerpo .resumen-reserva__ruta { margin-top: var(--espacio-2); }
+  .pagina-reserva__cuerpo .resumen-reserva__fecha { margin-top: var(--espacio-2); }
+  .pagina-reserva__cuerpo .resumen-reserva__asientos { margin-top: var(--espacio-4); padding-top: var(--espacio-4); }
+  .pagina-reserva__cuerpo .resumen-reserva__lista { margin-top: var(--espacio-4); padding-top: var(--espacio-4); gap: var(--espacio-2); }
+  .pagina-reserva__cuerpo .resumen-reserva__total { margin-top: var(--espacio-3); padding: var(--espacio-3) var(--espacio-4); }
+  .pagina-reserva__cuerpo .resumen-reserva__ayuda { margin-top: var(--espacio-3); }
+  .pagina-reserva__cuerpo .resumen-reserva .boton-principal { margin-top: var(--espacio-3); min-height: 52px; }
+}
+
+/* Solo en el mapa de asientos: la tarjeta acompaña el desplazamiento de la página y se detiene donde termina
+   la columna izquierda (el mapa). Funciona porque la celda de la cuadrícula llega hasta el final de esa columna.
+   `:has(.mapa-asientos)` limita esto al paso de asientos; en los demás pasos la tarjeta sigue estática.
+   Con una sola columna (≤900 px) no aplica. */
+@media (min-width: 901px) {
+  .pagina-reserva__cuerpo:has(.mapa-asientos) .resumen-reserva {
+    position: sticky;
+    top: calc(76px + var(--espacio-5)); /* 76px = barra de navegación fija */
+  }
+}
+
 .pagina-reserva__pago-estado {
   display: flex;
   align-items: flex-start;
