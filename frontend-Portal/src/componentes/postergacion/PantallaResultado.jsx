@@ -31,11 +31,10 @@ function Exito({ resultado, pasajeOriginal, alVerCompra, etiquetaVolver }) {
   return (
     <div className="resultado resultado--exito">
       <span className="resultado-icono resultado-icono--exito"><IconoExito /></span>
-      <h2 className="resultado__titulo" tabIndex={-1} data-foco-paso>Así quedaría tu nuevo viaje</h2>
-      <p className="resultado__texto">
-        El pasaje <strong>{pasaje.numeroBoleto}</strong> se mostraría con estos datos. Esta simulación no modifica tu compra ni realiza un pago real.
-      </p>
-
+    <h2 className="resultado__titulo" tabIndex={-1} data-foco-paso>Este sería tu nuevo viaje</h2>
+<p className="resultado__texto">
+  Así se vería el pasaje <strong>{pasaje.numeroBoleto}</strong> con el cambio. Tu compra original se mantiene igual: no se genera una nueva venta ni se realiza un cobro real.
+</p>
       <article className="resultado-ticket" aria-label="Nuevo viaje del pasaje">
         <div className="resultado-ticket__franja">
           <span>Nuevo viaje</span>
