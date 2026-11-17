@@ -146,6 +146,21 @@ export function puedeIniciarPostergacion(compra) {
   return estadoPostergableDeCompra(compra) === 'VIGENTE'
 }
 
+/**
+ * Entrando por la URL /postergar/:idPasaje no hay estado de navegación con el pasaje: se busca entre las compras
+ * del usuario (las que devuelve GET /perfil/pasajes, ya filtradas por dueño en el servidor) el boleto cuyo
+ * `idPasaje` coincide y se arma igual que desde el detalle. Devuelve null si no existe entre sus compras.
+ */
+export function buscarPasajeEnCompras(compras, idPasaje, idCliente) {
+  if (!Array.isArray(compras)) return null
+  const buscado = String(idPasaje)
+  for (const compra of compras) {
+    const boleto = (compra?.boletos ?? []).find((b) => String(b.idPasaje) === buscado)
+    if (boleto) return adaptarBoletoReal(compra, boleto, idCliente)
+  }
+  return null
+}
+
 export function adaptarBoletoReal(compra, boleto, idCliente) {
   // El boleto viaja en SU viaje vigente (el nuevo, si ya fue cambiado). La compra describe el viaje en que se
   // compró, que puede ser otro. Las compras de prueba no traen `viajeVigente` y usan los datos de la compra.

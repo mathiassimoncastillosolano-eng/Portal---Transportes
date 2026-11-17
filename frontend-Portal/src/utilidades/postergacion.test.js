@@ -4,6 +4,7 @@ import {
   CODIGOS_RECHAZO,
   ESCENARIO_TARIFA,
   adaptarBoletoReal,
+  buscarPasajeEnCompras,
   aplicarPostergacion,
   compararTarifas,
   esMismoViaje,
@@ -194,4 +195,40 @@ test('un boleto sin viaje vigente (compra de prueba) usa los datos de la compra'
   assert.equal(pasaje.idViaje, 100)
   assert.equal(pasaje.origen, 'Lima')
   assert.equal(pasaje.fechaSalida, '2026-12-01')
+})
+
+const comprasDeLaLista = [
+  { idVenta: 7, codigoCompra: 'C-7', estado: 'CONFIRMADA', fase: 'PROXIMO', vigente: true, origen: 'Lima', destino: 'Piura', fechaSalida: '2026-12-01', horaSalida: '20:00', empresa: 'X', tipoBus: 'Cama', moneda: 'PEN',
+    boletos: [{ idPasaje: 31, numeroBoleto: 'RL-31', asiento: '8', pasajero: 'Ana', precio: 43 }] },
+  { idVenta: 18, codigoCompra: 'C-18', estado: 'CONFIRMADA', fase: 'PROXIMO', vigente: true, origen: 'Trujillo', destino: 'Lima', fechaSalida: '2026-12-05', horaSalida: '08:00', empresa: 'Y', tipoBus: 'Semi cama', moneda: 'PEN',
+    boletos: [
+      { idPasaje: 18, numeroBoleto: 'RL-18', asiento: '4', pasajero: 'Luis', precio: 43, adicionalPagado: 27 },
+      { idPasaje: 19, numeroBoleto: 'RL-19', asiento: '5', pasajero: 'Eva', precio: 43 },
+    ] },
+]
+
+test('buscarPasajeEnCompras arma el pasaje real a partir del id que viene en la URL', () => {
+  const pasaje = buscarPasajeEnCompras(comprasDeLaLista, '18', 'u1')
+  assert.equal(pasaje.deCompraReal, true)
+  assert.equal(pasaje.idPasaje, 18)
+  assert.equal(pasaje.idVenta, 18)
+  assert.equal(pasaje.idCliente, 'u1')
+  assert.equal(pasaje.asiento, '4')
+  assert.equal(pasaje.montoAdicionalPagado, 27)
+  assert.deepEqual(pasaje, adaptarBoletoReal(comprasDeLaLista[1], comprasDeLaLista[1].boletos[0], 'u1'))
+})
+
+test('buscarPasajeEnCompras encuentra un boleto que no es el primero de su compra', () => {
+  assert.equal(buscarPasajeEnCompras(comprasDeLaLista, '19', 'u1').numeroBoleto, 'RL-19')
+})
+
+test('buscarPasajeEnCompras devuelve null si el pasaje no está entre las compras del usuario', () => {
+  assert.equal(buscarPasajeEnCompras(comprasDeLaLista, '999', 'u1'), null)
+  assert.equal(buscarPasajeEnCompras(comprasDeLaLista, 'PSJ-1001', 'u1'), null)
+  assert.equal(buscarPasajeEnCompras([], '18', 'u1'), null)
+  assert.equal(buscarPasajeEnCompras(undefined, '18', 'u1'), null)
+})
+
+test('buscarPasajeEnCompras tolera compras sin boletos', () => {
+  assert.equal(buscarPasajeEnCompras([{ idVenta: 1 }, ...comprasDeLaLista], '31', 'u1').idPasaje, 31)
 })

@@ -19,9 +19,10 @@ import { PasoPago } from '../../componentes/postergacion/PasoPago'
 import { PantallaResultado } from '../../componentes/postergacion/PantallaResultado'
 import { SelectorEscenarios } from '../../componentes/postergacion/SelectorEscenarios'
 import { ESCENARIO_INICIAL } from '../../mock/postergacion/escenarios'
-import { esPasajeCompraDemo, obtenerPasajeMock, registrarPasajeExterno } from '../../mock/postergacion/pasajes'
+import { esPasajeCompraDemo, guardarPasajeMock, obtenerPasajeMock, registrarPasajeExterno } from '../../mock/postergacion/pasajes'
+import { listarCompras } from '../../servicios/comprasServicio'
 import { formatearPrecio } from '../../utilidades/formato'
-import { puedeContinuarDesdeTarifa } from '../../utilidades/postergacion'
+import { buscarPasajeEnCompras, puedeContinuarDesdeTarifa } from '../../utilidades/postergacion'
 import { puedeIniciarNuevoCobro } from '../../utilidades/cobroPostergacion'
 import '../../componentes/postergacion/postergacion.css'
 
@@ -292,6 +293,71 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
   )
 }
 
+function PasajeNoEncontrado() {
+  return (
+    <section className="seccion contenedor pagina-postergacion">
+      <EstadoRuta
+        tipo="error"
+        titulo="No encontramos este pasaje"
+        texto="Vuelve a Mis pasajes y elige el pasaje cuyo viaje quieres cambiar."
+        accion={{ texto: 'Ir a Mis pasajes', to: '/perfil/pasajes' }}
+      />
+    </section>
+  )
+}
+
+/**
+ * Entrada directa por la URL (recarga, enlace guardado): no llegó el pasaje por la navegación, así que se pide al
+ * servidor la lista de compras del usuario y se busca el boleto por el id de la URL.
+ */
+function PostergarPasajeDesdeServidor({ idPasaje, idCliente }) {
+  const [pasaje, setPasaje] = useState(null)
+  const [estado, setEstado] = useState('cargando')
+  const [error, setError] = useState('')
+  const [intentos, setIntentos] = useState(0)
+
+  useEffect(() => {
+    let cancelado = false
+    setEstado('cargando')
+    setError('')
+    setPasaje(null)
+    listarCompras()
+      .then(({ compras }) => {
+        if (cancelado) return
+        const encontrado = buscarPasajeEnCompras(compras, idPasaje, idCliente)
+        if (!encontrado) {
+          setEstado('noEncontrado')
+          return
+        }
+        // Se guarda siempre el dato recién traído del servidor: nunca se reutiliza una copia vieja de este pasaje.
+        setPasaje(guardarPasajeMock(encontrado, idCliente))
+        setEstado('listo')
+      })
+      .catch((fallo) => {
+        if (cancelado) return
+        setError(fallo.message || 'No se pudo cargar tu pasaje.')
+        setEstado('error')
+      })
+    return () => { cancelado = true }
+  }, [idPasaje, idCliente, intentos])
+
+  if (pasaje) return <FlujoPostergacion key={idPasaje} pasajeInicial={pasaje} idCliente={idCliente} />
+  if (estado === 'noEncontrado') return <PasajeNoEncontrado />
+
+  return (
+    <section className="seccion contenedor pagina-postergacion">
+      <PanelAsincrono
+        variante="generico"
+        mensaje="Cargando tu pasaje"
+        mensajeListo="Pasaje listo"
+        cargando={estado === 'cargando'}
+        error={estado === 'error' ? error : null}
+        alReintentar={() => setIntentos((n) => n + 1)}
+      />
+    </section>
+  )
+}
+
 export function PaginaPostergarPasaje() {
   const { idPasaje } = useParams()
   const { state } = useLocation()
@@ -299,22 +365,17 @@ export function PaginaPostergarPasaje() {
   const idCliente = usuario?.id ?? 'cliente-mock'
 
   const externo = state?.pasaje && String(state.pasaje.idPasaje) === String(idPasaje) ? state.pasaje : null
-  const pasaje = externo
-    ? registrarPasajeExterno({ ...externo, idCliente }, idCliente)
-    : obtenerPasajeMock(idPasaje, idCliente)
-
-  if (!pasaje) {
-    return (
-      <section className="seccion contenedor pagina-postergacion">
-        <EstadoRuta
-          tipo="error"
-          titulo="No encontramos este pasaje"
-          texto="Vuelve a Mis pasajes y elige el pasaje cuyo viaje quieres cambiar."
-          accion={{ texto: 'Ir a Mis pasajes', to: '/perfil/pasajes' }}
-        />
-      </section>
-    )
+  if (externo) {
+    const pasaje = registrarPasajeExterno({ ...externo, idCliente }, idCliente)
+    return <FlujoPostergacion key={idPasaje} pasajeInicial={pasaje} idCliente={idCliente} />
   }
 
-  return <FlujoPostergacion key={idPasaje} pasajeInicial={pasaje} idCliente={idCliente} />
+  // Pasajes de prueba (PSJ-…): siguen saliendo del almacén simulado. Una copia de un pasaje real guardada antes
+  // no cuenta: se vuelve a pedir al servidor para no trabajar con un viaje o un asiento desactualizado.
+  const simulado = obtenerPasajeMock(idPasaje, idCliente)
+  if (simulado && !simulado.deCompraReal) {
+    return <FlujoPostergacion key={idPasaje} pasajeInicial={simulado} idCliente={idCliente} />
+  }
+
+  return <PostergarPasajeDesdeServidor key={idPasaje} idPasaje={idPasaje} idCliente={idCliente} />
 }
