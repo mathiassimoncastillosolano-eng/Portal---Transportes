@@ -17,21 +17,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Comprobación ligera de conectividad con PostgreSQL (Supabase) para el endpoint de readiness.
- *
- * <p>Diseño pensado para un pool pequeño (Hikari maximum-pool-size=3) y para muchos clientes
- * consultando a la vez mientras el backend despierta:</p>
- * <ul>
- * <li><b>Sin consultas de negocio:</b> solo pide una conexión al pool y ejecuta
- * {@link Connection#isValid(int)} (el driver de PostgreSQL envía una consulta vacía).</li>
- * <li><b>Tiempo de espera controlado:</b> quien pregunta nunca espera más de {@code timeoutMs},
- * aunque Hikari tenga un connection-timeout mayor. La comprobación lenta sigue en su hilo y su
- * resultado se aprovecha en la siguiente consulta.</li>
- * <li><b>Una sola comprobación en curso:</b> las peticiones simultáneas comparten el mismo intento,
- * así N clientes haciendo polling no consumen N conexiones.</li>
- * <li><b>Caché del éxito:</b> un resultado positivo se reutiliza durante {@code cacheMs}; los
- * fallos no se cachean para detectar la recuperación cuanto antes.</li>
- * </ul>
+ * Revisa rápido si PostgreSQL responde, cuidando el pool pequeño de conexiones:
+ * no hace consultas de negocio (solo pide una conexión y la valida);
+ * nunca hace esperar más de timeoutMs;
+ * si muchos preguntan a la vez, comparten una sola comprobación;
+ * un éxito se recuerda durante cacheMs (los fallos no, para notar pronto que volvió).
  */
 @Component
 public class VerificadorBaseDatos implements DisposableBean {
@@ -68,7 +58,7 @@ public class VerificadorBaseDatos implements DisposableBean {
         this.relojNanos = relojNanos;
     }
 
-    /** {@code true} si la base de datos respondió a tiempo (o respondió hace menos de {@code cacheMs}). */
+    /** true si la base respondió a tiempo (o respondió hace menos de cacheMs). */
     public boolean disponible() {
         if (huboExito && relojNanos.getAsLong() - ultimoExitoNanos < cacheNanos) {
             return true;
@@ -106,13 +96,13 @@ public class VerificadorBaseDatos implements DisposableBean {
             registrarCambio(valida, valida ? null : "conexión no válida");
             return valida;
         } catch (Exception excepcion) {
-            // Solo el tipo de excepción: el mensaje del driver puede incluir host o usuario.
+            // Solo el tipo de error: el mensaje del driver puede traer host o usuario.
             registrarCambio(false, excepcion.getClass().getSimpleName());
             return false;
         }
     }
 
-    /** Registra únicamente las transiciones para no llenar el log con cada consulta de polling. */
+    /** Escribe en el log solo cuando el estado cambia, para no llenarlo en cada consulta. */
     private void registrarCambio(boolean disponible, String motivo) {
         Boolean anterior = ultimoEstadoRegistrado;
         if (anterior != null && anterior == disponible) {

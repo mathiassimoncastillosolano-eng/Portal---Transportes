@@ -16,9 +16,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Entidad JPA que representa un viaje programado y concreto (tabla
- * "viaje") — una salida real en una fecha específica, distinta de
- * "programacion_viaje" (que es la plantilla recurrente).
+ * Entidad JPA de la tabla viaje: una salida concreta en una fecha y hora. No confundir con programacion_viaje, que
+ * es la plantilla que se repite.
  */
 @Entity
 @Table(name = "viaje")

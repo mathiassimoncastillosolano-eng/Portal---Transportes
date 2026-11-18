@@ -17,11 +17,9 @@ import com.transportes.compras.servicios.CompraServicio;
 import com.transportes.security.servicios.UsuarioAutenticado;
 
 /**
- * Compras, boletos e historial del usuario autenticado, bajo {@code /api/usuarios/perfil}.
- *
- * <p>Ese prefijo ya exige JWT en ConfiguracionSeguridad ({@code /api/usuarios/**} → authenticated), igual que
- * {@code GET/PUT /api/usuarios/perfil}. El id del usuario sale SIEMPRE del principal validado por
- * FiltroAutenticacionJwt; ninguna ruta, parámetro o cuerpo lo acepta desde el cliente.
+ * Controlador REST de "Mis pasajes", historial y resumen del perfil (/api/usuarios/perfil). Exige sesión (JWT). El
+ * id del usuario siempre se toma del token validado, nunca de la URL ni del cuerpo, así nadie puede ver compras
+ * ajenas.
  */
 @RestController
 @RequestMapping("/api/usuarios/perfil")
@@ -33,31 +31,34 @@ public class CompraControlador {
         this.compras = compras;
     }
 
-    /** Contadores del perfil (compras, pasajes vigentes...). */
+    /** GET /resumen: contadores del perfil (pasajes, viajes completados, tickets, compras vigentes). */
     @GetMapping("/resumen")
     public ResumenPerfilDto resumen(@AuthenticationPrincipal UsuarioAutenticado usuario) {
         return compras.resumen(idDe(usuario));
     }
 
-    /** Pantalla "Mis pasajes": compras ordenadas, primero las vigentes. */
+    /** GET /pasajes: pantalla "Mis pasajes", con las compras vigentes primero. */
     @GetMapping("/pasajes")
     public ListaComprasDto pasajes(@AuthenticationPrincipal UsuarioAutenticado usuario) {
         return compras.listar(idDe(usuario));
     }
 
-    /** Detalle de una compra del usuario (404 si es de otra cuenta). */
+    /** GET /pasajes/{idVenta}: detalle de una compra. 404 si no existe o es de otra cuenta. */
     @GetMapping("/pasajes/{idVenta}")
     public CompraDto detalle(@AuthenticationPrincipal UsuarioAutenticado usuario, @PathVariable int idVenta) {
         return compras.detalle(idDe(usuario), idVenta);
     }
 
-    /** Historial: compras que ya no están vigentes, de la más reciente a la más antigua. */
+    /** GET /historial: compras que ya no están vigentes, de la más reciente a la más antigua. */
     @GetMapping("/historial")
     public List<CompraDto> historial(@AuthenticationPrincipal UsuarioAutenticado usuario) {
         return compras.historial(idDe(usuario));
     }
 
-    /** Defensa en profundidad: la cadena de seguridad ya rechaza peticiones sin autenticar con 401. */
+    /**
+     * Saca el id del usuario del token. Si no hay sesión responde 401 (la seguridad ya lo filtra antes; esto es
+     * una segunda barrera).
+     */
     private static int idDe(UsuarioAutenticado usuario) {
         if (usuario == null || usuario.idUsuario() == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado. Inicie sesion nuevamente.");

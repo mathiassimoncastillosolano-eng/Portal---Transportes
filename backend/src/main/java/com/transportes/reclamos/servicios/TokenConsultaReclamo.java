@@ -11,8 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Token para consultar una constancia: HMAC-SHA256 del código con una clave secreta. Sin la clave no se puede
- * fabricar.
+ * Crea y revisa el token para ver una constancia: HMAC-SHA256 del código con una clave secreta. Sin la clave nadie
+ * puede fabricarlo.
  */
 @Component
 public class TokenConsultaReclamo {
@@ -28,7 +28,7 @@ public class TokenConsultaReclamo {
         this.secreto = secreto.strip().getBytes(StandardCharsets.UTF_8);
     }
 
-    /** Firma "reclamo:" + código. */
+    /** Genera el token firmando "reclamo:" + código. */
     public String generar(String codigo) {
         try {
             Mac mac = Mac.getInstance(ALGORITMO);
@@ -40,7 +40,7 @@ public class TokenConsultaReclamo {
         }
     }
 
-    /** Compara en tiempo constante con el token esperado. */
+    /** Compara con el token esperado en tiempo constante (no da pistas por el tiempo de respuesta). */
     public boolean esValido(String codigo, String token) {
         if (token == null || token.isBlank()) {
             return false;

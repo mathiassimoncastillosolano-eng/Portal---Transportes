@@ -5,8 +5,8 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * Franjas del filtro de horario en minutos del día: madrugada 0-6 h, mañana 6-12 h, tarde 12-18 h, noche
- * 18-24 h.
+ * Franjas del filtro de horario (en minutos del día): madrugada 0-6 h, mañana 6-12 h, tarde 12-18 h y noche 18-24
+ * h.
  */
 public enum FranjaHorario {
     MADRUGADA("madrugada", 0, 360),
@@ -36,13 +36,13 @@ public enum FranjaHorario {
         return hastaMinuto;
     }
 
-    /** ¿La hora cae dentro de la franja? (inicio incluido, fin excluido) */
+    /** true si la hora cae en la franja (incluye el inicio, no el fin). */
     public boolean contiene(LocalTime hora) {
         int minuto = hora.getHour() * 60 + hora.getMinute();
         return minuto >= desdeMinuto && minuto < hastaMinuto;
     }
 
-    /** Convierte el texto de la URL ("manana", "tarde"...) en la franja. */
+    /** Convierte el texto de la URL ("manana", "tarde"...) en una franja. */
     public static Optional<FranjaHorario> desdeId(String valor) {
         if (valor == null) {
             return Optional.empty();

@@ -3,7 +3,7 @@ package com.transportes.auth.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-/** Cuerpo de {@code POST /api/auth/password-reset/verify}. */
+/** Correo y código para el paso 2 de la recuperación. */
 public record VerificarCodigoRequest(
         @NotBlank(message = "El correo es obligatorio.")
         @Size(max = 150, message = "El correo admite hasta 150 caracteres.")

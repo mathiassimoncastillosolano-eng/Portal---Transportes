@@ -9,13 +9,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * Solicitud para confirmar la postergación. El usuario NO viaja aquí: sale del JWT.
- *
- * @param idViajeNuevo  viaje al que se pasa el pasaje
- * @param idAsiento     asiento (físico) elegido en ese viaje, ya bloqueado por la sesión de reserva
- * @param tokenSesion   sesión de reserva con la que se bloqueó el asiento nuevo
- * @param montoAdicional diferencia pagada (0 si no hubo cobro); el pago sigue simulado
- * @param referenciaPago referencia del pago adicional simulado (obligatoria si el monto es mayor que 0)
+ * Lo que envía el navegador para confirmar el cambio. No trae el usuario: sale del token.
+ * @param idViajeNuevo viaje al que se pasa el pasaje
+ * @param idAsiento asiento elegido en ese viaje (ya bloqueado por la sesión de reserva)
+ * @param tokenSesion sesión de reserva que bloqueó ese asiento
+ * @param montoAdicional diferencia pagada (0 si no hubo cobro); el pago todavía es simulado
+ * @param referenciaPago referencia del pago simulado (obligatoria si el monto es mayor que 0)
  */
 public record ConfirmarPostergacionRequest(
         @NotNull(message = "El viaje nuevo es obligatorio") Long idViajeNuevo,

@@ -3,10 +3,8 @@ package com.transportes.usuarios.dto;
 import com.transportes.compras.dto.ResumenPerfilDto;
 
 /**
- * Contadores de pasajes, viajes y tickets del usuario autenticado, calculados a partir de sus compras reales
- * (ver {@link ResumenPerfilDto} para el criterio de cada indicador).
- *
- * <p>Se conserva la forma {@code {pasajes, viajes, tickets}} que ya consume el frontend dentro del perfil.
+ * Contadores del perfil (pasajes, viajes y tickets) calculados con sus compras reales. Mantiene la forma que ya
+ * usa el frontend.
  */
 public class EstadisticasUsuarioResponse {
 

@@ -2,7 +2,7 @@ package com.transportes.viajes.dto;
 
 import java.math.BigDecimal;
 
-/** Un asiento del mapa: posición, estado (disponible, bloqueado u ocupado), precio y si es de mi sesión. */
+/** Un asiento del mapa de un viaje: posición, estado, precio y si lo tiene bloqueado mi sesión. */
 public record AsientoDisponibilidadDTO(
         Integer idAsiento,
         String numero,
@@ -10,8 +10,8 @@ public record AsientoDisponibilidadDTO(
         String letra,
         String lado,
         short piso,
-        String estado,   // "disponible" | "bloqueado" | "ocupado"
+        String estado,   // "disponible", "bloqueado" u "ocupado"
         BigDecimal precio,
-        boolean esMio    // true solo si está bloqueado por la sesión indicada
+        boolean esMio    // true si lo bloqueó la sesión que pregunta
 ) {
 }

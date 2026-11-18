@@ -2,7 +2,7 @@ package com.transportes.pagos.servicios;
 
 import java.util.Map;
 
-/** Mensajes comprensibles para los motivos de rechazo que devuelve Mercado Pago (tarjetas y Yape). */
+/** Traduce los motivos de rechazo de Mercado Pago (tarjetas y Yape) a mensajes que el cliente entienda. */
 final class MensajesPago {
 
     private static final String GENERICO = "El pago no fue aprobado. Puedes intentarlo de nuevo con otro medio de pago.";

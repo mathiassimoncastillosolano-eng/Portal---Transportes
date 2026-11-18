@@ -3,9 +3,8 @@ package com.transportes.compras.dto;
 import java.time.LocalDate;
 
 /**
- * Viaje de un boleto tal como lo muestran la tarjeta y el PDF: el viaje vigente del boleto o el viaje anterior
- * a un cambio. {@code asiento} es el asiento del boleto en ESE viaje. {@code horaLlegada} es null si la ruta no
- * tiene duración estimada (no se inventa).
+ * Un viaje tal como lo muestran la tarjeta y el PDF del boleto: el viaje actual o el que tenía antes de un cambio.
+ * asiento es el asiento del boleto en ESE viaje. horaLlegada es null si la ruta no tiene duración estimada.
  */
 public record ViajeBoletoDto(
         Long idViaje, String origen, String destino, LocalDate fechaSalida, String horaSalida, String horaLlegada,

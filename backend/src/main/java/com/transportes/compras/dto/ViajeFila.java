@@ -4,11 +4,9 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 /**
- * Datos de un viaje leídos por la consulta de compras. Se usa para el viaje anterior y el viaje original de un
- * pasaje que fue cambiado (postergado). Es un registro interno de lectura; no se expone en la API.
- *
- * <p>{@code numeroAsiento} es el asiento que el pasaje tenía en ese viaje (puede ser null si no se necesita).
- * {@code duracionMin} es la duración estimada de la ruta, para calcular la hora de llegada (null si no se conoce).</p>
+ * Datos internos de un viaje leídos en la consulta de compras. Se usan para el viaje anterior y el viaje original
+ * de un pasaje cambiado. numeroAsiento es el asiento que tenía en ese viaje; duracionMin sirve para calcular la
+ * llegada (null si no se conoce).
  */
 public record ViajeFila(
         Long idViaje, LocalDate fechaSalida, LocalTime horaSalida, String estadoViaje,

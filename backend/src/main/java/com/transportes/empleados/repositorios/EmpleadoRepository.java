@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-/** Acceso a la tabla {@code empleado}. */
+/** Repositorio de la tabla empleado. */
 public interface EmpleadoRepository extends JpaRepository<Empleado, Integer> {
 
     /** Busca el empleado que corresponde a una cuenta de usuario. */

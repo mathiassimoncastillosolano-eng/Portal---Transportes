@@ -18,9 +18,9 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Consulta de DNI en ApiPeru ({@code GET /api/dni/{dni}}). El token vive solo en el servidor
- * ({@code DNI_API_TOKEN}), viaja en la cabecera Authorization y jamás se registra ni llega al navegador.
- * Sin token o ante cualquier fallo devuelve vacío y el formulario pide los datos manualmente.
+ * Implementación de ClienteDni con el servicio externo ApiPeru. El token (DNI_API_TOKEN) vive solo en el servidor,
+ * va en la cabecera Authorization y nunca se registra ni llega al navegador. Sin token o ante cualquier error
+ * devuelve vacío y el formulario pide los datos a mano.
  */
 @Component
 public class ApiPeruClienteDni implements ClienteDni {
@@ -41,7 +41,7 @@ public class ApiPeruClienteDni implements ClienteDni {
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
     }
 
-    /** Consulta el DNI en el servicio externo; vacío si no lo encuentra o falla. */
+    /** Consulta el DNI en ApiPeru; vacío si no lo encuentra o falla. */
     @Override
     public Optional<DatosDni> consultar(String dni) {
         if (token.isEmpty()) {
@@ -71,7 +71,7 @@ public class ApiPeruClienteDni implements ClienteDni {
         return Optional.empty();
     }
 
-    /** Usa nombres + apellido_paterno/materno; si faltan, parte {@code nombre_completo} ("APELLIDOS, NOMBRES"). */
+    /** Lee nombres y apellidos de la respuesta; si faltan, separa nombre_completo ("APELLIDOS, NOMBRES"). */
     static Optional<DatosDni> interpretar(JsonNode raiz) {
         JsonNode data = raiz.path("data");
         if (!raiz.path("success").asBoolean(false) || !data.isObject()) {

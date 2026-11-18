@@ -30,22 +30,16 @@ import java.util.OptionalLong;
 import java.util.regex.Pattern;
 
 /**
- * Recuperacion de contrasena por correo: solicitar codigo, verificarlo y fijar la nueva contrasena.
- *
- * <p>Principios:</p>
- * <ul>
- *   <li><b>Sin enumeracion de cuentas.</b> Solicitar un codigo responde siempre lo mismo (exista
- *       o no la cuenta, este activa o sea de Google). Los errores de verificacion tampoco
- *       distinguen entre "no existe", "vencido", "usado" o "incorrecto".</li>
- *   <li><b>El codigo nunca se guarda en claro</b> (HMAC con secreto del servidor) y se compara
- *       en tiempo constante.</li>
- *   <li><b>Intentos limitados</b> por desafio (base de datos) y por IP/correo (memoria).</li>
- *   <li><b>Un solo uso, tambien con concurrencia:</b> el desafio se consume con un UPDATE
- *       condicional dentro de la misma transaccion que cambia la contrasena.</li>
- *   <li><b>El cliente no elige la cuenta:</b> la prueba firmada identifica al desafio y de
- *       ahi se obtiene el usuario.</li>
- *   <li>El correo se envia <b>fuera</b> de la transaccion (el pool de conexiones es pequeno).</li>
- * </ul>
+ * Recuperación de contraseña por correo en 3 pasos: solicitar código, verificarlo y poner la nueva contraseña.
+ * Reglas de seguridad:
+ * - No revela cuentas: el paso 1 responde siempre igual y los errores del paso 2 no dicen si no existe, venció o
+ * está mal.
+ * - El código no se guarda tal cual (HMAC con clave secreta) y se compara en tiempo constante.
+ * - Intentos limitados por código (en la BD) y por IP y correo (en memoria).
+ * - Un solo uso, aun con peticiones simultáneas: el código se consume con un UPDATE condicionado en la misma
+ * transacción que cambia la contraseña.
+ * - El cliente no elige la cuenta: la sacamos de la prueba firmada.
+ * - El correo se envía fuera de la transacción (para no ocupar conexiones de la BD).
  */
 @Service
 public class RecuperacionContrasenaService {
@@ -118,11 +112,11 @@ public class RecuperacionContrasenaService {
         this.porIpCambio = new LimitadorVentana(maxCambiosIp, VENTANA_LIMITES);
     }
 
-    // ------------------------------------------------------------------ solicitar / reenviar
+    // ===== Paso 1: solicitar y reenviar el código =====
 
     /**
-     * Paso 1 (y reenvio): emite un codigo y lo envia por correo si la cuenta es elegible.
-     * La respuesta es la misma en todos los casos salvo limites de uso y fallo del proveedor.
+     * Paso 1 (y reenvío): crea un código y lo envía si la cuenta puede recuperarse. La respuesta es la misma en
+     * todos los casos, salvo límites de uso o fallo del correo.
      */
     public SolicitudRecuperacionResponse solicitarCodigo(String correoCrudo, String ip) {
         String direccion = normalizarCorreo(correoCrudo);
@@ -131,7 +125,7 @@ public class RecuperacionContrasenaService {
             throw demasiadasSolicitudes();
         }
         String claveCorreo = "mail:" + CriptoRecuperacion.sha256Hex(direccion);
-        // El enfriamiento aplica a cualquier correo para no revelar cuales existen.
+        // La espera entre envíos aplica a cualquier correo, exista o no, para no revelar cuáles existen.
         if (!cooldownCorreo.permitir(claveCorreo)) {
             throw new RecuperacionContrasenaException(HttpStatus.TOO_MANY_REQUESTS,
                     "Espera un momento antes de solicitar otro código.");
@@ -140,12 +134,12 @@ public class RecuperacionContrasenaService {
 
         Usuario usuario = usuarios.findByCorreoIgnoreCase(direccion).orElse(null);
         if (usuario == null || !usuario.estaActivo()) {
-            return respuestaGenerica(); // sin pistas: ni cuenta inexistente ni inactiva se distinguen
+            return respuestaGenerica(); // misma respuesta si la cuenta no existe o está inactiva
         }
 
         if (usuario.getContrasenaHash() == null) {
-            // Cuenta creada con Google: no tiene contrasena local. Se le avisa por correo
-            // (sin codigo) y su acceso con Google no se toca.
+            // Cuenta creada con Google: no tiene contraseña propia. Se le avisa por correo (sin código) y su
+            // acceso con Google sigue igual.
             if (usuario.getGoogleId() != null) {
                 try {
                     correo.enviarAvisoCuentaGoogle(usuario.getNombres(), usuario.getCorreo());
@@ -177,10 +171,10 @@ public class RecuperacionContrasenaService {
             try {
                 idToken = tx.execute(estado -> {
                     if (tokens.existsByTokenHash(hash)) {
-                        return null; // coincidencia con un codigo antiguo del mismo usuario: se genera otro
+                        return null; // el código coincidió con uno viejo del mismo usuario: se genera otro
                     }
                     LocalDateTime ahora = ahoraUtc();
-                    tokens.invalidarPendientes(idUsuario, ahora); // una politica clara: solo vale el ultimo codigo
+                    tokens.invalidarPendientes(idUsuario, ahora); // solo vale el último código
                     PasswordResetToken nuevo = new PasswordResetToken();
                     nuevo.setIdUsuario(idUsuario);
                     nuevo.setTokenHash(hash);
@@ -190,7 +184,7 @@ public class RecuperacionContrasenaService {
                     return tokens.saveAndFlush(nuevo).getId();
                 });
             } catch (DataIntegrityViolationException e) {
-                idToken = null; // carrera improbable sobre token_hash UNIQUE: se reintenta con otro codigo
+                idToken = null; // choque muy raro de token_hash repetido: se reintenta con otro código
             }
             if (idToken == null) {
                 continue;
@@ -199,7 +193,7 @@ public class RecuperacionContrasenaService {
             try {
                 correo.enviarCodigo(usuario.getNombres(), usuario.getCorreo(), codigo, codigoMinutos);
             } catch (CorreoNoDisponibleException e) {
-                // El proveedor no confirmo el envio: el codigo no sirve de nada, se cierra.
+                // El correo no se envió: el código no sirve, se anula.
                 final Long idParaCerrar = idToken;
                 tx.executeWithoutResult(estado -> tokens.invalidar(idParaCerrar, ahoraUtc()));
                 throw e;
@@ -209,9 +203,11 @@ public class RecuperacionContrasenaService {
         throw new IllegalStateException("No se pudo generar un código de recuperación único.");
     }
 
-    // ------------------------------------------------------------------ verificar
+    // ===== Paso 2: verificar el código =====
 
-    /** Paso 2: comprueba el codigo y, si es correcto, entrega la prueba para fijar la contrasena. */
+    /**
+     * Paso 2: si el código es correcto, entrega la prueba para cambiar la contraseña. Si falla, suma un intento.
+     */
     public PruebaRecuperacionResponse verificarCodigo(String correoCrudo, String codigoCrudo, String ip) {
         String direccion = normalizarCorreo(correoCrudo);
 
@@ -245,7 +241,7 @@ public class RecuperacionContrasenaService {
                 int intentos = token.getIntentos() + 1;
                 token.setIntentos(intentos);
                 if (intentos >= maxIntentos) {
-                    token.setFechaUso(ahora); // desafio quemado: hay que pedir uno nuevo
+                    token.setFechaUso(ahora); // demasiados intentos: el código queda inutilizado, hay que pedir otro
                     tokens.save(token);
                     return new ResultadoVerificacion(Veredicto.AGOTADO, null);
                 }
@@ -253,7 +249,7 @@ public class RecuperacionContrasenaService {
                 return new ResultadoVerificacion(Veredicto.INVALIDO, null);
             }
 
-            token.setFechaVerificacion(ahora); // el codigo ya no puede verificarse otra vez
+            token.setFechaVerificacion(ahora); // ya no se puede verificar otra vez
             tokens.save(token);
             return new ResultadoVerificacion(Veredicto.OK, token.getId());
         });
@@ -276,9 +272,11 @@ public class RecuperacionContrasenaService {
         return fallos >= maxIntentos ? intentosAgotados() : codigoInvalido();
     }
 
-    // ------------------------------------------------------------------ completar
+    // ===== Paso 3: poner la nueva contraseña =====
 
-    /** Paso 3: con la prueba verificada, fija la nueva contrasena y consume el desafio. */
+    /**
+     * Paso 3: con la prueba verificada, guarda la nueva contraseña y consume el código (todo en una transacción).
+     */
     public void completarRecuperacion(String prueba, String contrasena, String confirmacion, String ip) {
         if (!porIpCambio.permitir("ip:" + ipSegura(ip))) {
             throw demasiadasSolicitudes();
@@ -296,20 +294,20 @@ public class RecuperacionContrasenaService {
             PasswordResetToken token = tokens.findById(id).orElseThrow(this::verificacionVencida);
             Integer idUsuario = token.getIdUsuario();
 
-            // Solo una peticion puede ganar este UPDATE; si otra ya lo consumio, devuelve 0.
+            // Solo una petición puede ganar este UPDATE; si otra ya consumió el código, devuelve 0.
             if (tokens.consumirVerificado(id, ahora, ahora.minusMinutes(ventanaCambioMinutos)) != 1) {
                 throw verificacionVencida();
             }
 
             Usuario usuario = usuarios.findById(idUsuario).orElseThrow(this::verificacionVencida);
             if (!usuario.estaActivo()) {
-                throw verificacionVencida(); // revierte tambien el consumo del desafio
+                throw verificacionVencida(); // también se deshace el consumo del código
             }
             usuario.setContrasenaHash(encoder.encode(contrasena));
             usuario.setFechaActualizacion(LocalDateTime.now());
             usuarios.save(usuario);
 
-            // Cualquier otro codigo pendiente de la cuenta deja de servir.
+            // Los demás códigos pendientes de la cuenta dejan de servir.
             tokens.invalidarPendientes(idUsuario, ahora);
         });
         log.info("Contraseña restablecida mediante recuperación (desafío {}).", id);
@@ -324,7 +322,7 @@ public class RecuperacionContrasenaService {
                     "La contraseña debe tener al menos 8 caracteres.");
         }
         if (contrasena.getBytes(StandardCharsets.UTF_8).length > 72) {
-            // Mismo limite de BCrypt que usa el registro.
+            // BCrypt solo usa los primeros 72 bytes (mismo límite que el registro).
             throw new RecuperacionContrasenaException(HttpStatus.BAD_REQUEST,
                     "La contraseña supera el límite de 72 bytes de BCrypt");
         }
@@ -333,9 +331,9 @@ public class RecuperacionContrasenaService {
         }
     }
 
-    // ------------------------------------------------------------------ mantenimiento
+    // ===== Mantenimiento =====
 
-    /** Job cada 5 min: limpia de memoria los contadores de intentos ya vencidos. */
+    /** Cada 5 min: quita de memoria los contadores de intentos vencidos. */
     @Scheduled(fixedDelay = 300_000L, initialDelay = 300_000L)
     public void purgarLimitadores() {
         porIpSolicitud.purgar();
@@ -345,7 +343,7 @@ public class RecuperacionContrasenaService {
         porIpCambio.purgar();
     }
 
-    /** Borra desafios vencidos hace mas de 7 dias (se conservan unos dias para auditoria). */
+    /** Cada día a las 3:30: borra códigos vencidos hace más de 7 días (se guardan unos días por auditoría). */
     @Scheduled(cron = "0 30 3 * * *")
     public void eliminarDesafiosAntiguos() {
         Integer borrados = tx.execute(estado -> tokens.eliminarVencidosAntesDe(ahoraUtc().minusDays(7)));
@@ -354,7 +352,7 @@ public class RecuperacionContrasenaService {
         }
     }
 
-    // ------------------------------------------------------------------ utilidades
+    // ===== Utilidades =====
 
     private SolicitudRecuperacionResponse respuestaGenerica() {
         return new SolicitudRecuperacionResponse(MENSAJE_GENERICO, codigoMinutos, reenvioSegundos);

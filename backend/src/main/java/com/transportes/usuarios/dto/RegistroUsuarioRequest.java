@@ -32,7 +32,8 @@ public class RegistroUsuarioRequest {
     @Size(max = 20, message = "El teléfono admite hasta 20 caracteres")
     private String nroTelefono;
 
-    // Normalizar antes de @Valid y de la consulta evita diferencias por espacios/mayusculas.
+    // El correo se limpia (sin espacios y en minúsculas) antes de validar y buscar, para que no haya duplicados
+    // por eso.
     public void setCorreo(String correo) {
         this.correo = correo == null ? null : correo.strip().toLowerCase(Locale.ROOT);
     }

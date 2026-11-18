@@ -16,9 +16,9 @@ import com.transportes.pagos.entidades.EstadoOperacion;
 import com.transportes.pagos.repositorios.OperacionPagoRepositorio;
 
 /**
- * Respaldo de los Webhooks: consulta en Mercado Pago las operaciones que siguen pendientes (p. ej. si el backend
- * estaba dormido en Render cuando llegó la notificación), vence las que superaron su ventana de pago, reintenta
- * reembolsos pendientes y borra las copias temporales de datos de pasajeros.
+ * Tarea programada de respaldo por si un Webhook no llega (por ejemplo, si el servidor estaba dormido): vuelve a
+ * consultar los pagos pendientes, vence los que pasaron su tiempo, reintenta devoluciones pendientes y borra
+ * copias temporales de pasajeros.
  */
 @Component
 public class ConciliacionPagosJob {
@@ -38,7 +38,7 @@ public class ConciliacionPagosJob {
         this.segundosSinConsulta = segundosSinConsulta;
     }
 
-    /** Cada 30 s: vuelve a consultar los pagos pendientes por si el webhook no llegó. */
+    /** Cada 30 segundos: vuelve a consultar los pagos pendientes. */
     @Scheduled(fixedDelayString = "${mercadopago.conciliacion-ms:30000}", initialDelayString = "${mercadopago.conciliacion-inicial-ms:30000}")
     public void conciliar() {
         List<Integer> ids;
@@ -57,7 +57,7 @@ public class ConciliacionPagosJob {
         }
     }
 
-    /** Cada 15 min: borra copias de pasajeros que ya no hacen falta. */
+    /** Cada 15 minutos: borra copias de pasajeros que ya no hacen falta. */
     @Scheduled(fixedDelayString = "${mercadopago.limpieza-ms:900000}", initialDelayString = "${mercadopago.limpieza-ms:900000}")
     @Transactional
     public void borrarDatosTemporales() {

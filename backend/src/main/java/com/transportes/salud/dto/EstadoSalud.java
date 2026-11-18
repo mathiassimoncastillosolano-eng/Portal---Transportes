@@ -3,11 +3,9 @@ package com.transportes.salud.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * Cuerpo de las respuestas de salud. Deliberadamente mínimo: no expone host, versión,
- * nombres de base de datos ni mensajes de error.
- *
- * @param status UP (liveness) · READY · NOT_READY · DEGRADED (readiness)
- * @param fase   solo cuando no está listo: INICIANDO · DEPENDENCIAS · DETENIENDO
+ * Respuesta de salud, mínima a propósito (sin host, versión ni errores).
+ * @param status UP (live), READY, NOT_READY o DEGRADED (ready)
+ * @param fase solo si no está listo: INICIANDO, DEPENDENCIAS o DETENIENDO
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record EstadoSalud(String status, String fase) {

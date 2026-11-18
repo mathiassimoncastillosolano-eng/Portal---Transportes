@@ -4,12 +4,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * HU-02 · La postergación se rechaza (409). Lleva el motivo para mostrar al cliente y un código estable para que
- * el frontend sepa de qué tipo de rechazo se trata (por ejemplo, que puede elegir otro asiento).
+ * Error de HU-02 cuando el cambio se rechaza (409). Lleva el mensaje para el cliente y un código fijo para que el
+ * frontend sepa qué pasó (por ejemplo, ASIENTO_NO_DISPONIBLE: puede elegir otro asiento).
  */
 public class PostergacionRechazadaException extends ResponseStatusException {
 
-    /** Códigos que viajan en {@code detalles}. Coinciden con CODIGOS_RECHAZO del frontend cuando existen allá. */
+    /** Códigos que viajan en detalles. Son los mismos que CODIGOS_RECHAZO del frontend. */
     public static final String PASAJE_NO_VIGENTE = "PASAJE_NO_VIGENTE";
     public static final String VIAJE_INICIADO = "VIAJE_INICIADO";
     public static final String ANTICIPACION_INSUFICIENTE = "ANTICIPACION_INSUFICIENTE";
@@ -27,7 +27,7 @@ public class PostergacionRechazadaException extends ResponseStatusException {
         this.codigo = codigo;
     }
 
-    /** Código estable para el frontend (ej. ASIENTO_NO_DISPONIBLE). */
+    /** Código fijo del motivo, por ejemplo ASIENTO_NO_DISPONIBLE. */
     public String getCodigo() {
         return codigo;
     }

@@ -25,15 +25,15 @@ import com.transportes.compras.reglas.ReglasCompra.EstadoCompra;
 import com.transportes.compras.reglas.ReglasCompra.FaseViaje;
 
 /**
- * Convierte las filas planas de la consulta (una por pasaje) en compras con sus boletos, las ordena y calcula los
- * indicadores del perfil. No accede a datos: recibe filas ya autorizadas por el repositorio (filtradas por el
- * usuario autenticado).
+ * Arma las compras a partir de las filas de la consulta (una fila por pasaje): agrupa los pasajes de cada venta,
+ * ordena las compras y calcula los contadores del perfil. No consulta la base: recibe filas ya filtradas por el
+ * usuario.
  */
 public final class ConstructorCompras {
 
-    /** El portal no modela una empresa transportista: la marca es RutaLibre (igual que la búsqueda de viajes). */
+    /** Nombre de la empresa que se muestra en los boletos. */
     public static final String EMPRESA = "RutaLibre";
-    /** Moneda del sistema cuando la operación de pago no la informa (operacion_pago.moneda es PEN por defecto). */
+    /** Moneda que se usa si el pago no la indica. */
     public static final String MONEDA_POR_DEFECTO = "PEN";
 
     private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("HH:mm");
@@ -41,7 +41,7 @@ public final class ConstructorCompras {
     private ConstructorCompras() {
     }
 
-    /** Agrupa por venta conservando el orden de aparición de las filas. */
+    /** Agrupa las filas por venta (una compra con sus boletos), respetando el orden en que llegaron. */
     public static List<CompraDto> agrupar(List<FilaCompra> filas, LocalDateTime ahora) {
         Map<Integer, List<FilaCompra>> porVenta = new LinkedHashMap<>();
         for (FilaCompra fila : filas) {
@@ -57,11 +57,12 @@ public final class ConstructorCompras {
     private static CompraDto construir(List<FilaCompra> grupo, LocalDateTime ahora) {
         FilaCompra cabecera = grupo.get(0);
 
-        // Un pasaje no puede aparecer dos veces: si algún join multiplicara filas, se descarta el duplicado.
+        // Si un mismo pasaje llegara repetido por un join, se guarda una sola vez.
         Map<Integer, BoletoDto> boletos = new LinkedHashMap<>();
-        // datosViaje = viaje en que se COMPRÓ la compra (aunque algún pasaje se haya cambiado después a otro viaje).
+        // datosViaje: el viaje en que se hizo la compra (aunque luego algún pasaje se cambiara).
         FilaCompra datosViaje = null;
-        // viajeMasTardio = viaje actual que sale más tarde: decide si la compra sigue "próxima" o ya se "realizó".
+        // viajeMasTardio: el viaje actual que sale más tarde; decide si la compra sigue "próxima" o ya se
+        // "realizó".
         FilaCompra viajeMasTardio = null;
         Set<Long> viajes = new HashSet<>();
         for (FilaCompra fila : grupo) {
@@ -115,7 +116,7 @@ public final class ConstructorCompras {
 
         BigDecimal total = cabecera.montoTotal();
         boolean consistente = total != null && !boletos.isEmpty() && total.compareTo(totalPasajes) == 0;
-        // Lo pagado en total: la venta original más lo que se pagó en cada cambio de viaje.
+        // Total pagado = venta original + lo pagado en cada cambio de viaje.
         BigDecimal totalPagado = total == null ? null : total.add(totalAdicionales);
 
         String comprobante = cabecera.comprobanteSerie() != null && cabecera.comprobanteNumero() != null
@@ -138,7 +139,7 @@ public final class ConstructorCompras {
                 cabecera.idPago());
     }
 
-    /** Fecha y hora de salida del viaje actual de la fila, o null si no se conocen. */
+    /** Fecha y hora de salida del viaje actual de la fila (null si faltan). */
     private static LocalDateTime sale(FilaCompra fila) {
         if (fila.fechaSalida() == null || fila.horaSalida() == null) {
             return null;
@@ -161,7 +162,7 @@ public final class ConstructorCompras {
                 viajeVigente, aCambio(fila, adicionalPagado));
     }
 
-    /** Último cambio de viaje del boleto, o null si nunca se cambió. */
+    /** Datos del último cambio de viaje del boleto, o null si nunca se cambió. */
     private static CambioBoletoDto aCambio(FilaCompra fila, BigDecimal adicionalPagado) {
         ViajeFila anterior = fila.viajeAnterior();
         if (!fila.fueCambiado() || anterior == null) {
@@ -179,7 +180,7 @@ public final class ConstructorCompras {
         return hora == null ? null : hora.format(HORA);
     }
 
-    /** Hora de llegada = salida + duración estimada de la ruta. Sin duración no se inventa: queda en null. */
+    /** Hora de llegada = salida + duración estimada. Si no hay duración, queda null (no se inventa). */
     private static String horaLlegada(LocalDate fechaSalida, LocalTime horaSalida, Integer duracionMin) {
         if (fechaSalida == null || horaSalida == null || duracionMin == null) {
             return null;
@@ -187,17 +188,20 @@ public final class ConstructorCompras {
         return fechaSalida.atTime(horaSalida).plusMinutes(duracionMin).format(HORA);
     }
 
-    /** Referencia visible de la compra, derivada de venta.id_venta (no es un código de validación). */
+    /** Código visible de la compra, hecho con el id de la venta (solo referencia). */
     public static String codigoCompra(int idVenta) {
         return String.format("RL-C-%06d", idVenta);
     }
 
-    /** Referencia visible del boleto, derivada de pasaje.id_pasaje (no es un código de validación ni un QR). */
+    /** Código visible del boleto, hecho con el id del pasaje (solo referencia, no es un QR). */
     public static String numeroBoleto(int idPasaje) {
         return String.format("RL-B-%06d", idPasaje);
     }
 
-    /** Vigentes primero (salida más cercana arriba) y después el resto (más reciente arriba). */
+    /**
+     * Orden de "Mis pasajes": vigentes primero (la salida más cercana arriba) y luego el resto (la más reciente
+     * arriba).
+     */
     public static List<CompraDto> ordenarParaPasajes(List<CompraDto> compras) {
         List<CompraDto> vigentes = new ArrayList<>();
         List<CompraDto> otras = new ArrayList<>();
@@ -212,7 +216,7 @@ public final class ConstructorCompras {
         return resultado;
     }
 
-    /** Todo lo que no es una compra vigente, de la salida más reciente a la más antigua. */
+    /** Historial: todo lo que no está vigente, de la salida más reciente a la más antigua. */
     public static List<CompraDto> paraHistorial(List<CompraDto> compras) {
         List<CompraDto> historial = new ArrayList<>();
         for (CompraDto compra : compras) {
@@ -224,7 +228,7 @@ public final class ConstructorCompras {
         return historial;
     }
 
-    /** Cuántos pasajes vigentes (confirmados y por viajar) hay en total. */
+    /** Cuántas compras vigentes (confirmadas y por viajar) hay. */
     public static int contarVigentes(List<CompraDto> compras) {
         int vigentes = 0;
         for (CompraDto compra : compras) {
@@ -247,8 +251,8 @@ public final class ConstructorCompras {
     }
 
     /**
-     * Indicadores del perfil (ver {@link ResumenPerfilDto}). Solo cuentan compras CONFIRMADAS; cada pasaje y cada
-     * viaje se cuenta una única vez aunque la consulta devuelva filas repetidas.
+     * Calcula los contadores del perfil (ResumenPerfilDto). Solo cuentan compras confirmadas y cada pasaje o viaje
+     * se cuenta una sola vez.
      */
     public static ResumenPerfilDto resumen(List<FilaResumen> filas, LocalDateTime ahora) {
         Map<Integer, List<FilaResumen>> porVenta = new LinkedHashMap<>();

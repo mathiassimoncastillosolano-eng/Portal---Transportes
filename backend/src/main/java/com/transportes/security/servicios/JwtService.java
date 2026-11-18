@@ -15,22 +15,12 @@ import java.util.Date;
 import java.util.UUID;
 
 /**
- * Responsable exclusivo de generar y validar los JSON Web Tokens (JWT)
- * utilizados para autenticar a los usuarios de RutaLibre.
- *
- * El token contiene unicamente lo indispensable para identificar al usuario
- * autenticado:
- * <ul>
- *     <li>{@code sub}: id del usuario (id_usuario)</li>
- *     <li>{@code correo}: correo del usuario, para uso rapido sin volver a
- *         consultar la base de datos en cada peticion</li>
- *     <li>{@code jti}: identificador unico del token, usado para poder
- *         invalidarlo en el cierre de sesion (ver {@link TokenInvalidadoService})</li>
- *     <li>{@code iat} / {@code exp}: fecha de emision y de expiracion</li>
- * </ul>
- *
- * No se persiste el JWT en ninguna tabla: la informacion real del usuario
- * continua almacenada exclusivamente en PostgreSQL.
+ * Crea y valida los JWT del login. El token lleva solo lo necesario:
+ * sub: id del usuario.
+ * correo: correo del usuario.
+ * jti: id único del token (para poder cerrarlo con logout).
+ * iat / exp: cuándo se creó y cuándo vence.
+ * El token no se guarda en ninguna tabla.
  */
 @Service
 public class JwtService {
@@ -46,9 +36,7 @@ public class JwtService {
         this.expiracionMinutos = expiracionMinutos;
     }
 
-    /**
-     * Genera un JWT firmado (HS256) para el usuario indicado.
-     */
+    /** Crea un JWT firmado (HS256) para el usuario. */
     public String generarToken(Integer idUsuario, String correo) {
         Instant ahora = Instant.now();
         Instant expiracion = ahora.plusSeconds(expiracionMinutos * 60);
@@ -64,9 +52,8 @@ public class JwtService {
     }
 
     /**
-     * Valida la firma y la expiracion del token y devuelve sus claims.
-     * Lanza {@link JwtException} (o una subclase, como
-     * {@link ExpiredJwtException}) si el token no es valido.
+     * Valida la firma y el vencimiento y devuelve los datos del token. Si no es válido lanza JwtException (por
+     * ejemplo ExpiredJwtException).
      */
     public Claims validarYObtenerClaims(String token) {
         return Jwts.parser()
@@ -76,7 +63,7 @@ public class JwtService {
                 .getPayload();
     }
 
-    /** El "sub" del token es el id del usuario. */
+    /** Lee el id del usuario del campo "sub". */
     public Integer obtenerIdUsuario(Claims claims) {
         return Integer.valueOf(claims.getSubject());
     }

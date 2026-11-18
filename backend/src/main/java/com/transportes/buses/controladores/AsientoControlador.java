@@ -13,9 +13,8 @@ import com.transportes.buses.dto.AsientoFisicoDTO;
 import com.transportes.buses.servicios.AsientoServicio;
 
 /**
- * Endpoint público de distribución de asientos (Tarea 1).
- * No requiere JWT: cae bajo el .anyRequest().permitAll() de
- * ConfiguracionSeguridad.
+ * Controlador REST de los asientos físicos de un bus (/api/buses). Es público: no pide token porque solo muestra
+ * la forma del bus, no datos de nadie.
  */
 @RestController
 @RequestMapping("/api/buses")
@@ -28,7 +27,10 @@ public class AsientoControlador {
         this.asientoServicio = asientoServicio;
     }
 
-    /** GET /api/buses/{idBus}/asientos: distribución física del bus. */
+    /**
+     * GET /api/buses/{idBus}/asientos: devuelve todos los asientos del bus (fila, letra, lado y piso) para dibujar
+     * el mapa.
+     */
     @GetMapping("/{idBus}/asientos")
     public ResponseEntity<List<AsientoFisicoDTO>> obtenerAsientosPorBus(@PathVariable Integer idBus) {
         return ResponseEntity.ok(asientoServicio.listarAsientosPorBus(idBus));

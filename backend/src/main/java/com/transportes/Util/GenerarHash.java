@@ -3,12 +3,12 @@ package com.transportes.Util;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
- * Utilidad de consola, no forma parte de la API: imprime el hash BCrypt de una contraseña para crear usuarios
- * de prueba a mano en la BD.
+ * Programa de consola (no es parte de la API): imprime el hash BCrypt de una contraseña para crear usuarios de
+ * prueba a mano en la base.
  */
 public class GenerarHash {
 
-    /** Ejecutar desde el IDE; copiar el hash impreso en usuario.contrasena_hash. */
+    /** Se ejecuta desde el IDE; el hash impreso se copia en usuario.contrasena_hash. */
     public static void main(String[] args) {
 
         BCryptPasswordEncoder encoder =

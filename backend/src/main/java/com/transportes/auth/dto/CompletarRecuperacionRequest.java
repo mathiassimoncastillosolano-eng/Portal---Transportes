@@ -4,8 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Cuerpo de {@code POST /api/auth/password-reset/complete}. No lleva identificador
- * de usuario: la cuenta se deduce de la prueba de recuperacion verificada.
+ * Datos del paso 3 de la recuperación. No trae el id del usuario: la cuenta se obtiene de la prueba verificada.
  */
 public record CompletarRecuperacionRequest(
         @NotBlank(message = "La verificación es obligatoria.")

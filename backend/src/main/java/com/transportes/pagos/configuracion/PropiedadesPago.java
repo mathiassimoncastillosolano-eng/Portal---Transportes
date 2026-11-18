@@ -11,31 +11,28 @@ import org.springframework.stereotype.Component;
 
 import lombok.Getter;
 
-/**
- * Parámetros de la integración con Mercado Pago. Los secretos (Access Token y clave de Webhooks) se leen
- * directamente en el cliente HTTP y en el validador de firmas; aquí solo hay valores no sensibles.
- */
+/** Parámetros de Mercado Pago leídos de application.properties (solo valores no secretos). */
 @Component
 @Getter
 public class PropiedadesPago {
 
-    /** Minutos que se mantienen bloqueados los asientos desde que se crea la order. */
+    /** Minutos que los asientos quedan bloqueados desde que se crea la order de pago. */
     private final long minutosPago;
-    /** Validación 3DS para tarjetas: on_fraud_risk (recomendado) o never. */
+    /** Validación 3DS de tarjetas: on_fraud_risk (recomendado) o never. */
     private final String validacion3ds;
-    /** Solo Sandbox: correo de pagador de prueba que exige Mercado Pago (vacío = usar el del comprador). */
+    /** Solo Sandbox: correo de pagador de prueba que pide Mercado Pago (vacío = usar el del comprador). */
     private final String emailPagadorPrueba;
     private final String nombreMetodoTarjeta;
     private final String nombreMetodoYape;
-    /** Tope por operación de Yape (S/ 500, 900 o 2000 según la app del pagador). */
+    /** Monto máximo por pago con Yape. */
     private final BigDecimal topeYape;
-    /** Intervalo mínimo entre consultas a Mercado Pago para una misma operación (polling del frontend). */
+    /** Segundos mínimos entre dos consultas a Mercado Pago de la misma operación (evita saturar la API). */
     private final long segundosEntreConsultas;
-    /** Tras este tiempo sin encontrar una order cuya creación tuvo resultado desconocido, se da por no creada. */
+    /** Si tras este tiempo no aparece una order cuya creación quedó en duda, se da por no creada. */
     private final long segundosResultadoDesconocido;
-    /** Tipos de documento que se envían en payer.identification (por defecto solo DNI: único valor presente en las dos listas de error observadas). */
+    /** Tipos de documento que se envían a Mercado Pago (por defecto solo DNI). */
     private final Set<String> tiposIdentificacion;
-    /** Traducciones explícitas catálogo→Orders, p. ej. "C.E=CE". Vacío por defecto: no hay conversiones automáticas. */
+    /** Traducciones de tipo de documento configuradas a mano, por ejemplo "C.E=CE". Vacío por defecto. */
     private final Map<String, String> mapeoTiposIdentificacion;
 
     public PropiedadesPago(

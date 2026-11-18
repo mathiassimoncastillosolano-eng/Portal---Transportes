@@ -14,15 +14,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 /**
- * Punto de entrada invocado por Spring Security cuando una peticion llega a
- * un endpoint protegido sin autenticacion valida (sin token, token
- * invalido, token expirado o token invalidado por cierre de sesion).
- *
- * Se ejecuta a nivel de filtro, antes de que la peticion llegue a los
- * controladores, por lo que no puede ser manejado por
- * {@code ManejadorGlobalExcepciones}. Aqui se construye manualmente una
- * respuesta 401 con el mismo formato ({@link RespuestaError}) que usa el
- * resto de la API, para mantener consistencia.
+ * Responde 401 cuando alguien entra a una ruta privada sin sesión válida (sin token, token inválido, vencido o
+ * cerrado). Esto pasa en el filtro, antes de llegar a los controladores, así que el manejador global no lo atrapa;
+ * por eso aquí se arma a mano el mismo formato RespuestaError.
  */
 @Component
 public class PuntoEntradaJwt implements AuthenticationEntryPoint {
@@ -33,7 +27,7 @@ public class PuntoEntradaJwt implements AuthenticationEntryPoint {
         this.objectMapper = objectMapper;
     }
 
-    /** Responde 401 en JSON cuando una ruta privada llega sin sesión válida. */
+    /** Escribe la respuesta 401 en JSON. */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
                         AuthenticationException authException) throws IOException, ServletException {

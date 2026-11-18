@@ -1,13 +1,6 @@
 package com.transportes.destinos.dto;
 
-/**
- * DTO de salida con la información mínima que necesita una tarjeta de
- * destino del frontend: identificador, nombre de la ciudad e imagen.
- *
- * @param id     Identificador de la ubicación en la base de datos.
- * @param ciudad Nombre de la ubicación, mostrado como ciudad en la tarjeta.
- * @param imagen URL de la imagen de la ubicación.
- */
+/** Datos de una tarjeta de destino: id de la ubicación, nombre de la ciudad y URL de su imagen. */
 public record DestinoRespuestaDTO(
         Long id,
         String ciudad,

@@ -43,8 +43,8 @@ import com.transportes.viajes.repositorios.ViajeRepositorio;
 import com.transportes.viajes.servicios.TokenSesionServicio.SesionReserva;
 
 /**
- * Lógica de los asientos de un viaje: DISPONIBLE -> BLOQUEADO_TEMPORAL -> OCUPADO. Cada cambio usa UPDATE
- * condicionado y avisa por SSE.
+ * Lógica de los asientos de un viaje. Un asiento pasa por DISPONIBLE -> BLOQUEADO_TEMPORAL -> OCUPADO. Cada cambio
+ * usa un UPDATE con condición (evita que dos clientes tomen el mismo) y se avisa en vivo por SSE.
  */
 @Service
 public class ViajeAsientoServicio {
@@ -82,17 +82,20 @@ public class ViajeAsientoServicio {
         return crearSesion(idViaje, null);
     }
 
-    /** Solo si el viaje sigue reservable (falta 20 min o más). */
+    /** Abre una sesión de reserva, solo si el viaje sigue reservable. */
     public SesionReservaResponseDTO crearSesion(Long idViaje, Integer minutos) {
         if (!viajeRepositorio.existsById(idViaje)) {
             throw new ViajeNoEncontradoException(idViaje);
         }
-        validadorReserva.exigirReservable(idViaje); // no salió y faltan >= 20 min (409 si no)
+        validadorReserva.exigirReservable(idViaje); // no salió y faltan 20 minutos o más (si no, 409)
         SesionReserva s = tokenSesionServicio.crear(idViaje, minutos);
         return new SesionReservaResponseDTO(s.tokenSesion(), s.fechaExpiracion(), s.segundosRestantes());
     }
 
-    /** Libera vencidos, junta cada asiento del viaje con su asiento físico y agrupa por piso. */
+    /**
+     * Mapa de asientos: primero libera los vencidos, junta cada asiento del viaje con su posición física y los
+     * agrupa por piso.
+     */
     @Transactional
     public MapaAsientosViajeDTO obtenerMapaAsientos(Long idViaje, String tokenSesion) {
         Viaje viaje = viajeRepositorio.findById(idViaje)
@@ -119,11 +122,14 @@ public class ViajeAsientoServicio {
         return construirMapaPorPiso(asientosCompletos);
     }
 
-    /** Sesión válida, viaje reservable, máx. 6 asientos y UPDATE solo si está DISPONIBLE. */
+    /**
+     * Bloquea un asiento: sesión válida, viaje reservable, máximo 6 asientos por sesión y UPDATE solo si está
+     * DISPONIBLE.
+     */
     @Transactional
     public BloqueoAsientoResponseDTO bloquearAsiento(Long idViaje, Integer idAsiento, BloqueoAsientoRequest request) {
         SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);
-        validadorReserva.exigirReservable(idViaje); // revalida en cada asiento: la sesión pudo abrirse hace minutos
+        validadorReserva.exigirReservable(idViaje); // se revalida en cada asiento porque la sesión pudo abrirse hace minutos
         Integer idViajeInt = Math.toIntExact(idViaje);
 
         viajeAsientoRepositorio.bloquearSesion(sesion.idSesion());
@@ -150,7 +156,7 @@ public class ViajeAsientoServicio {
         return new BloqueoAsientoResponseDTO(fisico.numero(), "bloqueado", sesion.fechaExpiracion());
     }
 
-    /** Solo libera si el asiento es de esta sesión. */
+    /** Libera un asiento, solo si es de esta sesión. */
     @Transactional
     public void liberarAsiento(Long idViaje, Integer idAsiento, LiberarAsientoRequest request) {
         SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);
@@ -165,7 +171,7 @@ public class ViajeAsientoServicio {
         publicador.publishEvent(new AsientoCambiadoEvento(idViaje, idAsiento, "disponible"));
     }
 
-    /** Libera todos los asientos de la sesión; devuelve cuántos. */
+    /** Libera todos los asientos de la sesión y devuelve cuántos. */
     @Transactional
     public int liberarSesion(Long idViaje, LiberarAsientoRequest request) {
         SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);
@@ -184,22 +190,18 @@ public class ViajeAsientoServicio {
         return liberados;
     }
 
-    /** Asiento vendido dentro de la transacción de registro de la compra. */
+    /** Asiento vendido dentro de la transacción de la compra. */
     public record AsientoOcupado(Integer idAsiento, Integer idViajeAsiento, Integer idPasajero,
                                  BigDecimal precio, String numero, short piso) {
     }
 
     /**
-     * GANCHO PARA PAGOS: lo invoca SOLO el registro de una compra cuyo pago Mercado Pago ya fue verificado
-     * en el backend ({@code RegistroCompraServicio}). No usa el JWT de la sesión (puede haber vencido mientras
-     * se procesaba el pago): la operación de pago guarda el id de sesión que figura en token_bloqueo.
-     *
-     * <p>Debe ejecutarse dentro de la transacción del registro (MANDATORY): crea o actualiza los pasajeros y pasa
-     * a OCUPADO cada asiento que SIGUE bloqueado por esa sesión. Si alguno ya no lo está (lo liberó el job y otro
-     * cliente lo tomó), lanza excepción y se revierte TODO: todo o nada.</p>
-     *
-     * @param pasajeros exactamente uno por cada asiento bloqueado de la sesión
-     * @throws AsientoNoDisponibleException si no hay asientos, faltan pasajeros o alguno ya no pertenece a la sesión
+     * Ocupa los asientos de una compra pagada. Solo lo llama RegistroCompraServicio cuando el pago ya fue
+     * verificado. No usa el token de la sesión (pudo vencer durante el pago) sino el id de sesión guardado en la
+     * operación. Debe correr dentro de esa transacción: crea o actualiza los pasajeros y pasa a OCUPADO cada
+     * asiento que SIGUE bloqueado por esa sesión. Si alguno ya no lo está, lanza error y se deshace todo.
+     * @param pasajeros uno por cada asiento bloqueado de la sesión
+     * @throws AsientoNoDisponibleException si no hay asientos, faltan pasajeros o alguno ya no es de la sesión
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public List<AsientoOcupado> ocuparAsientosDeSesion(Long idViaje, String idSesion, List<PasajeroAsientoRequest> pasajeros) {
@@ -244,9 +246,8 @@ public class ViajeAsientoServicio {
     }
 
     /**
-     * Mantiene bloqueados los asientos de la sesión mientras Mercado Pago procesa el pago, para que el job de
-     * liberación no los suelte a mitad del cobro. Solo afecta asientos todavía vigentes de esa sesión.
-     *
+     * Mantiene bloqueados los asientos de la sesión mientras Mercado Pago procesa el pago, para que el job no los
+     * suelte a mitad del cobro.
      * @return cantidad de asientos extendidos
      */
     @Transactional(propagation = Propagation.MANDATORY)
@@ -255,7 +256,7 @@ public class ViajeAsientoServicio {
                 Math.toIntExact(idViaje), idSesion, nuevaExpiracion, LocalDateTime.now());
     }
 
-    /** Libera bloqueos vencidos (todos los viajes) y emite un evento por asiento. Lo usa el job. */
+    /** Libera los bloqueos vencidos de todos los viajes y avisa cada asiento por SSE. Lo usa el job. */
     @Transactional
     public int liberarVencidosGlobal() {
         return liberarVencidos(null);
@@ -280,9 +281,9 @@ public class ViajeAsientoServicio {
     }
 
     /**
-     * Pasajero existente: solo se actualizan los datos permitidos (celular y, si faltaba, la fecha de
-     * nacimiento); nombres y apellidos nunca se sobrescriben. Pasajero nuevo: se crea con todos los datos.
-     * El candado por documento evita que dos compras simultáneas creen el mismo pasajero dos veces.
+     * Si el pasajero ya existe, solo se actualizan celular y (si faltaba) fecha de nacimiento; nombres y apellidos
+     * nunca se sobrescriben. Si no existe, se crea. Un candado por documento evita crear el mismo pasajero dos
+     * veces a la vez.
      */
     private Integer buscarOCrearPasajero(PasajeroAsientoRequest p) {
         viajeAsientoRepositorio.bloquearSesion("pasajero:" + p.tipoDocumento() + ":" + p.numeroDocumento());

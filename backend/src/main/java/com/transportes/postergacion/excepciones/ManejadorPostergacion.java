@@ -15,8 +15,8 @@ import com.transportes.postergacion.controladores.PostergacionControlador;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Responde el rechazo de una postergación con el mismo formato de error de toda la API (409), agregando en
- * {@code detalles} el código del motivo. Solo aplica a PostergacionControlador y va antes del manejador global.
+ * Manejador de errores solo para PostergacionControlador (se aplica antes que el global). Convierte un rechazo en
+ * 409 con el formato normal de error y agrega en detalles el código del motivo.
  */
 @RestControllerAdvice(assignableTypes = PostergacionControlador.class)
 @Order(Ordered.HIGHEST_PRECEDENCE)

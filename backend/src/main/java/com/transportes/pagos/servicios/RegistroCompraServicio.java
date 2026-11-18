@@ -27,9 +27,9 @@ import com.transportes.viajes.servicios.ViajeAsientoServicio;
 import com.transportes.viajes.servicios.ViajeAsientoServicio.AsientoOcupado;
 
 /**
- * Registro DEFINITIVO de una compra. Solo se invoca con una order que el backend consultó en Mercado Pago y que
- * está {@code processed/accredited}. Todo ocurre en la transacción del llamador (que además tiene bloqueada la
- * fila de la operación): pasajeros, asientos OCUPADO, venta, pago y pasajes se guardan juntos o no se guarda nada.
+ * Guarda la compra definitiva. Solo se llama con una order aprobada (processed/accredited) que el backend consultó
+ * en Mercado Pago. Todo va en una sola transacción: pasajeros, asientos OCUPADO, venta, pago y pasajes se guardan
+ * juntos o no se guarda nada.
  */
 @Service
 public class RegistroCompraServicio {
@@ -58,10 +58,11 @@ public class RegistroCompraServicio {
     }
 
     /**
-     * @param op    operación bloqueada (SELECT ... FOR UPDATE) en la transacción actual
+     * Registra la compra de la operación.
+     * @param op operación con su fila bloqueada
      * @param orden order consultada en Mercado Pago
-     * @throws AsientoNoDisponibleException si los asientos o el importe ya no coinciden (se revierte todo)
-     * @throws IllegalStateException si la order no corresponde a la operación o no está aprobada
+     * @throws AsientoNoDisponibleException si los asientos o el monto ya no coinciden (se deshace todo)
+     * @throws IllegalStateException si la order no es de esta operación o no está aprobada
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public Venta registrar(OperacionPago op, OrdenMercadoPago orden) {
@@ -91,7 +92,7 @@ public class RegistroCompraServicio {
         venta.setMontoTotal(op.getMonto());
         venta.setFechaCreacion(ahora);
         venta.setEstadoVenta(Venta.ESTADO_PAGADA);
-        venta.setEntorno(op.getEntorno()); // la venta hereda el entorno con el que se verificó el pago
+        venta.setEntorno(op.getEntorno()); // la venta guarda el entorno del pago
         venta = ventaRepositorio.saveAndFlush(venta);
 
         Pago pago = new Pago();
@@ -118,7 +119,7 @@ public class RegistroCompraServicio {
         op.setEstado(EstadoOperacion.APROBADO);
         op.setMensaje(null);
         op.setUrlDesafio3ds(null);
-        op.setDatosPasajeros(null); // minimización: los datos ya están en pasajero/pasaje
+        op.setDatosPasajeros(null); // ya no hace falta la copia: los datos quedaron en pasajero y pasaje
         op.setFechaActualizacion(ahora);
 
         log.info("Compra registrada: operacion={}, order={}, venta={}, pasajes={}",
@@ -126,7 +127,7 @@ public class RegistroCompraServicio {
         return venta;
     }
 
-    /** Antes de cobrar: falla rápido si falta el método de pago en el catálogo (migración 003 no aplicada). */
+    /** Id del método de pago en el catálogo. Falla antes de cobrar si no existe. */
     public Integer idMetodoPago(String medioPago) {
         String nombre = "YAPE".equals(medioPago) ? propiedades.getNombreMetodoYape() : propiedades.getNombreMetodoTarjeta();
         return metodoPagoRepositorio.findByNombreMetodoAndActivoTrue(nombre)

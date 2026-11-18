@@ -4,9 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Formato unico y consistente para todas las respuestas de error de la API.
- * Nunca incluye detalles internos (stacktraces, mensajes de excepciones de
- * base de datos, etc.), solo informacion segura para mostrar al frontend.
+ * Formato único de todas las respuestas de error: estado, error, mensaje, ruta, fecha y detalles. Nunca lleva
+ * detalles internos.
  */
 public class RespuestaError {
 
@@ -17,7 +16,7 @@ public class RespuestaError {
     private final String ruta;
     private final List<String> detalles;
 
-    /** Arma el error con la fecha actual. */
+    /** Crea el error con la fecha y hora actual. */
     public RespuestaError(int status, String error, String mensaje, String ruta, List<String> detalles) {
         this.fecha = LocalDateTime.now();
         this.status = status;

@@ -1,35 +1,35 @@
 package com.transportes.pagos.entidades;
 
 /**
- * Estados internos de una operación de pago. Solo APROBADO tiene una venta asociada.
- * Los estados finales nunca retroceden (una notificación tardía o repetida no los cambia).
+ * Estados de una operación de pago. Solo APROBADO tiene venta. Un estado final nunca vuelve atrás, aunque llegue
+ * un aviso tardío o repetido.
  */
 public enum EstadoOperacion {
-    /** Registrada localmente; la order aún no se creó o su resultado es desconocido (p. ej. timeout). */
+    /** Guardada en la base; la order aún no se creó o no se sabe si se creó (por ejemplo, por un timeout). */
     CREANDO,
-    /** Order creada; Mercado Pago aún no da un resultado final (processing / in_process / waiting_*). */
+    /** Order creada; Mercado Pago todavía no da un resultado final. */
     EN_PROCESO,
-    /** El comprador debe completar un desafío 3DS. */
+    /** El comprador debe completar la verificación 3DS de su banco. */
     ACCION_REQUERIDA,
-    /** Pago verificado en el backend y compra registrada (venta, pago, pasajes). */
+    /** Pago verificado y compra registrada (venta, pago y pasajes). */
     APROBADO,
-    /** Pago rechazado o cancelado por el proveedor: no hay cobro ni venta. */
+    /** Pago rechazado o cancelado: no hay cobro ni venta. */
     RECHAZADO,
-    /** La ventana de pago venció sin una aprobación. */
+    /** Se acabó el tiempo para pagar sin aprobación. */
     EXPIRADO,
-    /** No se pudo crear la order (datos inválidos o error definitivo del proveedor). */
+    /** No se pudo crear la order (datos inválidos o error definitivo). */
     ERROR,
-    /** Cobro aprobado pero los asientos ya no estaban disponibles: requiere devolución. */
+    /** Se cobró, pero los asientos ya no estaban libres: hay que devolver el dinero. */
     APROBADO_SIN_ASIENTOS,
-    /** Cobro devuelto al comprador. */
+    /** El dinero se devolvió al comprador. */
     REEMBOLSADO;
 
-    /** Activos: CREANDO, EN_PROCESO y ACCION_REQUERIDA (todavía pueden cambiar). */
+    /** true para CREANDO, EN_PROCESO y ACCION_REQUERIDA (todavía pueden cambiar). */
     public boolean esActivo() {
         return this == CREANDO || this == EN_PROCESO || this == ACCION_REQUERIDA;
     }
 
-    /** Final: ya no cambia aunque llegue otra notificación. */
+    /** true si es un estado final (ya no cambia). */
     public boolean esFinal() {
         return !esActivo();
     }

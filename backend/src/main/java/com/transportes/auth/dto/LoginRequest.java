@@ -3,9 +3,7 @@ package com.transportes.auth.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-/**
- * Cuerpo esperado por {@code POST /api/auth/login}.
- */
+/** Correo y contraseña que envía el formulario de login (Portal y Sistema Empresarial). */
 public class LoginRequest {
 
     @NotBlank(message = "El correo es obligatorio.")

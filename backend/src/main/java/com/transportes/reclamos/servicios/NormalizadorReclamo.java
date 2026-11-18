@@ -9,10 +9,7 @@ import java.util.regex.Pattern;
 
 import com.transportes.reclamos.dto.RegistrarReclamoRequest;
 
-/**
- * Limpia los textos del formulario (espacios, mayúsculas, caracteres de control) y valida las reglas de cada
- * campo.
- */
+/** Limpia los textos del formulario (espacios, mayúsculas, caracteres raros) y valida las reglas de cada campo. */
 final class NormalizadorReclamo {
 
     private static final Pattern CONTROL = Pattern.compile("[\\p{Cntrl}&&[^\\n]]");

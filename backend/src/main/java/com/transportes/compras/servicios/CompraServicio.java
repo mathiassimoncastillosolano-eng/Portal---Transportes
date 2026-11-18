@@ -17,8 +17,8 @@ import com.transportes.compras.reglas.ConstructorCompras;
 import com.transportes.compras.repositorios.CompraRepositorio;
 
 /**
- * Casos de uso de "Mis pasajes", historial e indicadores del perfil. Recibe siempre el id del usuario autenticado
- * (extraído del JWT por el controlador) y delega el criterio de negocio en {@link ConstructorCompras}.
+ * Casos de uso de "Mis pasajes", historial y resumen del perfil. Recibe el id del usuario del token, pide las
+ * filas al repositorio y deja el armado a ConstructorCompras.
  */
 @Service
 public class CompraServicio {
@@ -31,13 +31,13 @@ public class CompraServicio {
         this.reloj = relojNegocio;
     }
 
-    /** Resumen del perfil calculado con la hora de Perú. */
+    /** Contadores del perfil, calculados con la hora de Perú. */
     @Transactional(readOnly = true)
     public ResumenPerfilDto resumen(int idUsuario) {
         return ConstructorCompras.resumen(repositorio.filasResumen(idUsuario), ahora());
     }
 
-    /** Vigentes primero y, después, el resto de las compras. */
+    /** Compras para "Mis pasajes": vigentes primero y luego el resto. */
     @Transactional(readOnly = true)
     public ListaComprasDto listar(int idUsuario) {
         List<CompraDto> compras = ConstructorCompras.agrupar(repositorio.filasDelUsuario(idUsuario), ahora());
@@ -53,8 +53,9 @@ public class CompraServicio {
     }
 
     /**
-     * @throws ResponseStatusException 404 si la compra no existe O no pertenece al usuario (misma respuesta en
-     *                                 ambos casos para no revelar qué ventas existen)
+     * Detalle de una compra del usuario.
+     * @throws ResponseStatusException 404 si no existe o es de otra cuenta (misma respuesta en ambos casos para no
+     * revelar qué ventas existen)
      */
     @Transactional(readOnly = true)
     public CompraDto detalle(int idUsuario, int idVenta) {

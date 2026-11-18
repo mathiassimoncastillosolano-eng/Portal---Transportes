@@ -17,8 +17,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * Consultas SQL (JDBC) de solo lectura para el panel de clientes. Todos los filtros van como parámetros,
- * nunca concatenados.
+ * Consultas SQL de solo lectura (con JdbcTemplate) para el panel de clientes. Los filtros siempre van como
+ * parámetros "?", nunca pegados al texto, para evitar inyección SQL.
  */
 @Repository
 public class ClientesRepositorio {
@@ -101,7 +101,7 @@ public class ClientesRepositorio {
         this.jdbc = jdbc;
     }
 
-    /** Una página de pasajeros según el filtro. */
+    /** Trae una página de pasajeros que cumplen el filtro. */
     public List<ClienteResumenDto> listar(FiltroClientes filtro, LocalDateTime ahora) {
         Map<String, Object> parametros = new HashMap<>();
         String donde = condiciones(filtro, parametros);
@@ -118,7 +118,7 @@ public class ClientesRepositorio {
                 rs.getObject("proximo_viaje", LocalDateTime.class)));
     }
 
-    /** Total de pasajeros con el mismo filtro (para la paginación). */
+    /** Cuenta cuántos pasajeros cumplen el mismo filtro (sirve para saber cuántas páginas hay). */
     public long contar(FiltroClientes filtro, LocalDateTime ahora) {
         Map<String, Object> parametros = new HashMap<>();
         String donde = condiciones(filtro, parametros);
@@ -129,7 +129,9 @@ public class ClientesRepositorio {
         return total == null ? 0 : total;
     }
 
-    /** Cuenta pasajeros, con viajes próximos, con viajes realizados y pasajes confirmados. */
+    /**
+     * Totales del panel: pasajeros, pasajeros con viajes próximos, con viajes realizados y pasajes confirmados.
+     */
     public IndicadoresClientesDto indicadores(LocalDateTime ahora) {
         Map<String, Object> parametros = Map.of("ahora", ahora);
         Long total = jdbc.queryForObject("SELECT COUNT(*) FROM pasajero", parametros, Long.class);
@@ -144,7 +146,7 @@ public class ClientesRepositorio {
         return new IndicadoresClientesDto(total == null ? 0 : total, agregados[0], agregados[1], agregados[2], tipos);
     }
 
-    /** Datos de un pasajero y fechas de su primer, último y próximo viaje. */
+    /** Datos de un pasajero más las fechas de su primer, último y próximo viaje. Vacío si no existe. */
     public Optional<DatosPasajero> buscarPasajero(int idPasajero, LocalDateTime ahora) {
         String sql = """
                 SELECT pj.id_pasajero, pj.tipo_documento, pj.numero_documento, pj.nombres, pj.apellidos,

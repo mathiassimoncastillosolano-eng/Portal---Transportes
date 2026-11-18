@@ -12,9 +12,8 @@ import com.transportes.pagos.entidades.EntornoPago;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Un cliente de la API de Orders por entorno. Cada cliente se construye UNA vez con el Access Token de su entorno,
- * de modo que es imposible, por construcción, consultar una order de Producción con credenciales de Sandbox (o al
- * revés): el llamador siempre elige el cliente con el entorno guardado en la operación.
+ * Guarda un cliente HTTP por entorno, cada uno creado con su propio Access Token. Así es imposible consultar una
+ * order de Producción con credenciales de Sandbox: se elige el cliente según el entorno guardado en la operación.
  */
 @Component
 public class ClientesMercadoPago {
@@ -31,7 +30,7 @@ public class ClientesMercadoPago {
         }
     }
 
-    /** Cliente HTTP con las credenciales de ese entorno. */
+    /** Cliente HTTP del entorno pedido. */
     public ClienteMercadoPago de(EntornoPago entorno) {
         return clientes.get(entorno);
     }

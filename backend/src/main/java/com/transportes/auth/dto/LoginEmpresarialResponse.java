@@ -1,9 +1,6 @@
 package com.transportes.auth.dto;
 
-/**
- * Respuesta de {@code POST /api/auth/login-empresarial}: el JWT, los datos
- * de la cuenta y los datos de trabajo del empleado (rol y sede).
- */
+/** Respuesta del login del Sistema Empresarial: JWT, datos de la cuenta, rol (AGENCIA o GERENTE) y sede. */
 public class LoginEmpresarialResponse {
 
     private final String token;

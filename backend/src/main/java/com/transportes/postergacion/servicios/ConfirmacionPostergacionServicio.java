@@ -39,19 +39,15 @@ import static com.transportes.postergacion.excepciones.PostergacionRechazadaExce
 import static com.transportes.postergacion.excepciones.PostergacionRechazadaException.VIAJE_NO_RESERVABLE;
 
 /**
- * HU-02 · Confirmación de la postergación (criterios 8 a 11).
- *
- * <p>Patrón: Fachada transaccional. {@link #confirmar} es UNA sola transacción que hace, en este orden:</p>
- * <ol>
- *   <li>Revalida el pasaje (del usuario, vigente, 6 h) y el viaje nuevo.</li>
- *   <li>Pasa el asiento nuevo a OCUPADO (solo si sigue bloqueado por la sesión de reserva del usuario).</li>
- *   <li>Cambia el asiento del pasaje al nuevo (mismo pasaje, misma venta).</li>
- *   <li>Deja DISPONIBLE el asiento original.</li>
- *   <li>Guarda la fila de historial con viaje anterior, viaje nuevo, asientos e importe (criterio 10).</li>
- * </ol>
- * <p>Criterio 8: todo ocurre junto o no ocurre. Criterio 9: cualquier rechazo o fallo a mitad de camino lanza una
- * excepción y la transacción se revierte completa, así que el pasaje conserva su viaje, asiento y estado.
- * Los eventos del mapa de asientos se emiten recién al confirmar la transacción (nunca si se revierte).</p>
+ * Confirma el cambio de pasaje (HU-02, criterios 8 a 11). Patrón Fachada transaccional: confirmar hace todo en UNA
+ * transacción, en este orden:
+ * 1) Revalida el pasaje (del usuario, vigente, 6 h) y el viaje nuevo.
+ * 2) Pasa el asiento nuevo a OCUPADO (solo si sigue bloqueado por la sesión del usuario).
+ * 3) Cambia el asiento del pasaje al nuevo (mismo pasaje, misma venta).
+ * 4) Libera el asiento original.
+ * 5) Guarda el historial en postergacion.
+ * Si algo falla en cualquier paso se lanza un error y se deshace todo: el pasaje queda como estaba (criterios 8 y
+ * 9).
  */
 @Service
 public class ConfirmacionPostergacionServicio {
@@ -86,18 +82,16 @@ public class ConfirmacionPostergacionServicio {
     }
 
     /**
-     * Aplica la postergación.
-     *
+     * Aplica el cambio del pasaje.
      * @throws ResponseStatusException 404 si el pasaje no existe o es de otra cuenta
-     * @throws PostergacionRechazadaException 409 con el motivo y un código si no se puede aplicar; en ese caso no
-     *         se guarda nada
+     * @throws PostergacionRechazadaException 409 con el motivo si no se puede aplicar (no se guarda nada)
      */
     @Transactional
     public ConfirmacionPostergacionDto confirmar(int idUsuario, int idPasaje, ConfirmarPostergacionRequest solicitud) {
-        // 0) Una confirmación a la vez por pasaje: un doble clic no puede mover el pasaje dos veces.
+        // Paso 0: una confirmación a la vez por pasaje, así un doble clic no lo mueve dos veces.
         asientos.bloquearSesion("postergacion:" + idPasaje);
 
-        // 1) Revalida el pasaje con los datos de ahora (vigente y 6 h) y valida la sesión del asiento nuevo.
+        // Paso 1: revalida el pasaje con la hora actual (vigente y 6 h) y la sesión del asiento nuevo.
         FilaCompra antes = postergaciones.exigirPasajeCambiable(idUsuario, idPasaje);
         SesionReserva sesion = validarSesion(solicitud);
         Pasaje pasaje = pasajes.findById(idPasaje)
@@ -117,20 +111,21 @@ public class ConfirmacionPostergacionServicio {
         exigirViajeReservable(solicitud.idViajeNuevo());
         BigDecimal importe = exigirPagoSuficiente(solicitud, pasaje, antes, nuevo);
 
-        // 2) Criterio 8 y 9: el asiento nuevo pasa a OCUPADO solo si SIGUE bloqueado por esta sesión.
+        // Paso 2: el asiento nuevo pasa a OCUPADO solo si sigue bloqueado por esta sesión.
         if (asientos.ocuparAsientoDeSesion(nuevo.getIdViajeAsiento(), sesion.idSesion(), pasaje.getIdPasajero()) != 1) {
             throw rechazo(ASIENTO_NO_DISPONIBLE, MOTIVO_ASIENTO);
         }
-        // 3) El pasaje (misma venta) pasa al asiento nuevo.
+        // Paso 3: el pasaje (misma venta) pasa al asiento nuevo.
         if (historial.moverPasajeAlAsiento(idPasaje, original.getIdViajeAsiento(), nuevo.getIdViajeAsiento()) != 1) {
             throw rechazo(CAMBIO_NO_APLICADO, "No pudimos actualizar tu pasaje. No se hizo ningún cambio.");
         }
-        // 4) El asiento original queda libre. Si no estaba ocupado algo anda mal: se revierte TODO.
+        // Paso 4: se libera el asiento original. Si no estaba ocupado algo anda mal y se deshace todo.
         if (historial.liberarAsientoOcupado(original.getIdViajeAsiento()) != 1) {
             throw rechazo(CAMBIO_NO_APLICADO, "No pudimos liberar tu asiento anterior. No se hizo ningún cambio.");
         }
 
-        // 5) Criterio 10: historial con viaje anterior y nuevo, asientos e importe (+ referencia del pago adicional).
+        // Paso 5 (criterio 10): guarda el historial con viaje anterior y nuevo, asientos, monto y referencia del
+        // pago.
         LocalDateTime ahora = LocalDateTime.now(reloj);
         Postergacion fila = new Postergacion();
         fila.setIdPasaje(idPasaje);
@@ -144,14 +139,15 @@ public class ConfirmacionPostergacionServicio {
         fila.setFechaPostergacion(ahora);
         fila = historial.save(fila);
 
-        // 6) Criterio 11: lo que ve el cliente sale de lo que quedó guardado, no de lo que mandó el navegador.
+        // Paso 6 (criterio 11): la respuesta se arma con lo que quedó guardado, no con lo que mandó el navegador.
         FilaCompra despues = compras.filasDelUsuario(idUsuario).stream()
                 .filter(f -> Objects.equals(f.idPasaje(), idPasaje))
                 .findFirst()
                 .orElseThrow(() -> rechazo(CAMBIO_NO_APLICADO,
                         "No pudimos leer tu pasaje actualizado. No se hizo ningún cambio."));
 
-        // Los eventos se entregan al confirmar la transacción: si se revierte, el mapa no cambia.
+        // Avisa al mapa de asientos en tiempo real, pero solo cuando la transacción se confirma (si se deshace, no
+        // se avisa).
         publicador.publishEvent(new AsientoCambiadoEvento(
                 original.getIdViaje().longValue(), original.getIdAsiento(), "disponible"));
         publicador.publishEvent(new AsientoCambiadoEvento(
@@ -163,7 +159,10 @@ public class ConfirmacionPostergacionServicio {
                 despues.numeroAsiento(), importe, fila.getReferenciaPago(), ahora);
     }
 
-    /** La sesión de reserva venció (o no es de este viaje): el asiento ya no está reservado para el usuario. */
+    /**
+     * Valida la sesión de reserva del asiento nuevo. Si venció o es de otro viaje, el asiento ya no está reservado
+     * para el usuario.
+     */
     private SesionReserva validarSesion(ConfirmarPostergacionRequest solicitud) {
         try {
             return tokens.validar(solicitud.tokenSesion(), solicitud.idViajeNuevo());
@@ -176,7 +175,7 @@ public class ConfirmacionPostergacionServicio {
         }
     }
 
-    /** El viaje nuevo todavía admite reservas (programado, no salió, faltan 20 min o más). */
+    /** Exige que el viaje nuevo todavía acepte reservas (programado, no salió y faltan 20 minutos o más). */
     private void exigirViajeReservable(Long idViajeNuevo) {
         try {
             validadorReserva.exigirReservable(idViajeNuevo);
@@ -188,11 +187,9 @@ public class ConfirmacionPostergacionServicio {
     }
 
     /**
-     * El pago debe cubrir la diferencia real entre el precio del asiento nuevo y TODO lo que ya pagó el pasaje:
-     * {@code pasaje.precio + SUM(postergacion.importe_adicional)}. Así una segunda (o tercera) postergación no cobra
-     * otra vez lo que ya se pagó en la anterior. La suma sale de la misma consulta que alimenta "Mis pasajes"
-     * ({@code antes.adicionalPagado()}), de modo que el front y el servidor calculan igual. Como el pago es
-     * simulado, la referencia es obligatoria cuando hay importe. Devuelve el importe que se registra.
+     * Revisa que el pago cubra la diferencia entre el precio del asiento nuevo y TODO lo que ya se pagó por el
+     * pasaje (precio + pagos de cambios anteriores), así un segundo cambio no cobra otra vez lo ya pagado. Si hay
+     * monto, la referencia de pago es obligatoria. Devuelve el monto que se guarda.
      */
     private BigDecimal exigirPagoSuficiente(ConfirmarPostergacionRequest solicitud, Pasaje pasaje, FilaCompra antes,
                                             ViajeAsiento nuevo) {

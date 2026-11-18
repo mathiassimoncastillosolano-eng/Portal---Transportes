@@ -6,11 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Contiene la lógica de negocio necesaria para obtener los destinos que
- * se muestran en el frontend, a partir de las ubicaciones activas
- * registradas en la base de datos.
- */
+/** Lógica de la sección Destinos: lee las ubicaciones activas y las convierte en tarjetas. */
 @Service
 public class DestinoServicio {
 
@@ -20,11 +16,7 @@ public class DestinoServicio {
         this.ubicacionRepositorio = ubicacionRepositorio;
     }
 
-    /**
-     * Devuelve los destinos activos, convertidos al DTO que necesita la
-     * tarjeta de destino del frontend. Si no existen ubicaciones activas
-     * en la base de datos, se devuelve una lista vacía.
-     */
+    /** Ubicaciones activas convertidas a DestinoRespuestaDTO. Si no hay ninguna, devuelve una lista vacía. */
     public List<DestinoRespuestaDTO> obtenerDestinosActivos() {
         return ubicacionRepositorio.findByActivaTrueOrderByNombreAsc()
                 .stream()

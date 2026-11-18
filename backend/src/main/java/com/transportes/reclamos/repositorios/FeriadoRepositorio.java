@@ -27,7 +27,7 @@ public class FeriadoRepositorio {
                 (rs, fila) -> rs.getDate("fecha").toLocalDate()));
     }
 
-    /** ¿Se cargaron los feriados de ese año? (si no, el plazo no sería confiable) */
+    /** true si están cargados los feriados de ese año (si no, el plazo calculado no sería confiable). */
     public boolean hayFeriadosEnAnio(int anio) {
         Integer total = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM public.feriado WHERE fecha BETWEEN :desde AND :hasta",

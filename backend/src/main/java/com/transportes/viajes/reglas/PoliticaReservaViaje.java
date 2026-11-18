@@ -7,34 +7,29 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 
 /**
- * Regla de negocio de reservas por viaje. Clase pura (sin Spring ni BD) para poder probarla con relojes fijos.
- *
- * <p>Un viaje solo se puede reservar si faltan AL MENOS {@value #MINUTOS_ANTICIPACION} minutos para su salida.
- * La hora límite es inclusiva: con salida a las 08:00 se puede reservar hasta las 07:40:00.000 (inclusive).</p>
- *
- * <p>Todas las fechas y horas de los viajes son hora local de Perú ({@link #ZONA_NEGOCIO}); la comparación se
- * hace siempre con fecha + hora completas (nunca solo con la hora del día), así que cruzar la medianoche o
- * consultar un viaje de un día anterior da el resultado correcto.</p>
+ * Regla de reserva de un viaje: solo se puede reservar si faltan AL MENOS 20 minutos para la salida (con salida a
+ * las 08:00 se puede hasta las 07:40 inclusive). Patrón Regla pura: sin Spring ni base de datos, se prueba con un
+ * reloj fijo. Siempre compara fecha + hora completas en hora de Perú, así funciona bien al cruzar la medianoche.
  */
 public final class PoliticaReservaViaje {
 
     public static final ZoneId ZONA_NEGOCIO = ZoneId.of("America/Lima");
     public static final int MINUTOS_ANTICIPACION = 20;
     public static final Duration ANTICIPACION_MINIMA = Duration.ofMinutes(MINUTOS_ANTICIPACION);
-    /** Único estado de viaje que admite reservas; cualquier otro (p. ej. CANCELADO) las bloquea. */
+    /** Único estado de viaje que acepta reservas; cualquier otro (por ejemplo CANCELADO) las bloquea. */
     public static final String ESTADO_VIAJE_RESERVABLE = "PROGRAMADO";
 
-    /** Estado de reserva de un viaje, en orden de prioridad de presentación (el primero que aplica gana). */
+    /** Estado de reserva de un viaje. Están en orden de prioridad: gana el primero que se cumple. */
     public enum EstadoReserva {
-        /** Estado administrativo distinto de PROGRAMADO (cancelado, suspendido…). */
+        /** El viaje no está PROGRAMADO (cancelado, suspendido...). */
         NO_DISPONIBLE,
         /** La hora de salida ya llegó o pasó. */
         SALIDA_REALIZADA,
-        /** El viaje tiene asientos registrados pero ninguno disponible. */
+        /** Tiene asientos registrados, pero ninguno disponible. */
         LLENO,
-        /** No hay asientos registrados para el viaje: no se puede afirmar que esté lleno ni reservar. */
+        /** El viaje no tiene asientos registrados: no se puede decir si está lleno ni reservar. */
         SIN_INFORMACION,
-        /** Aún no salió, pero faltan menos de 20 minutos. */
+        /** Todavía no sale, pero faltan menos de 20 minutos. */
         RESERVA_CERRADA,
         /** Se puede reservar. */
         DISPONIBLE;
@@ -47,30 +42,31 @@ public final class PoliticaReservaViaje {
     private PoliticaReservaViaje() {
     }
 
-    /** Fecha y hora de salida juntas. */
+    /** Junta fecha y hora de salida. */
     public static LocalDateTime salida(LocalDate fechaSalida, LocalTime horaSalida) {
         return LocalDateTime.of(fechaSalida, horaSalida);
     }
 
-    /** Última hora a la que todavía se puede reservar (inclusive): salida − 20 minutos. */
+    /** Última hora a la que se puede reservar (inclusive): salida menos 20 minutos. */
     public static LocalDateTime limiteReserva(LocalDate fechaSalida, LocalTime horaSalida) {
         return salida(fechaSalida, horaSalida).minus(ANTICIPACION_MINIMA);
     }
 
-    /** true si {@code ahora <= salida − 20 min}. No mira asientos ni estado administrativo. */
+    /** true si ahora es antes o igual a salida menos 20 minutos. No mira asientos ni estado del viaje. */
     public static boolean cumpleAnticipacion(LocalDate fechaSalida, LocalTime horaSalida, LocalDateTime ahora) {
         return !ahora.isAfter(limiteReserva(fechaSalida, horaSalida));
     }
 
-    /** true si la salida programada ya llegó ({@code ahora >= salida}). */
+    /** true si la hora de salida ya llegó. */
     public static boolean yaSalio(LocalDate fechaSalida, LocalTime horaSalida, LocalDateTime ahora) {
         return !ahora.isBefore(salida(fechaSalida, horaSalida));
     }
 
     /**
-     * @param totalAsientos       asientos registrados para el viaje (0 = sin información de disponibilidad)
-     * @param asientosDisponibles asientos que se pueden reservar ahora
-     * @param ahora               hora actual en {@link #ZONA_NEGOCIO}
+     * Calcula el estado de reserva del viaje.
+     * @param totalAsientos asientos registrados del viaje (0 = sin información)
+     * @param asientosDisponibles asientos libres ahora
+     * @param ahora hora actual de Perú
      */
     public static EstadoReserva evaluar(String estadoViaje, LocalDate fechaSalida, LocalTime horaSalida,
                                         int totalAsientos, int asientosDisponibles, LocalDateTime ahora) {
@@ -82,12 +78,14 @@ public final class PoliticaReservaViaje {
         return EstadoReserva.DISPONIBLE;
     }
 
-    /** Milisegundos desde epoch (UTC) de una fecha-hora local de Perú; para que el navegador no dependa de su zona. */
+    /**
+     * Convierte una fecha y hora de Perú a milisegundos UTC, para que el navegador no dependa de su zona horaria.
+     */
     public static long aEpochMs(LocalDateTime local) {
         return local.atZone(ZONA_NEGOCIO).toInstant().toEpochMilli();
     }
 
-    /** Mensaje para el usuario cuando una reserva se rechaza por tiempo (no por asientos). */
+    /** Mensaje para el usuario cuando se rechaza una reserva por tiempo. */
     public static String mensajeRechazo(EstadoReserva estado) {
         return switch (estado) {
             case SALIDA_REALIZADA -> "Este bus ya salió. Ya no se pueden reservar pasajes para este viaje.";

@@ -1,8 +1,8 @@
 package com.transportes.auth.servicios;
 
 /**
- * Plantillas (HTML con estilos en linea + texto plano) de los correos de recuperacion.
- * Paleta tomada del tema oscuro de RutaLibre: fondo azul oscuro, acento verde turquesa.
+ * Plantillas de los correos de recuperación (HTML con estilos en línea y texto plano), con los colores de
+ * RutaLibre.
  */
 final class PlantillasCorreoRecuperacion {
 

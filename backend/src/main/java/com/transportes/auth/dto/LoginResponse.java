@@ -1,9 +1,6 @@
 package com.transportes.auth.dto;
 
-/**
- * Respuesta de {@code POST /api/auth/login}: el JWT y los datos minimos del
- * usuario autenticado.
- */
+/** Respuesta del login del Portal: el JWT y los datos básicos del usuario. */
 public class LoginResponse {
 
     private final String token;

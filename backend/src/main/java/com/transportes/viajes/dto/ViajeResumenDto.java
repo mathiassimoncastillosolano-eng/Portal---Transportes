@@ -10,11 +10,11 @@ public record ViajeResumenDto(
         LocalDate fechaSalida, String horaSalida, String horaLlegada,
         LocalDate fechaLlegada, String duracion, String tipoBus,
         List<String> servicios, int asientosDisponibles, BigDecimal precio, String estado,
-        // Reserva (regla de PoliticaReservaViaje, calculada en el servidor con la hora de Perú):
-        // estadoReserva = DISPONIBLE | RESERVA_CERRADA | SALIDA_REALIZADA | LLENO | SIN_INFORMACION | NO_DISPONIBLE.
+        // Estado de reserva calculado en el servidor (PoliticaReservaViaje, hora de Perú): DISPONIBLE,
+        // RESERVA_CERRADA, SALIDA_REALIZADA, LLENO, SIN_INFORMACION o NO_DISPONIBLE.
         String estadoReserva, boolean reservable,
-        // Instantes en ms desde epoch (UTC). El navegador los usa con ahoraServidorMs para refrescar el estado
-        // sin fiarse de su propio reloj; el backend vuelve a validar al reservar.
+        // Horas en milisegundos (UTC). El navegador las usa con ahoraServidorMs para actualizar el estado sin
+        // depender de su propio reloj; al reservar el backend vuelve a validar.
         long salidaMs, long limiteReservaMs, long ahoraServidorMs, int minutosAnticipacion,
         int capacidad, String terminalOrigen, String terminalDestino, Integer duracionMin) {
 }

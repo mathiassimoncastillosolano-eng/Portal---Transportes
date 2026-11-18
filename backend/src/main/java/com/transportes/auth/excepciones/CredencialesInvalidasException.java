@@ -1,11 +1,8 @@
 package com.transportes.auth.excepciones;
 
 /**
- * Se lanza cuando el correo no existe, la contrasena no coincide, o el
- * usuario esta inactivo. Se usa deliberadamente una unica excepcion para
- * los tres casos: el endpoint de login siempre responde 401 con un mensaje
- * generico, para no revelar a un atacante si el correo existe o no en el
- * sistema.
+ * Login fallido (401): correo inexistente, contraseña incorrecta o usuario inactivo. Correo y contraseña dan el
+ * mismo mensaje a propósito, para no revelar si el correo existe; la cuenta inactiva tiene su propio mensaje.
  */
 public class CredencialesInvalidasException extends RuntimeException {
 

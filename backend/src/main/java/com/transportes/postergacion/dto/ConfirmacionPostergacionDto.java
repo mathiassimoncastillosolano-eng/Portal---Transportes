@@ -6,10 +6,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 /**
- * Respuesta de una postergación ACEPTADA (criterio 11): el nuevo viaje, la fecha, el horario y el asiento, junto
- * con lo anterior y el importe. La rechazada no usa este objeto: responde 409 con el motivo en {@code mensaje}.
- *
- * @param aceptada siempre true (la rechazada es un error 409)
+ * Respuesta de un cambio ACEPTADO (criterio 11): nuevo viaje, fecha, horario y asiento, junto con los datos
+ * anteriores y el monto pagado. Un rechazo no usa esta clase: responde 409 con el motivo.
+ * @param aceptada siempre true
  */
 public record ConfirmacionPostergacionDto(
         boolean aceptada, int idPostergacion, int idPasaje, int idVenta,

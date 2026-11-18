@@ -11,31 +11,27 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Verifica la cabecera {@code x-signature} de las notificaciones Webhook de Mercado Pago.
- *
- * <p>Replica el algoritmo de {@code com.mercadopago.webhook.WebhookSignatureValidator} del SDK oficial de Java:
- * manifiesto {@code id:<data.id>;request-id:<x-request-id>;ts:<ts>;} (se omite cada par si su valor falta),
- * HMAC-SHA256 con la clave secreta de la aplicación, salida hexadecimal en minúsculas y comparación en tiempo
- * constante. La documentación anterior de Webhooks pedía usar {@code data.id} en minúsculas si es alfanumérico;
- * por compatibilidad también se acepta esa variante (ambas exigen conocer la clave secreta).</p>
+ * Verifica la firma x-signature de los avisos de Mercado Pago, con el mismo algoritmo que el SDK oficial: arma el
+ * texto "id:...;request-id:...;ts:...;", calcula HMAC-SHA256 con la clave secreta y compara en tiempo constante.
+ * Si la firma coincide, el aviso viene de verdad de Mercado Pago.
  */
 public class ValidadorFirmaWebhook {
 
     private final String secreto;
     private final Duration tolerancia;
 
-    /** Una instancia por entorno (ver {@link ValidadoresWebhook}); no es un bean de Spring. */
+    /** Se crea uno por entorno (ver ValidadoresWebhook); no es un bean de Spring. */
     public ValidadorFirmaWebhook(String secreto, long toleranciaSegundos) {
         this.secreto = secreto == null ? "" : secreto.strip();
         this.tolerancia = toleranciaSegundos > 0 ? Duration.ofSeconds(toleranciaSegundos) : null;
     }
 
-    /** ¿Hay clave secreta para validar firmas? */
+    /** true si hay clave secreta para validar firmas. */
     public boolean configurado() {
         return !secreto.isEmpty();
     }
 
-    /** @return true solo si la firma es auténtica (y, si se configuró, reciente). */
+    /** true solo si la firma es auténtica (y reciente, si se configuró una tolerancia). */
     public boolean esValida(String xSignature, String xRequestId, String dataId) {
         return esValida(xSignature, xRequestId, dataId, Instant.now());
     }
@@ -83,9 +79,8 @@ public class ValidadorFirmaWebhook {
     }
 
     /**
-     * Clasifica por qué se rechazó una firma, SIN revelar firma ni clave (solo para el log). Distingue una
-     * petición sin firma o con firma mal formada (típico de llamadas que no vienen de Mercado Pago) de una
-     * firma bien formada que no coincide (clave de otro modo/aplicación, o id / x-request-id distintos).
+     * Explica por qué se rechazó una firma, sin revelar firma ni clave (solo para el log): si faltó, venía mal
+     * formada o no coincide.
      */
     public String diagnosticar(String xSignature, String xRequestId, String dataId) {
         if (!configurado()) {
@@ -136,7 +131,7 @@ public class ValidadorFirmaWebhook {
         return sb.toString();
     }
 
-    /** Firma un manifiesto (útil para pruebas y para el botón "Simular" del panel). */
+    /** Firma un texto con la clave secreta (se usa en las pruebas). */
     public String firmar(String manifiesto) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");

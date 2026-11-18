@@ -5,15 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-/**
- * Repositorio JPA para consultar las ubicaciones almacenadas en la base
- * de datos, utilizadas como destinos en el frontend.
- */
+/** Repositorio de la tabla ubicacion. */
 public interface UbicacionRepositorio extends JpaRepository<Ubicacion, Long> {
 
     /**
-     * Obtiene únicamente las ubicaciones activas, ordenadas
-     * alfabéticamente por nombre, para mostrarlas como destinos.
+     * Ubicaciones activas ordenadas por nombre (A-Z). La consulta la genera Spring Data a partir del nombre del
+     * método.
      */
     List<Ubicacion> findByActivaTrueOrderByNombreAsc();
 }

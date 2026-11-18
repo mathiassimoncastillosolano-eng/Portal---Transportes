@@ -23,8 +23,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 /**
- * Libro de Reclamaciones (/api/reclamos). Registrar es público (el JWT es opcional); consultar exige el token
- * de la constancia.
+ * Controlador REST del Libro de Reclamaciones (/api/reclamos). Registrar es público (si hay sesión, se asocia al
+ * usuario); para ver una constancia hace falta el token que se entregó al registrar.
  */
 @RestController
 @RequestMapping("/api/reclamos")
@@ -40,13 +40,13 @@ public class ReclamoControlador {
         this.proveedor = proveedor;
     }
 
-    /** Datos de la empresa que muestra el formulario. */
+    /** GET /proveedor: datos de la empresa que muestra el formulario. */
     @GetMapping("/proveedor")
     public ProveedorDto proveedor() {
         return proveedor.obtener();
     }
 
-    /** Registra el reclamo y devuelve la constancia y su token de consulta (201). */
+    /** POST: registra el reclamo y responde 201 con la constancia y su token de consulta. */
     @PostMapping
     public ResponseEntity<RegistroReclamoRespuesta> registrar(
             @Valid @RequestBody RegistrarReclamoRequest datos,
@@ -57,7 +57,7 @@ public class ReclamoControlador {
                 .body(servicio.registrar(datos, idUsuario, request.getRemoteAddr()));
     }
 
-    /** Ver la constancia: exige el token de la cabecera X-Token-Consulta. */
+    /** GET /{codigo}: muestra la constancia si la cabecera X-Token-Consulta trae el token correcto. */
     @GetMapping("/{codigo}")
     public ConstanciaReclamoDto consultar(
             @PathVariable String codigo,

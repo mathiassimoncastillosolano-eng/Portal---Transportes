@@ -12,18 +12,12 @@ import java.util.HexFormat;
 import java.util.OptionalLong;
 
 /**
- * Primitivas criptograficas de la recuperacion de contrasena (solo JDK).
- *
- * <ul>
- *   <li>Codigo numerico generado con {@link SecureRandom}.</li>
- *   <li>Hash del codigo: HMAC-SHA256 con una clave derivada del secreto del servidor y
- *       ligada al usuario. Produce 64 caracteres hexadecimales (cabe en
- *       {@code token_hash VARCHAR(64)}). Al llevar secreto, una filtracion de la tabla no
- *       permite recuperar el codigo por fuerza bruta offline.</li>
- *   <li>Prueba de recuperacion: token firmado con HMAC (otra clave derivada) que el
- *       servidor entrega tras verificar el codigo. Solo identifica el desafio; el estado
- *       real (usado, vencido) vive en la base de datos.</li>
- * </ul>
+ * Herramientas criptográficas de la recuperación (solo usa el JDK):
+ * - genera el código de 6 dígitos con SecureRandom;
+ * - guarda el código como HMAC-SHA256 con una clave secreta del servidor (si se filtra la tabla, no se pueden
+ * adivinar los códigos);
+ * - firma la "prueba" que se entrega al verificar el código. La prueba solo identifica el desafío; si está usado o
+ * vencido lo dice la BD.
  */
 public final class CriptoRecuperacion {
 
@@ -51,7 +45,7 @@ public final class CriptoRecuperacion {
         this.azar = azar;
     }
 
-    /** Codigo de {@code longitud} digitos con distribucion uniforme (admite ceros a la izquierda). */
+    /** Código de N dígitos al azar (puede empezar con 0). */
     public String generarCodigo(int longitud) {
         StringBuilder codigo = new StringBuilder(longitud);
         for (int i = 0; i < longitud; i++) {
@@ -60,13 +54,13 @@ public final class CriptoRecuperacion {
         return codigo.toString();
     }
 
-    /** HMAC-SHA256 (hex, 64 caracteres) del codigo, ligado al usuario. */
+    /** HMAC-SHA256 del código, ligado al usuario (64 caracteres hexadecimales). */
     public String hashCodigo(int idUsuario, String codigo) {
         byte[] firma = hmac(claveCodigo, (idUsuario + ":" + codigo).getBytes(StandardCharsets.UTF_8));
         return HexFormat.of().formatHex(firma);
     }
 
-    /** Comparacion en tiempo constante. */
+    /** Compara en tiempo constante (no da pistas por lo que tarda). */
     public static boolean iguales(String a, String b) {
         if (a == null || b == null) {
             return false;
@@ -74,7 +68,7 @@ public final class CriptoRecuperacion {
         return MessageDigest.isEqual(a.getBytes(StandardCharsets.UTF_8), b.getBytes(StandardCharsets.UTF_8));
     }
 
-    /** Emite la prueba firmada que identifica al desafio {@code idToken} hasta {@code expira}. */
+    /** Firma una prueba que identifica al desafío hasta la hora de vencimiento. */
     public String emitirPrueba(long idToken, Instant expira) {
         byte[] nonce = new byte[16];
         azar.nextBytes(nonce);
@@ -84,7 +78,7 @@ public final class CriptoRecuperacion {
         return cuerpo + "." + firma;
     }
 
-    /** Devuelve el id del desafio si la prueba es autentica y no ha vencido; vacio en cualquier otro caso. */
+    /** Devuelve el id del desafío si la prueba es auténtica y no venció; vacío en cualquier otro caso. */
     public OptionalLong validarPrueba(String prueba, Instant ahora) {
         if (prueba == null || prueba.isBlank() || prueba.length() > MAX_LONGITUD_PRUEBA) {
             return OptionalLong.empty();
@@ -109,12 +103,12 @@ public final class CriptoRecuperacion {
                 return OptionalLong.empty();
             }
             return OptionalLong.of(id);
-        } catch (IllegalArgumentException e) { // base64 o numero invalido
+        } catch (IllegalArgumentException e) { // texto o número no válido
             return OptionalLong.empty();
         }
     }
 
-    /** SHA-256 en hexadecimal; se usa para no guardar correos ni IPs en claro en los limitadores. */
+    /** SHA-256 en hexadecimal. Se usa para no guardar correos ni IPs en claro en los limitadores. */
     public static String sha256Hex(String texto) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");

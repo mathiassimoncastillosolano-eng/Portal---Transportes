@@ -13,7 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Tabla pago (esquema existente). uq_pago_venta: un único pago por venta. */
+/** Entidad JPA de la tabla pago. Hay un solo pago por venta (restricción uq_pago_venta). */
 @Entity
 @Table(name = "pago")
 @Getter

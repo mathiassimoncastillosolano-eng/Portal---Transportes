@@ -3,9 +3,8 @@ package com.transportes.auth.excepciones;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error controlado del flujo de recuperacion de contrasena. Lleva el estado HTTP
- * y un mensaje seguro para mostrar al usuario (el manejador global lo traduce a
- * {@code RespuestaError}). Los mensajes no distinguen si una cuenta existe.
+ * Error del flujo de recuperación con su código HTTP y un mensaje seguro para mostrar (nunca dice si la cuenta
+ * existe).
  */
 public class RecuperacionContrasenaException extends RuntimeException {
 

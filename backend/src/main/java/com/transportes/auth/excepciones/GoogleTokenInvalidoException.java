@@ -1,9 +1,8 @@
 package com.transportes.auth.excepciones;
 
 /**
- * El ID token de Google es invalido, esta expirado, fue emitido para otra
- * aplicacion o el correo de la cuenta de Google no esta verificado. Se
- * responde 401 con un mensaje generico.
+ * El ID token de Google no sirve: firma mala, vencido, emitido para otra aplicación o correo no verificado. Se
+ * responde 401.
  */
 public class GoogleTokenInvalidoException extends RuntimeException {
 

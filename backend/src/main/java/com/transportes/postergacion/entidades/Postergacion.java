@@ -14,11 +14,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * HU-02 · Criterio 10. Una fila por cada postergación aceptada: es el historial (viaje y asiento anterior, viaje y
- * asiento nuevo) y, a la vez, el lugar donde queda el pago adicional. El pasaje y la venta NO cambian: solo cambia
- * el asiento del pasaje. Se guarda aparte porque {@code pago} permite un único pago por venta (uq_pago_venta).
- *
- * <p>Tabla creada por el script {@code backend/sql/004_postergacion.sql}.</p>
+ * Entidad JPA de la tabla postergacion (HU-02, criterio 10). Una fila por cada cambio aceptado: guarda el viaje y
+ * asiento anterior, el viaje y asiento nuevo y el pago adicional. El pasaje y la venta no se crean de nuevo; solo
+ * cambia el asiento del pasaje. El pago va aquí porque la tabla pago permite uno solo por venta. Tabla creada por
+ * backend/sql/004_postergacion.sql.
  */
 @Entity
 @Table(name = "postergacion")
@@ -50,11 +49,11 @@ public class Postergacion {
     @Column(name = "id_viaje_asiento_nuevo", nullable = false)
     private Integer idViajeAsientoNuevo;
 
-    /** Diferencia pagada por la postergación (0 si el nuevo viaje cuesta lo mismo o menos). */
+    /** Diferencia pagada (0 si el viaje nuevo cuesta lo mismo o menos). */
     @Column(name = "importe_adicional", nullable = false, precision = 10, scale = 2)
     private BigDecimal importeAdicional;
 
-    /** Referencia del pago adicional (hoy simulado); null cuando no hubo cobro. */
+    /** Referencia del pago adicional (hoy simulado); null si no hubo cobro. */
     @Column(name = "referencia_pago", length = 64)
     private String referenciaPago;
 

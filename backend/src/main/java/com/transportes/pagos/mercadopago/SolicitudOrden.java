@@ -3,8 +3,8 @@ package com.transportes.pagos.mercadopago;
 import java.math.BigDecimal;
 
 /**
- * Datos para crear una order online con procesamiento automático. El importe lo calcula el backend;
- * el token (tarjeta o Yape) lo genera MercadoPago.js en el navegador y es de un solo uso.
+ * Datos para crear una order en Mercado Pago. El monto lo calcula el backend; el token (tarjeta o Yape) lo genera
+ * MercadoPago.js en el navegador y sirve una sola vez.
  */
 public record SolicitudOrden(
         String referenciaExterna,
@@ -38,7 +38,7 @@ public record SolicitudOrden(
                 celularPagador, metodoPagoId, metodoPagoTipo, token, cuotas, validacion3ds, deviceId, null, null, null);
     }
 
-    /** ¿Lleva datos del pagador además de los obligatorios? */
+    /** true si lleva datos del pagador además de los obligatorios. */
     public boolean tieneDatosAdicionales() {
         return !vacio(nombrePagador) || !vacio(apellidoPagador) || !vacio(tituloItem);
     }
@@ -47,7 +47,7 @@ public record SolicitudOrden(
         return valor == null || valor.isBlank();
     }
 
-    /** Evita que el token aparezca en registros si alguien imprime la solicitud. */
+    /** Oculta el token por si alguien imprime la solicitud en el log. */
     @Override
     public String toString() {
         return "SolicitudOrden[referencia=" + referenciaExterna + ", monto=" + monto + ", metodo=" + metodoPagoId

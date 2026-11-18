@@ -30,8 +30,8 @@ import com.transportes.reclamos.repositorios.PasajeUsuarioRepositorio.Referencia
 import com.transportes.reclamos.repositorios.ReclamoRepositorio;
 
 /**
- * Lógica del Libro de Reclamaciones: normaliza y valida los datos, evita duplicados (idempotencia), genera el
- * código y calcula la fecha límite de 15 días hábiles.
+ * Lógica del Libro de Reclamaciones: limpia y valida los datos, evita registrar dos veces el mismo reclamo, genera
+ * el código y calcula la fecha límite de respuesta (15 días hábiles).
  */
 @Service
 public class ReclamoServicio {
@@ -64,8 +64,8 @@ public class ReclamoServicio {
     }
 
     /**
-     * Si la clave ya se usó devuelve el mismo reclamo; si no, valida, genera el código, calcula el plazo y
-     * guarda.
+     * Registra un reclamo. Si la clave de idempotencia ya se usó, devuelve el mismo reclamo (no lo duplica); si
+     * no, valida, genera el código, calcula el plazo y guarda.
      */
     public RegistroReclamoRespuesta registrar(RegistrarReclamoRequest datos, Integer idUsuario, String ip) {
         String correo = NormalizadorReclamo.correo(datos.correo());
@@ -98,7 +98,7 @@ public class ReclamoServicio {
         }
     }
 
-    /** Devuelve la constancia solo si el token corresponde al código. */
+    /** Devuelve la constancia solo si el token corresponde a ese código. */
     public ConstanciaReclamoDto consultar(String codigo, String token) {
         if (codigo == null || !tokens.esValido(codigo, token)) {
             throw ReclamoException.noEncontrado();

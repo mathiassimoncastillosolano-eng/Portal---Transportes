@@ -19,18 +19,12 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 /**
- * Consultas de solo lectura de las compras de un usuario. TODAS filtran por {@code venta.id_usuario}, que el
- * llamador obtiene del JWT validado: nunca se recibe un id de usuario desde el navegador. Las consultas son
- * parametrizadas (sin concatenar datos del cliente).
- *
- * <p>Relaciones (1:1 con la venta, por restricciones UNIQUE del esquema: uq_pago_venta, uq_operacion_pago_venta,
- * uq_comprobante_venta), por lo que {@code pago}, {@code operacion_pago} y {@code comprobante} no multiplican
- * filas. La única multiplicidad es la deseada: un pasaje por fila. Cada pasaje tiene un único pasajero, un único
- * viaje_asiento (uq_pasaje_viaje_asiento) y, de ahí, un único asiento y viaje.
- *
- * <p>Todos los joins son LEFT: una venta con datos incompletos igual se devuelve (y se marca incompleta) en lugar
- * de desaparecer. No se filtra por {@code activa/activo}: una compra histórica debe seguir mostrándose aunque
- * la ruta, la agencia o el bus se hayan desactivado después.
+ * Consultas SQL de solo lectura de las compras de un usuario (JdbcTemplate). Todas filtran por venta.id_usuario,
+ * que viene del token, y usan parámetros "?" (sin pegar datos al texto).
+ * Devuelven una fila por pasaje. pago, operacion_pago y comprobante son 1 a 1 con la venta, así que no repiten
+ * filas.
+ * Todos los joins son LEFT: una venta con datos incompletos igual aparece. No se filtra por activo: una compra
+ * vieja se sigue mostrando aunque la ruta o el bus se desactiven.
  */
 @Repository
 public class CompraRepositorio {
@@ -76,16 +70,16 @@ public class CompraRepositorio {
             """;
 
     /*
-     * Cambio de viaje (postergación). Un pasaje puede tener varias filas en `postergacion`:
-     *   pu = la última (su viaje y asiento anteriores, y la fecha del último cambio) -> columnas "ant_*"
-     *   pp = la primera (su viaje anterior es el viaje en que se compró el pasaje)   -> columnas "orig_*"
-     * Si el pasaje nunca se cambió, todo eso viene en null. El "último" y el "primero" se eligen por
-     * id_postergacion (identidad creciente), sin LATERAL, para que la consulta funcione igual en PostgreSQL y H2.
+     * Cambios de viaje (tabla postergacion). Un pasaje puede tener varios:
+     * pu = el último cambio (viaje y asiento anteriores y fecha) -> columnas ant_*
+     * pp = el primer cambio (su viaje anterior es el viaje en que se compró) -> columnas orig_*
+     * Si el pasaje nunca se cambió, todo viene null. Se eligen por id_postergacion (el mayor y el menor) para que
+     * funcione igual en PostgreSQL y en H2 (pruebas).
      */
 
     /**
-     * Columnas de un viaje traído con {@link #unirViaje}: id, fecha, hora, estado, origen, destino, tipo de bus y
-     * duración estimada de la ruta (para calcular la llegada).
+     * Columnas de un viaje unido con unirViaje: id, fecha, hora, estado, origen, destino, tipo de bus y duración
+     * de la ruta.
      */
     private static String columnasViaje(String sufijo, String prefijo) {
         return """
@@ -96,7 +90,7 @@ public class CompraRepositorio {
             """.formatted(sufijo, prefijo);
     }
 
-    /** Une un viaje (con su ruta y tipo de bus) a partir de la columna que guarda su id. */
+    /** Texto SQL que une un viaje (con su ruta y su tipo de bus) a partir de la columna que guarda su id. */
     private static String unirViaje(String sufijo, String columnaIdViaje) {
         return """
             LEFT JOIN viaje v%1$s ON v%1$s.id_viaje = %2$s
@@ -141,15 +135,15 @@ public class CompraRepositorio {
     }
 
     /**
-     * Una compra concreta, SOLO si pertenece al usuario: el filtro por propietario forma parte de la consulta,
-     * de modo que una venta ajena es indistinguible de una inexistente (lista vacía).
+     * Una compra, SOLO si es del usuario: el filtro por dueño va en la misma consulta, así una venta ajena se ve
+     * igual que una que no existe (lista vacía).
      */
     public List<FilaCompra> filasDeCompra(int idUsuario, int idVenta) {
         return jdbc.query(SELECT_COMPRAS + " AND ve.id_venta = :idVenta" + ORDEN_COMPRAS,
                 Map.of("idUsuario", idUsuario, "idVenta", idVenta), MAPA_COMPRA);
     }
 
-    /** Datos mínimos para los indicadores del perfil. */
+    /** Datos mínimos para los contadores del perfil. */
     public List<FilaResumen> filasResumen(int idUsuario) {
         return jdbc.query(SELECT_RESUMEN, Map.of("idUsuario", idUsuario), MAPA_RESUMEN);
     }
@@ -175,7 +169,7 @@ public class CompraRepositorio {
                 rs.getObject("id_pago", Integer.class), rs.getObject("duracion_min", Integer.class));
     }
 
-    /** Viaje de las columnas "{prefijo}_*" o null si el pasaje no fue cambiado (el id viene vacío). */
+    /** Lee las columnas {prefijo}_* como un viaje, o devuelve null si el pasaje no fue cambiado. */
     private static ViajeFila mapearViaje(ResultSet rs, String prefijo, String numeroAsiento) throws SQLException {
         Long idViaje = rs.getObject(prefijo + "_id_viaje", Long.class);
         if (idViaje == null) {
