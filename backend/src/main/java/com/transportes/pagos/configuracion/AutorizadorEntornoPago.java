@@ -73,6 +73,7 @@ public class AutorizadorEntornoPago {
         return ids;
     }
 
+    /** ¿Este usuario está en la lista de autorizados para pagos de prueba? */
     public boolean puedeUsarSandbox(Integer idUsuario) {
         return idUsuario != null && usuariosSandbox.contains(idUsuario);
     }

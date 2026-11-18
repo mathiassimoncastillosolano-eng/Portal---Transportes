@@ -74,6 +74,7 @@ public final class LimitadorVentana {
         return total[0];
     }
 
+    /** Borra el historial de intentos de una clave (por ejemplo, tras un éxito). */
     public void reiniciar(String clave) {
         eventos.remove(clave);
     }

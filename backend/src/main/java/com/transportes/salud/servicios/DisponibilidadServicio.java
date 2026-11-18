@@ -47,6 +47,7 @@ public class DisponibilidadServicio {
         this.tolerarCaidasBd = tolerarCaidasBd;
     }
 
+    /** Decide READY, DEGRADED o NOT_READY según el estado de la BD. */
     public Resultado evaluar() {
         if (disponibilidad.getReadinessState() != ReadinessState.ACCEPTING_TRAFFIC) {
             return noListo(estuvoListo ? "DETENIENDO" : "INICIANDO");

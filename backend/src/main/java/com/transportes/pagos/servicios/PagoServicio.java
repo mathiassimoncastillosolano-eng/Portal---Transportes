@@ -145,6 +145,10 @@ public class PagoServicio {
     private record Preparacion(OperacionPago operacion, boolean nueva, List<PasajeroAsientoRequest> pasajeros) {
     }
 
+    /**
+     * Botón "Pagar". Pasos: entorno y medio, idempotencia, sesión, preparar (monto en el servidor), renovar
+     * sesión y crear la order.
+     */
     public EstadoPagoResponse iniciar(Integer idUsuario, IniciarPagoRequest req) {
         // El entorno lo decide el BACKEND: lo que pide el navegador se valida contra el usuario autenticado
         // (Sandbox solo para usuarios autorizados) y contra las credenciales configuradas en el servidor.
@@ -654,6 +658,10 @@ public class PagoServicio {
         log.warn("Webhook de una order inexistente: {}", idOrden);
     }
 
+    /**
+     * La pantalla pregunta "¿ya se aprobó?". Solo el dueño puede consultar (404 si no); si sigue pendiente,
+     * sincroniza.
+     */
     public EstadoPagoResponse consultar(Integer idUsuario, String referencia) {
         OperacionPago op = operaciones.findByReferenciaExterna(referencia)
                 .filter(o -> o.getIdUsuario().equals(idUsuario))

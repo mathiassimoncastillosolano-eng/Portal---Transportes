@@ -22,6 +22,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ManejadorPostergacion {
 
+    /** 409 con el motivo y el código del rechazo en detalles. */
     @ExceptionHandler(PostergacionRechazadaException.class)
     public ResponseEntity<RespuestaError> manejarRechazo(PostergacionRechazadaException excepcion,
                                                          HttpServletRequest request) {

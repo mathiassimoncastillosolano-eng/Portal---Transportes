@@ -49,6 +49,7 @@ public class CredencialesMercadoPago {
             return !webhookSecret.isEmpty();
         }
 
+        /** Muestra *** en lugar de los secretos (seguro para los logs). */
         @Override
         public String toString() {
             return "Par[accessToken=" + (tieneAccessToken() ? "***" : "(vacío)")
@@ -84,6 +85,7 @@ public class CredencialesMercadoPago {
         porEntorno.put(EntornoPago.PRODUCTION, produccion);
     }
 
+    /** Credenciales del entorno pedido (SANDBOX o PRODUCTION). */
     public Par de(EntornoPago entorno) {
         return porEntorno.get(entorno);
     }

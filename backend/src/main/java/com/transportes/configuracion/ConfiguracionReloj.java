@@ -15,6 +15,7 @@ import com.transportes.viajes.reglas.PoliticaReservaViaje;
 @Configuration
 public class ConfiguracionReloj {
 
+    /** Reloj con zona America/Lima. Las pruebas lo reemplazan por una hora fija. */
     @Bean
     public Clock relojNegocio() {
         return Clock.system(PoliticaReservaViaje.ZONA_NEGOCIO);

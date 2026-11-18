@@ -31,11 +31,13 @@ public class SaludControlador {
         this.disponibilidadServicio = disponibilidadServicio;
     }
 
+    /** "¿Está vivo el proceso?": siempre 200 si responde. */
     @GetMapping("/live")
     public ResponseEntity<EstadoSalud> live() {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(VIVO);
     }
 
+    /** "¿Puede atender?": revisa la BD; 503 si no está lista. */
     @GetMapping("/ready")
     public ResponseEntity<EstadoSalud> ready() {
         DisponibilidadServicio.Resultado resultado = disponibilidadServicio.evaluar();

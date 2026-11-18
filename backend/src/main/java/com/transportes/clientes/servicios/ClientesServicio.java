@@ -26,6 +26,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * Lógica del panel de clientes: valida filtros y paginación y arma el historial con las mismas reglas de "Mis
+ * pasajes" (ReglasCompra).
+ */
 @Service
 public class ClientesServicio {
 
@@ -43,6 +47,7 @@ public class ClientesServicio {
         this.reloj = relojNegocio;
     }
 
+    /** Valida página (máx. 50 por página), actividad y orden; si algo no es válido responde 400. */
     @Transactional(readOnly = true)
     public PaginaClientesDto listar(String q, String tipoDocumento, String actividad, String orden, String direccion,
             int pagina, int tamano) {
@@ -62,11 +67,13 @@ public class ClientesServicio {
                 tamano);
     }
 
+    /** Totales calculados con la hora de Perú. */
     @Transactional(readOnly = true)
     public IndicadoresClientesDto indicadores() {
         return repositorio.indicadores(LocalDateTime.now(reloj));
     }
 
+    /** Datos del pasajero + historial de pasajes. 404 si no existe. */
     @Transactional(readOnly = true)
     public ClienteDetalleDto detalle(int idPasajero) {
         LocalDateTime ahora = LocalDateTime.now(reloj);

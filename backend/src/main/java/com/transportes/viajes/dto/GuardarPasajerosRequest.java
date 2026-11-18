@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
+/** Datos de los pasajeros de la sesión (uno por asiento). */
 public record GuardarPasajerosRequest(
         @NotBlank(message = "El tokenSesion es obligatorio") String tokenSesion,
         @NotEmpty(message = "Debe enviar al menos un pasajero")

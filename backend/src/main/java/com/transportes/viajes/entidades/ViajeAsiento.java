@@ -14,6 +14,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Un asiento en un viaje concreto (tabla viaje_asiento): estado, precio, sesión que lo bloquea y hasta
+ * cuándo.
+ */
 @Entity
 @Table(name = "viaje_asiento")
 @Getter

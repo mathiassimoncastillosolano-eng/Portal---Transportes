@@ -33,21 +33,25 @@ public class CompraControlador {
         this.compras = compras;
     }
 
+    /** Contadores del perfil (compras, pasajes vigentes...). */
     @GetMapping("/resumen")
     public ResumenPerfilDto resumen(@AuthenticationPrincipal UsuarioAutenticado usuario) {
         return compras.resumen(idDe(usuario));
     }
 
+    /** Pantalla "Mis pasajes": compras ordenadas, primero las vigentes. */
     @GetMapping("/pasajes")
     public ListaComprasDto pasajes(@AuthenticationPrincipal UsuarioAutenticado usuario) {
         return compras.listar(idDe(usuario));
     }
 
+    /** Detalle de una compra del usuario (404 si es de otra cuenta). */
     @GetMapping("/pasajes/{idVenta}")
     public CompraDto detalle(@AuthenticationPrincipal UsuarioAutenticado usuario, @PathVariable int idVenta) {
         return compras.detalle(idDe(usuario), idVenta);
     }
 
+    /** Historial: compras que ya no están vigentes, de la más reciente a la más antigua. */
     @GetMapping("/historial")
     public List<CompraDto> historial(@AuthenticationPrincipal UsuarioAutenticado usuario) {
         return compras.historial(idDe(usuario));

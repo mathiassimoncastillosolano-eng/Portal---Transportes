@@ -63,11 +63,16 @@ public class ConfiguracionSeguridad {
                 this.empleadoService = empleadoService;
         }
 
+        /** BCrypt para guardar y comparar contraseñas. */
         @Bean
         public PasswordEncoder passwordEncoder() {
                 return new BCryptPasswordEncoder();
         }
 
+        /**
+         * Reglas de acceso. Se leen de arriba abajo y gana la primera que coincide: públicas, con JWT o con
+         * rol.
+         */
         @Bean
         public SecurityFilterChain cadenaFiltrosSeguridad(HttpSecurity http) throws Exception {
                 FiltroAutenticacionJwt filtroJwt = new FiltroAutenticacionJwt(jwtService, tokenInvalidadoService,

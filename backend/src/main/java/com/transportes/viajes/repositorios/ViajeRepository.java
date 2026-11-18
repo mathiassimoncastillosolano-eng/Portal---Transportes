@@ -18,6 +18,10 @@ import java.util.Map;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+/**
+ * SQL (JDBC) de la búsqueda de viajes: viajes PROGRAMADOS con asientos disponibles, precio mínimo y
+ * capacidad. Cada fila pasa por PoliticaReservaViaje.
+ */
 @Repository
 public class ViajeRepository {
     private final NamedParameterJdbcTemplate jdbc;
@@ -73,6 +77,7 @@ public class ViajeRepository {
           AND EXTRACT(HOUR FROM v.hora_salida) < :horaHasta
         """;
 
+    /** Viajes del día cuya hora de salida está en el rango [desde, hasta). */
     public List<ViajeResumenDto> buscar(String origen, String destino, LocalDate fecha, int desde, int hasta,
             LocalDateTime ahora) {
         Map<String, Object> parametros = new HashMap<>();
@@ -84,6 +89,7 @@ public class ViajeRepository {
         return jdbc.query(BUSQUEDA.formatted(CONDICION_HORAS), parametros, (rs, fila) -> mapear(rs, ahora));
     }
 
+    /** Igual, pero con varias franjas horarias. */
     public List<ViajeResumenDto> buscarPorFranjas(String origen, String destino, LocalDate fecha,
             List<FranjaHorario> franjas, LocalDateTime ahora) {
         Map<String, Object> parametros = new HashMap<>();

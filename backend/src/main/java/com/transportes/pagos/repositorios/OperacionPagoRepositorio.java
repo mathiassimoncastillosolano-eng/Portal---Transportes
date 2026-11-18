@@ -16,8 +16,13 @@ import com.transportes.pagos.entidades.OperacionPago;
 
 import jakarta.persistence.LockModeType;
 
+/**
+ * Acceso a operacion_pago: cada intento de pago con Mercado Pago. Incluye el bloqueo de fila que evita
+ * procesar dos veces el mismo pago.
+ */
 public interface OperacionPagoRepositorio extends JpaRepository<OperacionPago, Integer> {
 
+    /** Detecta un doble clic: misma clave = misma operación. */
     Optional<OperacionPago> findByClaveIdempotencia(String claveIdempotencia);
 
     Optional<OperacionPago> findByReferenciaExterna(String referenciaExterna);
@@ -29,8 +34,10 @@ public interface OperacionPagoRepositorio extends JpaRepository<OperacionPago, I
     @Query("SELECT o FROM OperacionPago o WHERE o.idOperacionPago = :id")
     Optional<OperacionPago> bloquearPorId(@Param("id") Integer id);
 
+    /** Operaciones activas de una sesión de reserva. */
     List<OperacionPago> findByIdSesionReservaAndEstadoIn(String idSesionReserva, Collection<EstadoOperacion> estados);
 
+    /** Ids pendientes que el job de conciliación debe volver a consultar. */
     @Query("SELECT o.idOperacionPago FROM OperacionPago o WHERE o.estado IN :estados "
          + "AND (o.fechaUltimaConsulta IS NULL OR o.fechaUltimaConsulta < :antesDe) ORDER BY o.fechaCreacion")
     List<Integer> buscarParaConciliar(@Param("estados") Collection<EstadoOperacion> estados,

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.transportes.buses.entidades.Asiento;
 
+/** Acceso a la tabla asiento (asientos físicos de cada bus). */
 public interface AsientoRepositorio extends JpaRepository<Asiento, Integer> {
 
     /**

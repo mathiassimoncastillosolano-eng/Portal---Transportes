@@ -28,6 +28,7 @@ public class AsientoControlador {
         this.asientoServicio = asientoServicio;
     }
 
+    /** GET /api/buses/{idBus}/asientos: distribución física del bus. */
     @GetMapping("/{idBus}/asientos")
     public ResponseEntity<List<AsientoFisicoDTO>> obtenerAsientosPorBus(@PathVariable Integer idBus) {
         return ResponseEntity.ok(asientoServicio.listarAsientosPorBus(idBus));

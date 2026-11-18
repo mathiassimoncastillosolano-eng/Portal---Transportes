@@ -31,6 +31,7 @@ public class ClientesMercadoPago {
         }
     }
 
+    /** Cliente HTTP con las credenciales de ese entorno. */
     public ClienteMercadoPago de(EntornoPago entorno) {
         return clientes.get(entorno);
     }

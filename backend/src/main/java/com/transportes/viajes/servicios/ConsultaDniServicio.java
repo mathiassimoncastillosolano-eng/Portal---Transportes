@@ -22,6 +22,10 @@ public class ConsultaDniServicio {
         this.clienteDni = clienteDni;
     }
 
+    /**
+     * DNI de 8 dígitos (si no, 400). Busca primero en nuestra BD, luego en el servicio externo; si tampoco
+     * está, se llena a mano.
+     */
     @Transactional(readOnly = true)
     public ConsultaDniResponseDTO consultar(String dni) {
         if (dni == null || !dni.matches("\\d{8}")) {

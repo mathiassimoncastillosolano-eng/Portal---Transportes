@@ -56,6 +56,7 @@ public record OrdenMercadoPago(
         return "processed".equals(estado) && "accredited".equals(estadoDetalle);
     }
 
+    /** El banco pide verificación 3DS: el cliente debe completar un paso extra. */
     public boolean requiereDesafio3ds() {
         return "action_required".equals(estado) && urlDesafio3ds != null && !urlDesafio3ds.isBlank();
     }

@@ -335,6 +335,7 @@ public class RecuperacionContrasenaService {
 
     // ------------------------------------------------------------------ mantenimiento
 
+    /** Job cada 5 min: limpia de memoria los contadores de intentos ya vencidos. */
     @Scheduled(fixedDelay = 300_000L, initialDelay = 300_000L)
     public void purgarLimitadores() {
         porIpSolicitud.purgar();

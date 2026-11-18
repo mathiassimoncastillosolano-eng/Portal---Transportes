@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+/** Un viaje en la lista de resultados de búsqueda. */
 public record ViajeResumenDto(
         Long id, String empresa, String origen, String destino,
         LocalDate fechaSalida, String horaSalida, String horaLlegada,

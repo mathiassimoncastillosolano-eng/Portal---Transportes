@@ -41,6 +41,7 @@ public class ResendClienteCorreo implements ClienteCorreo {
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
     }
 
+    /** Envía el correo por la API HTTP de Resend. */
     @Override
     public void enviar(MensajeCorreo mensaje) {
         if (apiKey.isEmpty() || remitente.isEmpty()) {

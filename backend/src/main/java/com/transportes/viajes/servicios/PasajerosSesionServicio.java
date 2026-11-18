@@ -110,6 +110,7 @@ public class PasajerosSesionServicio {
         return cache.obtener(idSesion);
     }
 
+    /** Olvida los pasajeros de una sesión. */
     public void descartarPasajeros(String idSesion) {
         cache.eliminar(idSesion);
     }

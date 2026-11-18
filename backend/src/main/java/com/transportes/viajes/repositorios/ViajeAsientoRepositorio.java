@@ -11,6 +11,10 @@ import org.springframework.data.repository.query.Param;
 
 import com.transportes.viajes.entidades.ViajeAsiento;
 
+/**
+ * Acceso a viaje_asiento (estado de cada asiento en cada viaje). Los UPDATE son condicionados: devuelven 0 si
+ * alguien se adelantó.
+ */
 public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Integer> {
 
     List<ViajeAsiento> findByIdViaje(Integer idViaje);
@@ -20,6 +24,7 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
     List<ViajeAsiento> findByIdViajeAndTokenBloqueoAndEstadoViajeAsiento(
             Integer idViaje, String tokenBloqueo, String estadoViajeAsiento);
 
+    /** Asientos bloqueados cuyo tiempo ya pasó. */
     @Query("SELECT va FROM ViajeAsiento va WHERE va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' "
          + "AND va.fechaExpiracionBloqueo < :ahora")
     List<ViajeAsiento> buscarBloqueosVencidos(@Param("ahora") LocalDateTime ahora);
@@ -29,6 +34,7 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
     List<ViajeAsiento> buscarBloqueosVencidosDeViaje(@Param("idViaje") Integer idViaje,
                                                       @Param("ahora") LocalDateTime ahora);
 
+    /** Devuelve a DISPONIBLE los asientos vencidos indicados. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'DISPONIBLE', "
          + "va.fechaExpiracionBloqueo = null, va.tokenBloqueo = null, va.idPasajero = null "
@@ -36,6 +42,7 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
          + "AND va.fechaExpiracionBloqueo < :ahora")
     int liberarPorIds(@Param("ids") List<Integer> ids, @Param("ahora") LocalDateTime ahora);
 
+    /** Bloquea solo si está DISPONIBLE (evita que dos clientes tomen el mismo). */
     @Modifying
     @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL', "
          + "va.fechaExpiracionBloqueo = :expiracion, va.tokenBloqueo = :token "
@@ -43,6 +50,7 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
     int bloquearAsientoSiDisponible(@Param("idViaje") Integer idViaje, @Param("idAsiento") Integer idAsiento,
                                      @Param("expiracion") LocalDateTime expiracion, @Param("token") String token);
 
+    /** Libera solo si lo bloqueó esta sesión. */
     @Modifying
     @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'DISPONIBLE', "
          + "va.fechaExpiracionBloqueo = null, va.tokenBloqueo = null, va.idPasajero = null "

@@ -32,6 +32,7 @@ public class AsientoServicio {
         this.asientoRepositorio = asientoRepositorio;
     }
 
+    /** Asientos del bus indexados por id; lo usa ViajeAsientoServicio para armar el mapa de un viaje. */
     public Map<Integer, AsientoFisicoDTO> mapaAsientosFisicosPorId(Integer idBus) {
         List<Asiento> asientos = asientoRepositorio.findByIdBusOrderByPisoAscNumeroAsientoAsc(idBus);
         Map<Integer, AsientoFisicoDTO> mapa = new java.util.LinkedHashMap<>();
@@ -44,12 +45,14 @@ public class AsientoServicio {
         return mapa;
     }
     
+    /** Un asiento físico por su id (lanza error si no existe). */
     public AsientoFisicoDTO obtenerPorId(Integer idAsiento) {
         Asiento asiento = asientoRepositorio.findById(idAsiento)
             .orElseThrow(() -> new IllegalArgumentException("Asiento no encontrado: " + idAsiento));
         return mapearADto(asiento);
     }
 
+    /** Todos los asientos del bus, ordenados por piso y número. */
     public List<AsientoFisicoDTO> listarAsientosPorBus(Integer idBus) {
     List<Asiento> asientos = asientoRepositorio.findByIdBusOrderByPisoAscNumeroAsientoAsc(idBus);
 

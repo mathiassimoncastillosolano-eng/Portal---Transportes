@@ -14,6 +14,7 @@ import com.transportes.viajes.servicios.PasajerosSesionServicio;
 
 import jakarta.validation.Valid;
 
+/** Paso "Datos de pasajeros" de la compra. */
 @RestController
 @RequestMapping("/api/viajes")
 @CrossOrigin(origins = "http://localhost:5173")

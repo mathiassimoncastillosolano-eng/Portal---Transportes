@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+/** Busca un pasaje del usuario para asociarlo al reclamo. */
 @Repository
 public class PasajeUsuarioRepositorio {
 
@@ -37,6 +38,7 @@ public class PasajeUsuarioRepositorio {
         this.jdbc = jdbc;
     }
 
+    /** Solo devuelve el pasaje si pertenece a ese usuario. */
     public Optional<ReferenciaPasaje> buscar(int idUsuario, int idPasaje) {
         List<ReferenciaPasaje> filas = jdbc.query(CONSULTA, Map.of("idUsuario", idUsuario, "idPasaje", idPasaje),
                 (rs, fila) -> new ReferenciaPasaje(

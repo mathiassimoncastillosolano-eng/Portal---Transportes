@@ -33,6 +33,7 @@ public class PuntoEntradaJwt implements AuthenticationEntryPoint {
         this.objectMapper = objectMapper;
     }
 
+    /** Responde 401 en JSON cuando una ruta privada llega sin sesión válida. */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
                         AuthenticationException authException) throws IOException, ServletException {

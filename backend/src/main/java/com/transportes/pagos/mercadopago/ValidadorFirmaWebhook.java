@@ -30,6 +30,7 @@ public class ValidadorFirmaWebhook {
         this.tolerancia = toleranciaSegundos > 0 ? Duration.ofSeconds(toleranciaSegundos) : null;
     }
 
+    /** ¿Hay clave secreta para validar firmas? */
     public boolean configurado() {
         return !secreto.isEmpty();
     }

@@ -29,6 +29,7 @@ public enum EntornoPago {
         return null;
     }
 
+    /** true para SANDBOX. */
     public boolean esPrueba() {
         return this == SANDBOX;
     }

@@ -12,6 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/** Lo que envía el formulario del Libro de Reclamaciones, con sus validaciones. */
 public record RegistrarReclamoRequest(
         @NotNull(message = "Falta la clave de la solicitud.") UUID claveIdempotencia,
         @NotBlank(message = "Ingresa tus nombres y apellidos.")

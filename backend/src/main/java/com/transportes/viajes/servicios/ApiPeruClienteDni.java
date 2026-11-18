@@ -41,6 +41,7 @@ public class ApiPeruClienteDni implements ClienteDni {
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
     }
 
+    /** Consulta el DNI en el servicio externo; vacío si no lo encuentra o falla. */
     @Override
     public Optional<DatosDni> consultar(String dni) {
         if (token.isEmpty()) {

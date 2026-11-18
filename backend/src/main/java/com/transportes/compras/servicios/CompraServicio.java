@@ -31,6 +31,7 @@ public class CompraServicio {
         this.reloj = relojNegocio;
     }
 
+    /** Resumen del perfil calculado con la hora de Perú. */
     @Transactional(readOnly = true)
     public ResumenPerfilDto resumen(int idUsuario) {
         return ConstructorCompras.resumen(repositorio.filasResumen(idUsuario), ahora());

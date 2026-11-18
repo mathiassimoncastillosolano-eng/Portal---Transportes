@@ -31,6 +31,7 @@ public class PasajerosSesionCache {
         porSesion.put(idSesion, new Entrada(expira, List.copyOf(pasajeros)));
     }
 
+    /** Pasajeros guardados de la sesión, si no vencieron. */
     public Optional<List<PasajeroAsientoRequest>> obtener(String idSesion) {
         Entrada entrada = porSesion.get(idSesion);
         if (entrada == null) {
@@ -43,6 +44,7 @@ public class PasajerosSesionCache {
         return Optional.of(entrada.pasajeros());
     }
 
+    /** Borra los pasajeros de la sesión (al aprobar el pago o al salir). */
     public void eliminar(String idSesion) {
         porSesion.remove(idSesion);
     }

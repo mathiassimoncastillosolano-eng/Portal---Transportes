@@ -44,12 +44,14 @@ public class TokenInvalidadoService {
 
     private final Map<String, Instant> tokensInvalidados = new ConcurrentHashMap<>();
 
+    /** Logout: agrega el jti a la lista negra hasta que el token vencería. */
     public void invalidar(String jti, Instant expiracion) {
         if (jti != null) {
             tokensInvalidados.put(jti, expiracion);
         }
     }
 
+    /** ¿Este token ya se cerró con logout? */
     public boolean estaInvalidado(String jti) {
         return jti != null && tokensInvalidados.containsKey(jti);
     }

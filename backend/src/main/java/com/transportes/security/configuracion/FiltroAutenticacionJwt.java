@@ -57,6 +57,10 @@ public class FiltroAutenticacionJwt extends OncePerRequestFilter {
         this.empleadoService = empleadoService;
     }
 
+    /**
+     * Encabezado Bearer, firma, lista negra, usuario activo y rol. Si todo está bien, autentica la petición;
+     * nunca responde error aquí.
+     */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,

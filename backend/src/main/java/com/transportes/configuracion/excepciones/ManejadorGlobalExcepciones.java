@@ -38,12 +38,14 @@ import lombok.extern.slf4j.Slf4j;
 @RestControllerAdvice
 public class ManejadorGlobalExcepciones {
 
+    /** 409: el correo ya tiene cuenta. */
     @ExceptionHandler(CorreoYaRegistradoException.class)
     public ResponseEntity<RespuestaError> manejarCorreoDuplicado(
             CorreoYaRegistradoException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request, null);
     }
 
+    /** 409 si choca con una restricción conocida de la BD; si no, 500. */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<RespuestaError> manejarIntegridad(
             DataIntegrityViolationException excepcion, HttpServletRequest request) {
@@ -61,6 +63,7 @@ public class ManejadorGlobalExcepciones {
                 "No se pudo guardar la cuenta", request, null);
     }
 
+    /** Errores lanzados con ResponseStatusException: se respeta el código que traen. */
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<RespuestaError> manejarSolicitud(
             ResponseStatusException excepcion, HttpServletRequest request) {
@@ -68,6 +71,7 @@ public class ManejadorGlobalExcepciones {
                 excepcion.getReason() == null ? "Solicitud no válida" : excepcion.getReason(), request, null);
     }
 
+    /** 400: el cuerpo no es un JSON válido. */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<RespuestaError> manejarJsonInvalido(
             HttpMessageNotReadableException excepcion, HttpServletRequest request) {
@@ -75,12 +79,14 @@ public class ManejadorGlobalExcepciones {
                 "El cuerpo de la solicitud debe ser un JSON válido", request, null);
     }
 
+    /** Libro de Reclamaciones: código y detalles que trae ReclamoException. */
     @ExceptionHandler(com.transportes.reclamos.excepciones.ReclamoException.class)
     public ResponseEntity<RespuestaError> manejarReclamo(
             com.transportes.reclamos.excepciones.ReclamoException excepcion, HttpServletRequest request) {
         return construirRespuesta(excepcion.getStatus(), excepcion.getMessage(), request, excepcion.getDetalles());
     }
 
+    /** Pagos: código y mensaje que trae PagoException. */
     @ExceptionHandler(com.transportes.pagos.excepciones.PagoException.class)
     public ResponseEntity<RespuestaError> manejarPago(
             com.transportes.pagos.excepciones.PagoException excepcion, HttpServletRequest request) {
@@ -96,23 +102,27 @@ public class ManejadorGlobalExcepciones {
                 "No pudimos comunicarnos con Mercado Pago. Inténtalo nuevamente en unos segundos.", request, null);
     }
 
+    /** 400: parámetros de la URL no válidos. */
     @ExceptionHandler(org.springframework.web.method.annotation.HandlerMethodValidationException.class)
     public ResponseEntity<RespuestaError> manejarValidacionParametros(Exception excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.BAD_REQUEST, "Los datos enviados no son validos.", request, null);
     }
 
+    /** 404: la ruta no existe (o no acepta ese método HTTP). */
     @ExceptionHandler({org.springframework.web.servlet.resource.NoResourceFoundException.class,
             org.springframework.web.HttpRequestMethodNotSupportedException.class})
     public ResponseEntity<RespuestaError> manejarRutaInexistente(Exception excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.NOT_FOUND, "Recurso no encontrado.", request, null);
     }
 
+    /** 401: correo o contraseña incorrectos. */
     @ExceptionHandler(CredencialesInvalidasException.class)
     public ResponseEntity<RespuestaError> manejarCredencialesInvalidas(
             CredencialesInvalidasException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.UNAUTHORIZED, excepcion.getMessage(), request, null);
     }
 
+    /** 403: un cliente intentó entrar al Sistema Empresarial. */
     @ExceptionHandler(AccesoEmpresarialDenegadoException.class)
     public ResponseEntity<RespuestaError> manejarAccesoEmpresarialDenegado(
             AccesoEmpresarialDenegadoException excepcion, HttpServletRequest request) {
@@ -126,24 +136,28 @@ public class ManejadorGlobalExcepciones {
         return construirRespuesta(excepcion.getStatus(), excepcion.getMessage(), request, null);
     }
 
+    /** 401: el token de Google no es válido. */
     @ExceptionHandler(GoogleTokenInvalidoException.class)
     public ResponseEntity<RespuestaError> manejarGoogleTokenInvalido(
             GoogleTokenInvalidoException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.UNAUTHORIZED, excepcion.getMessage(), request, null);
     }
 
+    /** 409: el correo ya tiene una cuenta con contraseña. */
     @ExceptionHandler(CuentaExistenteException.class)
     public ResponseEntity<RespuestaError> manejarCuentaExistente(
             CuentaExistenteException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request, null);
     }
 
+    /** 503: no se pudo consultar a Google. */
     @ExceptionHandler(GoogleServicioNoDisponibleException.class)
     public ResponseEntity<RespuestaError> manejarGoogleNoDisponible(
             GoogleServicioNoDisponibleException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.SERVICE_UNAVAILABLE, excepcion.getMessage(), request, null);
     }
 
+    /** 401: falta iniciar sesión. */
     @ExceptionHandler({AuthenticationException.class})
     public ResponseEntity<RespuestaError> manejarNoAutenticado(
             AuthenticationException excepcion, HttpServletRequest request) {
@@ -151,6 +165,7 @@ public class ManejadorGlobalExcepciones {
                 "No autenticado. Inicie sesion nuevamente.", request, null);
     }
 
+    /** 403: sesión válida pero sin permiso (rol). */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<RespuestaError> manejarAccesoDenegado(
             AccessDeniedException excepcion, HttpServletRequest request) {
@@ -158,12 +173,14 @@ public class ManejadorGlobalExcepciones {
                 "No tiene permisos para acceder a este recurso.", request, null);
     }
 
+    /** 404: el usuario no existe. */
     @ExceptionHandler(UsuarioNoEncontradoException.class)
     public ResponseEntity<RespuestaError> manejarUsuarioNoEncontrado(
             UsuarioNoEncontradoException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.NOT_FOUND, excepcion.getMessage(), request, null);
     }
 
+    /** 400: falló un @Valid; en detalles va cada campo con su mensaje. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<RespuestaError> manejarValidacion(
             MethodArgumentNotValidException excepcion, HttpServletRequest request) {
@@ -174,6 +191,7 @@ public class ManejadorGlobalExcepciones {
                 "Los datos enviados no son validos.", request, detalles);
     }
 
+    /** 400: falta un parámetro o tiene un tipo incorrecto. */
     @ExceptionHandler({org.springframework.web.bind.MissingServletRequestParameterException.class,
             org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
     public ResponseEntity<RespuestaError> manejarParametros(Exception excepcion, HttpServletRequest request) {
@@ -181,24 +199,28 @@ public class ManejadorGlobalExcepciones {
                 "Revisa origen, destino y fecha (AAAA-MM-DD).", request, null);
     }
 
+    /** 410: venció la sesión de reserva de asientos. */
     @ExceptionHandler(com.transportes.viajes.excepciones.SesionExpiradaException.class)
     public ResponseEntity<RespuestaError> manejarSesionExpirada(
             com.transportes.viajes.excepciones.SesionExpiradaException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.GONE, excepcion.getMessage(), request, null);
     }
 
+    /** 401: el token de sesión de reserva es falso o de otro viaje. */
     @ExceptionHandler(com.transportes.viajes.excepciones.SesionInvalidaException.class)
     public ResponseEntity<RespuestaError> manejarSesionInvalida(
             com.transportes.viajes.excepciones.SesionInvalidaException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.UNAUTHORIZED, excepcion.getMessage(), request, null);
     }
 
+    /** El navegador cerró una conexión SSE: no hay a quién responder. */
     @ExceptionHandler({org.springframework.web.context.request.async.AsyncRequestNotUsableException.class,
             java.io.IOException.class})
     public void manejarIoDeStream(Exception excepcion) {
         log.debug("Conexión de streaming cerrada: {}", excepcion.getMessage());
     }
 
+        /** 500: cualquier error no previsto (no expone detalles internos). */
     @ExceptionHandler(Exception.class)
         public ResponseEntity<RespuestaError> manejarErrorGeneral(
                 Exception excepcion, HttpServletRequest request) {
@@ -214,18 +236,21 @@ public class ManejadorGlobalExcepciones {
         return ResponseEntity.status(status).body(cuerpo);
     }
 
+    /** 404: el viaje no existe. */
     @ExceptionHandler(com.transportes.viajes.excepciones.ViajeNoEncontradoException.class)
     public ResponseEntity<RespuestaError> manejarViajeNoEncontrado(
             com.transportes.viajes.excepciones.ViajeNoEncontradoException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.NOT_FOUND, excepcion.getMessage(), request, null);
     }
 
+    /** 409: el asiento ya no está disponible. */
     @ExceptionHandler(com.transportes.viajes.excepciones.AsientoNoDisponibleException.class)
     public ResponseEntity<RespuestaError> manejarAsientoNoDisponible(
             com.transportes.viajes.excepciones.AsientoNoDisponibleException excepcion, HttpServletRequest request) {
         return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request, null);
     }
 
+    /** 409: el viaje ya no admite reservas. */
     @ExceptionHandler(com.transportes.viajes.excepciones.ReservaNoPermitidaException.class)
     public ResponseEntity<RespuestaError> manejarReservaNoPermitida(
             com.transportes.viajes.excepciones.ReservaNoPermitidaException excepcion, HttpServletRequest request) {

@@ -42,6 +42,10 @@ import com.transportes.viajes.repositorios.ViajeAsientoRepositorio;
 import com.transportes.viajes.repositorios.ViajeRepositorio;
 import com.transportes.viajes.servicios.TokenSesionServicio.SesionReserva;
 
+/**
+ * Lógica de los asientos de un viaje: DISPONIBLE -> BLOQUEADO_TEMPORAL -> OCUPADO. Cada cambio usa UPDATE
+ * condicionado y avisa por SSE.
+ */
 @Service
 public class ViajeAsientoServicio {
 
@@ -78,6 +82,7 @@ public class ViajeAsientoServicio {
         return crearSesion(idViaje, null);
     }
 
+    /** Solo si el viaje sigue reservable (falta 20 min o más). */
     public SesionReservaResponseDTO crearSesion(Long idViaje, Integer minutos) {
         if (!viajeRepositorio.existsById(idViaje)) {
             throw new ViajeNoEncontradoException(idViaje);
@@ -87,6 +92,7 @@ public class ViajeAsientoServicio {
         return new SesionReservaResponseDTO(s.tokenSesion(), s.fechaExpiracion(), s.segundosRestantes());
     }
 
+    /** Libera vencidos, junta cada asiento del viaje con su asiento físico y agrupa por piso. */
     @Transactional
     public MapaAsientosViajeDTO obtenerMapaAsientos(Long idViaje, String tokenSesion) {
         Viaje viaje = viajeRepositorio.findById(idViaje)
@@ -113,6 +119,7 @@ public class ViajeAsientoServicio {
         return construirMapaPorPiso(asientosCompletos);
     }
 
+    /** Sesión válida, viaje reservable, máx. 6 asientos y UPDATE solo si está DISPONIBLE. */
     @Transactional
     public BloqueoAsientoResponseDTO bloquearAsiento(Long idViaje, Integer idAsiento, BloqueoAsientoRequest request) {
         SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);
@@ -143,6 +150,7 @@ public class ViajeAsientoServicio {
         return new BloqueoAsientoResponseDTO(fisico.numero(), "bloqueado", sesion.fechaExpiracion());
     }
 
+    /** Solo libera si el asiento es de esta sesión. */
     @Transactional
     public void liberarAsiento(Long idViaje, Integer idAsiento, LiberarAsientoRequest request) {
         SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);
@@ -157,6 +165,7 @@ public class ViajeAsientoServicio {
         publicador.publishEvent(new AsientoCambiadoEvento(idViaje, idAsiento, "disponible"));
     }
 
+    /** Libera todos los asientos de la sesión; devuelve cuántos. */
     @Transactional
     public int liberarSesion(Long idViaje, LiberarAsientoRequest request) {
         SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);
