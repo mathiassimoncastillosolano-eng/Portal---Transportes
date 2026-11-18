@@ -1,9 +1,8 @@
 package com.transportes.auth.dto;
 
 /**
- * Datos minimos del usuario que se devuelven junto con el token al iniciar
- * sesion. El perfil completo (incluyendo nroTelefono y estadisticas) se
- * obtiene por separado en {@code GET /api/usuarios/perfil}.
+ * Datos básicos del usuario que acompañan al token (id, nombres, apellidos y correo). El perfil completo se pide
+ * aparte en GET /api/usuarios/perfil.
  */
 public class UsuarioResumenResponse {
 

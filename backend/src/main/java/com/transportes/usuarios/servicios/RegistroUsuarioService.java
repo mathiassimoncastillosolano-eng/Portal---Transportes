@@ -29,8 +29,8 @@ public class RegistroUsuarioService {
     }
 
     /**
-     * Correo en minúsculas, ¿ya existe? (409), contraseña de máximo 72 bytes (límite de BCrypt), guarda con
-     * hash y responde sin la contraseña.
+     * Crea una cuenta: pasa el correo a minúsculas, revisa que no exista (409), revisa que la contraseña no pase
+     * 72 bytes (límite de BCrypt), la guarda como hash y responde sin la contraseña.
      */
     public RegistroUsuarioResponse registrar(
             RegistroUsuarioRequest solicitud) {
@@ -63,11 +63,10 @@ public class RegistroUsuarioService {
 
         Usuario guardado;
         try {
-            // save confirma su propia transaccion antes de devolver el usuario.
+            // save guarda y confirma antes de devolver el usuario.
             guardado = usuarioRepository.save(usuario);
         } catch (DataIntegrityViolationException error) {
-            // Otra solicitud pudo insertar el mismo correo despues de la primera consulta.
-            // La transaccion fallida del repositorio ya termino; esta consulta es independiente.
+            // Si otra solicitud registró el mismo correo justo antes, se responde 409 en vez de un error genérico.
             if (usuarioRepository.existsByCorreoIgnoreCase(correo)) {
                 throw new CorreoYaRegistradoException();
             }

@@ -17,11 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Logica de negocio del inicio y cierre de sesion.
- *
- * No implementa registro de cuentas: los usuarios ya deben existir en la
- * tabla {@code usuario} (insertados manualmente), tal como lo exige el
- * alcance de esta implementacion.
+ * Lógica del login (Portal y Sistema Empresarial) y del logout.
+ * Patrón Fachada: el controlador llama a un solo método y este coordina usuarios, BCrypt, empleados y JWT.
  */
 @Service
 public class AuthService {
@@ -48,7 +45,7 @@ public class AuthService {
         this.empleadoService = empleadoService;
     }
 
-    /** Login del Portal: cualquier cuenta activa con correo y contrasena correctos. */
+    /** Login del Portal: cualquier cuenta activa con correo y contraseña correctos. */
     @Transactional(readOnly = true)
     public LoginResponse iniciarSesion(LoginRequest datos) {
         Usuario usuario = validarCredenciales(datos);
@@ -56,9 +53,8 @@ public class AuthService {
     }
 
     /**
-     * Login del Sistema Empresarial: ademas de las credenciales, exige que
-     * la cuenta tenga una fila activa en la tabla empleado. A un cliente no
-     * se le entrega token.
+     * Login del Sistema Empresarial: además de las credenciales, exige una fila activa en la tabla empleado. Si no
+     * la hay -> 403 y no se entrega token.
      */
     @Transactional(readOnly = true)
     public LoginEmpresarialResponse iniciarSesionEmpresarial(LoginRequest datos) {
@@ -77,9 +73,8 @@ public class AuthService {
     }
 
     /**
-     * Comprueba correo, estado y contrasena. Devuelve el usuario si todo es
-     * correcto; si no, lanza CredencialesInvalidasException (respuesta 401).
-     * La comparten los dos logins para no repetir las reglas.
+     * Reglas comunes de los dos logins: el correo existe, la cuenta está activa, tiene contraseña y la contraseña
+     * coincide. Si algo falla -> 401 con el mismo mensaje.
      */
     private Usuario validarCredenciales(LoginRequest datos) {
         Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(datos.getCorreo())
@@ -89,15 +84,12 @@ public class AuthService {
             throw new CredencialesInvalidasException("El usuario se encuentra inactivo.");
         }
 
-        // Cuenta creada solo con Google: no tiene contrasena, no se puede
-        // entrar por esta via (mismo mensaje generico que una clave erronea).
+        // Cuenta creada solo con Google: no tiene contraseña, así que no puede entrar por aquí.
         if (usuario.getContrasenaHash() == null) {
             throw new CredencialesInvalidasException(MENSAJE_CREDENCIALES_INVALIDAS);
         }
 
-        // Nunca se compara la contrasena en texto plano: passwordEncoder.matches
-        // aplica el mismo algoritmo BCrypt utilizado para generar el hash
-        // almacenado y compara de forma segura.
+        // BCrypt compara la contraseña escrita con el hash guardado. Nunca se compara texto plano.
         if (!passwordEncoder.matches(datos.getContrasena(), usuario.getContrasenaHash())) {
             throw new CredencialesInvalidasException(MENSAJE_CREDENCIALES_INVALIDAS);
         }
@@ -105,7 +97,7 @@ public class AuthService {
         return usuario;
     }
 
-    /** Genera el JWT del Portal y lo devuelve junto con el resumen del usuario. */
+    /** Crea el JWT y lo devuelve con los datos básicos del usuario. */
     private LoginResponse crearRespuesta(Usuario usuario) {
         String token = jwtService.generarToken(usuario.getIdUsuario(), usuario.getCorreo());
         return new LoginResponse(token, crearResumen(usuario));
@@ -116,12 +108,7 @@ public class AuthService {
                 usuario.getIdUsuario(), usuario.getNombres(), usuario.getApellidos(), usuario.getCorreo());
     }
 
-    /**
-     * Invalida el token actual agregando su {@code jti} a la lista de
-     * tokens invalidados (ver {@link TokenInvalidadoService}), de modo que
-     * ya no pueda volver a usarse para autenticar peticiones, aunque su
-     * firma siga siendo tecnicamente valida hasta su expiracion natural.
-     */
+    /** Logout: agrega el jti del token a la lista negra (TokenInvalidadoService) hasta que el token vencería. */
     public void cerrarSesion(String jti, java.time.Instant expiracion) {
         tokenInvalidadoService.invalidar(jti, expiracion);
     }

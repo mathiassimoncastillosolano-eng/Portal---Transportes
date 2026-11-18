@@ -2,7 +2,7 @@ package com.transportes.auth.servicios;
 
 import org.springframework.stereotype.Service;
 
-/** Compone y envia los correos del flujo de recuperacion usando el {@link ClienteCorreo}. */
+/** Arma y envía los correos de la recuperación de contraseña. */
 @Service
 public class CorreoRecuperacionServicio {
 
@@ -12,7 +12,7 @@ public class CorreoRecuperacionServicio {
         this.cliente = cliente;
     }
 
-    /** Envia el codigo de verificacion. Lanza CorreoNoDisponibleException si Resend no confirma el envio. */
+    /** Envía el código de verificación. Si Resend no confirma el envío lanza CorreoNoDisponibleException. */
     public void enviarCodigo(String nombres, String correo, String codigo, int minutosValidez) {
         cliente.enviar(new MensajeCorreo(
                 correo,
@@ -21,7 +21,7 @@ public class CorreoRecuperacionServicio {
                 PlantillasCorreoRecuperacion.textoCodigo(nombres, codigo, minutosValidez)));
     }
 
-    /** Aviso para cuentas creadas con Google (sin contrasena propia): no lleva codigo. */
+    /** Para cuentas creadas con Google (sin contraseña): avisa que entren con Google. No lleva código. */
     public void enviarAvisoCuentaGoogle(String nombres, String correo) {
         cliente.enviar(new MensajeCorreo(
                 correo,

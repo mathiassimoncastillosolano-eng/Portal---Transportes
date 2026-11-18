@@ -14,11 +14,8 @@ import com.transportes.buses.entidades.Asiento;
 import com.transportes.buses.repositorios.AsientoRepositorio;
 
 /**
- * Lógica de distribución de asientos (Tarea 1).
- *
- * numero_asiento no separa fila y letra en la base de datos (ej. "1A"),
- * así que este servicio lo parsea con regex para exponer fila/letra/lado
- * ya calculados, tal como los espera el frontend.
+ * Lógica de los asientos físicos. En la base el número viene junto ("1A"), así que aquí se separa con una
+ * expresión regular en fila (1) y letra (A) y se calcula el lado (A y B izquierda, C y D derecha).
  */
 @Service
 public class AsientoServicio {
@@ -32,7 +29,10 @@ public class AsientoServicio {
         this.asientoRepositorio = asientoRepositorio;
     }
 
-    /** Asientos del bus indexados por id; lo usa ViajeAsientoServicio para armar el mapa de un viaje. */
+    /**
+     * Asientos del bus en un mapa por id. Lo usa ViajeAsientoServicio para juntar la posición con el estado de
+     * cada asiento en un viaje.
+     */
     public Map<Integer, AsientoFisicoDTO> mapaAsientosFisicosPorId(Integer idBus) {
         List<Asiento> asientos = asientoRepositorio.findByIdBusOrderByPisoAscNumeroAsientoAsc(idBus);
         Map<Integer, AsientoFisicoDTO> mapa = new java.util.LinkedHashMap<>();
@@ -45,14 +45,14 @@ public class AsientoServicio {
         return mapa;
     }
     
-    /** Un asiento físico por su id (lanza error si no existe). */
+    /** Busca un asiento físico por su id. Si no existe, lanza error. */
     public AsientoFisicoDTO obtenerPorId(Integer idAsiento) {
         Asiento asiento = asientoRepositorio.findById(idAsiento)
             .orElseThrow(() -> new IllegalArgumentException("Asiento no encontrado: " + idAsiento));
         return mapearADto(asiento);
     }
 
-    /** Todos los asientos del bus, ordenados por piso y número. */
+    /** Lista los asientos del bus convertidos a DTO, ordenados por piso y número. */
     public List<AsientoFisicoDTO> listarAsientosPorBus(Integer idBus) {
     List<Asiento> asientos = asientoRepositorio.findByIdBusOrderByPisoAscNumeroAsientoAsc(idBus);
 
@@ -71,9 +71,8 @@ public class AsientoServicio {
         Matcher matcher = PATRON_NUMERO_ASIENTO.matcher(asiento.getNumeroAsiento());
 
         if (!matcher.matches()) {
-            // Dato inconsistente en la BD (numero_asiento no sigue el
-            // formato "1A"). Se omite en vez de romper toda la respuesta,
-            // pero queda registrado para revisión manual.
+            // Si un número de asiento no tiene el formato "1A", se salta ese asiento (no se rompe toda la
+            // respuesta) y se deja un aviso en el log para corregir el dato.
             log.warn("numero_asiento con formato inesperado, id_asiento={}, valor='{}'",
                     asiento.getIdAsiento(), asiento.getNumeroAsiento());
             return null;
@@ -98,7 +97,7 @@ public class AsientoServicio {
             case "C", "D" -> "derecha";
             default -> {
                 log.warn("Letra de asiento fuera de convención A/B/C/D: '{}'", letra);
-                yield "izquierda"; // valor por defecto, no debería ocurrir con datos reales
+                yield "izquierda"; // por si llega una letra desconocida
             }
         };
     }

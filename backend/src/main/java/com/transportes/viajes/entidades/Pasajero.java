@@ -14,7 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** La persona que viaja (tabla pasajero). Puede ser distinta del usuario que compra. */
+/** Entidad JPA de la tabla pasajero: la persona que viaja. Puede ser distinta del usuario que compra. */
 @Entity
 @Table(name = "pasajero")
 @Getter

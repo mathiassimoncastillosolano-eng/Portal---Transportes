@@ -2,7 +2,7 @@ package com.transportes.viajes.dto;
 
 import java.util.List;
 
-/** Resultado de validar pasajeros: válido o la lista de errores. */
+/** Resultado de validar los pasajeros: válido, o la lista de errores. */
 public record ResultadoPasajerosDTO(boolean valido, List<ErrorPasajeroDTO> errores) {
 
     public static ResultadoPasajerosDTO ok() {

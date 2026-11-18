@@ -24,10 +24,8 @@ import com.transportes.security.servicios.UsuarioAutenticado;
 import jakarta.validation.Valid;
 
 /**
- * HU-02 · Cambio de pasaje.
- *
- * <p>Va bajo {@code /api/usuarios/**}, que ya exige sesión (JWT) en ConfiguracionSeguridad. El id del usuario
- * sale SIEMPRE del token; nunca se recibe desde el navegador.</p>
+ * Controlador REST de HU-02, cambio de fecha de un pasaje (/api/usuarios/postergaciones). Exige sesión (JWT): el
+ * id del usuario siempre se toma del token, nunca del navegador.
  */
 @RestController
 @RequestMapping("/api/usuarios/postergaciones")
@@ -42,7 +40,10 @@ public class PostergacionControlador {
         this.confirmaciones = confirmaciones;
     }
 
-    /** Ejemplo: GET /api/usuarios/postergaciones/26/viajes?origen=Trujillo&destino=Lima&fecha=2026-11-20 */
+    /**
+     * GET /{idPasaje}/viajes: viajes a los que se puede cambiar el pasaje para una ruta y fecha.
+     * Ejemplo: GET /api/usuarios/postergaciones/26/viajes?origen=Trujillo&destino=Lima&fecha=2026-11-20
+     */
     @GetMapping("/{idPasaje}/viajes")
     public ConsultaPostergacionDto viajes(@AuthenticationPrincipal UsuarioAutenticado usuario,
                                          @PathVariable int idPasaje,
@@ -53,9 +54,8 @@ public class PostergacionControlador {
     }
 
     /**
-     * Confirma la postergación (HU-02, criterios 8 a 11): 200 con el nuevo viaje, fecha, horario y asiento si fue
-     * aceptada; 409 con el motivo en {@code mensaje} si fue rechazada (el pasaje queda como estaba).
-     * Ejemplo: POST /api/usuarios/postergaciones/26/confirmar
+     * POST /{idPasaje}/confirmar: aplica el cambio (criterios 8 a 11). Si se acepta responde 200 con el nuevo
+     * viaje, fecha, horario y asiento; si se rechaza responde 409 con el motivo y el pasaje queda como estaba.
      */
     @PostMapping("/{idPasaje}/confirmar")
     public ConfirmacionPostergacionDto confirmar(@AuthenticationPrincipal UsuarioAutenticado usuario,

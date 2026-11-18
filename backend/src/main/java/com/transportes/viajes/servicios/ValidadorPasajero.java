@@ -10,9 +10,9 @@ import java.util.regex.Pattern;
 import com.transportes.viajes.dto.PasajeroAsientoRequest;
 
 /**
- * Reglas de validación de los datos de un pasajero. Clase pura (sin Spring, sin BD).
- * El frontend (src/utilidades/validarPasajero.js) replica estas reglas con los MISMOS mensajes.
- * La edad de un menor NO se valida aquí: es solo un aviso informativo del frontend.
+ * Reglas para validar los datos de un pasajero. Regla pura (sin Spring ni base). El frontend
+ * (frontend-Portal/src/utilidades/validarPasajero.js) tiene las mismas reglas con los mismos mensajes. La edad de
+ * un menor no se valida aquí; el frontend solo muestra un aviso.
  */
 public final class ValidadorPasajero {
 
@@ -26,9 +26,8 @@ public final class ValidadorPasajero {
     public static final int EDAD_MAXIMA_ANIOS = 120;
     public static final int LONGITUD_MAXIMA_NOMBRE = 100;
     /**
-     * Un mismo DNI PUEDE repetirse en una compra (una persona que compra varios asientos, p. ej. para ella y un
-     * acompañante, o dos asientos para sí misma), pero entonces debe ser la misma persona: mismos nombres y
-     * apellidos. Así se evita que un DNI quede asociado a dos identidades distintas.
+     * Un DNI puede repetirse en una compra (la misma persona con varios asientos), pero entonces los nombres y
+     * apellidos deben ser iguales. Así un DNI no queda ligado a dos personas distintas.
      */
     public static final String MENSAJE_DNI_DATOS_DISTINTOS =
             "Este DNI ya está en otro asiento de esta compra con nombres distintos.";
@@ -43,7 +42,7 @@ public final class ValidadorPasajero {
     private ValidadorPasajero() {
     }
 
-    /** Recorta espacios y pone el tipo de documento en mayúsculas. Es idempotente. */
+    /** Quita espacios sobrantes y pone el tipo de documento en mayúsculas. */
     public static PasajeroAsientoRequest normalizar(PasajeroAsientoRequest p) {
         return new PasajeroAsientoRequest(
                 p.idAsiento(),
@@ -55,7 +54,7 @@ public final class ValidadorPasajero {
                 recortar(p.nroTelefono()));
     }
 
-    /** Valida un pasajero (reglas por campo). Lista vacía = válido. */
+    /** Valida los campos de un pasajero. Lista vacía = válido. */
     public static List<ErrorCampo> validar(PasajeroAsientoRequest original, LocalDate hoy) {
         PasajeroAsientoRequest p = normalizar(original);
         List<ErrorCampo> errores = new ArrayList<>();
@@ -90,9 +89,8 @@ public final class ValidadorPasajero {
     }
 
     /**
-     * Valida cada pasajero y la coherencia de los DNI repetidos de la compra. Repetir un DNI es válido (varios
-     * asientos de la misma persona); solo se rechaza si el 2.º o siguientes traen nombres/apellidos distintos a los
-     * del primer asiento con ese DNI (el error va a ese asiento).
+     * Valida todos los pasajeros de la compra y que los DNI repetidos tengan los mismos nombres. Si no coinciden,
+     * el error se marca en el segundo (o siguiente) asiento con ese DNI.
      */
     public static List<ErrorCampo> validarLote(List<PasajeroAsientoRequest> lista, LocalDate hoy) {
         List<ErrorCampo> errores = new ArrayList<>();
@@ -113,7 +111,7 @@ public final class ValidadorPasajero {
         return errores;
     }
 
-    /** Nombres + apellidos sin diferencias de mayúsculas ni de espacios, para comparar identidades. */
+    /** Nombres + apellidos sin diferencias de mayúsculas ni espacios, para comparar si es la misma persona. */
     static String claveIdentidad(String nombres, String apellidos) {
         return normalizarParte(nombres) + "|" + normalizarParte(apellidos);
     }

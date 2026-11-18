@@ -5,20 +5,19 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * Vista mínima de una order de Mercado Pago (respuesta de POST/GET /v1/orders). Solo contiene lo necesario
- * para verificar la operación: nunca datos de tarjeta.
- *
- * @param id                identificador de la order (ORD...)
- * @param estado            status de la order: created, processing, action_required, processed, failed, canceled, expired, refunded...
- * @param estadoDetalle     status_detail de la order: accredited, in_process, pending_challenge, failed...
- * @param referenciaExterna external_reference que envió RutaLibre
- * @param montoTotal        total_amount de la order
- * @param montoPagado       total_paid_amount (puede ser null)
- * @param moneda            currency (puede ser null)
- * @param idPago            id de la primera transacción de pago (PAY...)
- * @param estadoPago        status de esa transacción
- * @param estadoDetallePago status_detail de esa transacción (motivo de rechazo)
- * @param urlDesafio3ds     transactions.payments[0].payment_method.transaction_security.url, si hay desafío 3DS
+ * Lo mínimo de una order de Mercado Pago que necesitamos para verificar el pago (nunca datos de tarjeta).
+ * @param id id de la order (ORD...)
+ * @param estado estado de la order: created, processing, action_required, processed, failed, canceled, expired,
+ * refunded...
+ * @param estadoDetalle detalle del estado: accredited, in_process, pending_challenge, failed...
+ * @param referenciaExterna nuestra referencia de la operación
+ * @param montoTotal monto total de la order
+ * @param montoPagado monto pagado (puede ser null)
+ * @param moneda moneda (puede ser null)
+ * @param idPago id de la transacción de pago (PAY...)
+ * @param estadoPago estado de esa transacción
+ * @param estadoDetallePago motivo de rechazo de esa transacción
+ * @param urlDesafio3ds URL de la verificación 3DS, si el banco la pide
  */
 public record OrdenMercadoPago(
         String id,
@@ -36,12 +35,9 @@ public record OrdenMercadoPago(
     private static final Pattern ID_ORDEN = Pattern.compile("^ORD[A-Z0-9_-]{0,61}$");
 
     /**
-     * Normaliza el identificador de una order recibido en una notificación. Los ids de order de Mercado Pago
-     * empiezan por {@code ORD} (p. ej. ORD01M28P44G5FG8RJPM579EH56FV) y van en mayúsculas; las pruebas de la
-     * documentación y el botón "Simular" del panel pueden enviar otros valores (p. ej. 123456) que NO son una order:
-     * consultarlos a la API solo produce {@code invalid_path_param}.
-     *
-     * @return el id normalizado, o null si no tiene forma de id de order
+     * Limpia el id de order que llega en un aviso. Los ids reales empiezan por ORD y van en mayúsculas; la prueba
+     * "Simular" puede mandar otros valores (como 123456) que no son orders.
+     * @return el id limpio, o null si no parece un id de order
      */
     public static String normalizarIdOrden(String id) {
         if (id == null) {
@@ -51,23 +47,23 @@ public record OrdenMercadoPago(
         return ID_ORDEN.matcher(normalizado).matches() ? normalizado : null;
     }
 
-    /** Única condición de aprobación: order procesada y acreditada. */
+    /** Único caso aprobado: order procesada (processed) y acreditada (accredited). */
     public boolean aprobada() {
         return "processed".equals(estado) && "accredited".equals(estadoDetalle);
     }
 
-    /** El banco pide verificación 3DS: el cliente debe completar un paso extra. */
+    /** true si el banco pide la verificación 3DS (un paso extra del comprador). */
     public boolean requiereDesafio3ds() {
         return "action_required".equals(estado) && urlDesafio3ds != null && !urlDesafio3ds.isBlank();
     }
 
-    /** Resultado definitivo sin cobro (o con el cobro revertido). */
+    /** true si terminó sin cobro (fallida, cancelada, vencida o devuelta). */
     public boolean fallidaOCerrada() {
         return "failed".equals(estado) || "canceled".equals(estado) || "expired".equals(estado)
                 || "refunded".equals(estado) || "charged_back".equals(estado);
     }
 
-    /** El motivo más específico disponible (para mensajes al usuario y registro). */
+    /** El motivo más específico disponible, para el mensaje al usuario y el log. */
     public String motivo() {
         if (estadoDetallePago != null && !estadoDetallePago.isBlank()) {
             return estadoDetallePago;

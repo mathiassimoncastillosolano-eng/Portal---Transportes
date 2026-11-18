@@ -9,10 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Expone el endpoint utilizado por la sección de Destinos del frontend
- * para consultar los destinos disponibles en la base de datos real.
- */
+/** Controlador REST de la sección Destinos del Portal (/api/destinos). */
 @RestController
 @RequestMapping("/api/destinos")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -24,11 +21,7 @@ public class DestinoControlador {
         this.destinoServicio = destinoServicio;
     }
 
-    /**
-     * Devuelve la lista de destinos activos registrados en la base de
-     * datos, con la información mínima que necesitan las tarjetas de
-     * destino del frontend (id, ciudad e imagen).
-     */
+    /** GET /api/destinos: destinos activos con lo que necesita cada tarjeta (id, ciudad e imagen). */
     @GetMapping
     public List<DestinoRespuestaDTO> obtenerDestinos() {
         return destinoServicio.obtenerDestinosActivos();

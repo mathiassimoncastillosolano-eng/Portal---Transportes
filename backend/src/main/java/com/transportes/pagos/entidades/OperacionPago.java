@@ -16,9 +16,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Operación de pago pendiente (tabla operacion_pago, migración 003). Vincula la sesión de reserva
- * (asientos bloqueados), la order de Mercado Pago y, solo tras la aprobación, la venta definitiva.
- * Nunca guarda datos de tarjeta: solo identificadores y estados devueltos por el proveedor.
+ * Entidad JPA de la tabla operacion_pago: un intento de pago. Une la sesión de reserva (asientos bloqueados), la
+ * order de Mercado Pago y, solo si se aprueba, la venta. Nunca guarda datos de tarjeta.
  */
 @Entity
 @Table(name = "operacion_pago")
@@ -50,7 +49,9 @@ public class OperacionPago {
     @Column(name = "medio_pago", nullable = false, length = 20)
     private String medioPago;
 
-    /** Entorno con el que se creó la order. No cambia nunca: define con qué credenciales se consulta y reembolsa. */
+    /**
+     * Entorno con que se creó la order. No cambia: define qué credenciales se usan para consultar y reembolsar.
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "entorno", nullable = false, length = 12)
     private EntornoPago entorno;
@@ -80,7 +81,7 @@ public class OperacionPago {
     @Column(name = "url_desafio_3ds", length = 500)
     private String urlDesafio3ds;
 
-    /** JSON temporal con los pasajeros validados; se borra (null) al cerrar la operación. */
+    /** Copia temporal en JSON de los pasajeros; se borra al cerrar la operación. */
     @Column(name = "datos_pasajeros")
     private String datosPasajeros;
 

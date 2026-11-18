@@ -9,11 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Expone el endpoint utilizado por la sección de Servicios del
- * frontend para consultar los tipos de bus disponibles en la base de
- * datos real.
- */
+/** Controlador REST de la sección Servicios del Portal: devuelve los tipos de bus. */
 @RestController
 @RequestMapping("/api/servicios")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -25,12 +21,7 @@ public class ServicioControlador {
         this.tipoBusServicio = tipoBusServicio;
     }
 
-    /**
-     * Devuelve la lista de tipos de bus registrados en la base de
-     * datos, con la información mínima que necesitan las tarjetas de
-     * servicio del frontend (id, nombre, descripción, imagen y
-     * reclinación).
-     */
+    /** GET: tipos de bus con lo que necesita cada tarjeta (id, nombre, descripción, imagen y reclinación). */
     @GetMapping
     public List<TipoBusRespuestaDTO> obtenerServicios() {
         return tipoBusServicio.obtenerTiposBus();

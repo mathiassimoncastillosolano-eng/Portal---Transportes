@@ -18,8 +18,8 @@ import com.transportes.viajes.dto.AsientoEventoDTO;
 import com.transportes.viajes.eventos.AsientoCambiadoEvento;
 
 /**
- * Cambios de asientos en tiempo real (Server-Sent Events). Guarda las conexiones abiertas por viaje (patrón
- * Observador).
+ * Envía en tiempo real los cambios de asientos a los navegadores (Server-Sent Events). Patrón Observador: guarda
+ * las conexiones abiertas de cada viaje y les avisa cuando un asiento cambia.
  */
 @Service
 public class AsientoSseServicio {
@@ -30,7 +30,7 @@ public class AsientoSseServicio {
 
     /** Registra una conexión nueva y la quita cuando se cierra. */
     public SseEmitter suscribir(Long idViaje) {
-        SseEmitter emisor = new SseEmitter(0L); // sin timeout; el heartbeat detecta conexiones muertas
+        SseEmitter emisor = new SseEmitter(0L); // sin límite de tiempo; el latido detecta las conexiones muertas
         List<SseEmitter> lista = emisoresPorViaje.computeIfAbsent(idViaje, k -> new CopyOnWriteArrayList<>());
         lista.add(emisor);
 
@@ -43,7 +43,10 @@ public class AsientoSseServicio {
         return emisor;
     }
 
-    /** Con fallbackExecution también se dispara si se publica fuera de una transacción (p. ej. el job). */
+    /**
+     * Avisa a los navegadores después de confirmar la transacción. fallbackExecution hace que también funcione si
+     * el evento se publica fuera de una transacción (por ejemplo, desde el job).
+     */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void alCambiarAsiento(AsientoCambiadoEvento evento) {
         List<SseEmitter> lista = emisoresPorViaje.get(evento.idViaje());
@@ -56,7 +59,7 @@ public class AsientoSseServicio {
         }
     }
 
-    /** Cada 25 s: mensaje vacío para mantener viva la conexión y detectar las caídas. */
+    /** Cada 25 segundos manda un mensaje vacío (latido) para mantener viva la conexión y detectar las caídas. */
     @Scheduled(fixedRate = 25_000)
     public void latido() {
         emisoresPorViaje.forEach((idViaje, lista) -> {

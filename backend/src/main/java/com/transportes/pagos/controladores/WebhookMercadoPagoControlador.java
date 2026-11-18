@@ -24,26 +24,13 @@ import com.transportes.pagos.mercadopago.ValidadoresWebhook;
 import com.transportes.pagos.servicios.PagoServicio;
 
 /**
- * Notificaciones Webhook del evento "Order (Mercado Pago)". URLs públicas:
- * <ul>
- *   <li>{@code https://<backend>/api/pagos/webhook/sandbox}: notificaciones del modo de pruebas;</li>
- *   <li>{@code https://<backend>/api/pagos/webhook/production}: notificaciones del modo productivo;</li>
- *   <li>{@code https://<backend>/api/pagos/webhook}: URL heredada; acepta la firma de cualquiera de los dos entornos
- *       (se conserva para no romper la configuración actual de Mercado Pago).</li>
- * </ul>
- *
- * <p>Reglas: (1) se verifica la firma {@code x-signature} con la clave secreta del entorno (o de los entornos
- * candidatos); sin firma válida se responde 401 y no se hace nada; (2) el cuerpo NO se usa para decidir: solo se toma
- * {@code data.id} y se consulta la order con GET /v1/orders/{id} usando las credenciales del entorno de la operación;
- * (3) se responde 200 rápido. Respuesta según el resultado, para no perder notificaciones válidas ni provocar
- * reintentos inútiles (Mercado Pago reintenta ante todo lo que no sea 200/201):
- * <ul>
- *   <li>id que no tiene forma de order (p. ej. 123456 del botón "Simular"): 200, sin consultar la API;</li>
- *   <li>fallo temporal de Mercado Pago o de nuestras credenciales (sin respuesta, 423/429/5xx, 401/403): 503, para
- *       que reintente;</li>
- *   <li>rechazo definitivo de la consulta (400 invalid_path_param, 404...): 200, repetirla no cambiaría nada.</li>
- * </ul>
- * Las notificaciones repetidas o desordenadas no tienen efecto adicional (ver PagoServicio).</p>
+ * Recibe los avisos (Webhooks) que Mercado Pago envía cuando cambia una order. URLs públicas:
+ * /api/pagos/webhook/sandbox, /api/pagos/webhook/production y /api/pagos/webhook (antigua, acepta ambos entornos).
+ * Reglas:
+ * 1) Se verifica la firma x-signature; si no es válida se responde 401 y no se hace nada.
+ * 2) No se confía en el cuerpo: solo se toma el id y se consulta la order real en la API.
+ * 3) Si la consulta falla por algo temporal se responde 503 para que Mercado Pago reintente; si no, 200.
+ * Avisos repetidos o desordenados no causan efectos dobles (ver PagoServicio).
  */
 @RestController
 @RequestMapping("/api/pagos/webhook")
@@ -60,7 +47,7 @@ public class WebhookMercadoPagoControlador {
         this.pagoServicio = pagoServicio;
     }
 
-    /** URL heredada: la firma decide a qué entorno(s) pertenece la notificación. */
+    /** POST /api/pagos/webhook (URL antigua): la firma decide de qué entorno es el aviso. */
     @PostMapping
     public ResponseEntity<Void> recibir(
             @RequestHeader(value = "x-signature", required = false) String firma,
@@ -71,7 +58,7 @@ public class WebhookMercadoPagoControlador {
         return procesar(AMBOS, firma, idSolicitud, dataIdConsulta, tipoConsulta, cuerpo);
     }
 
-    /** URL de un entorno concreto: solo vale la clave secreta de ese entorno. */
+    /** POST /api/pagos/webhook/{entorno}: solo vale la clave secreta de ese entorno. */
     @PostMapping("/{entorno}")
     public ResponseEntity<Void> recibirDeEntorno(
             @PathVariable("entorno") String entornoTexto,
@@ -93,12 +80,12 @@ public class WebhookMercadoPagoControlador {
             log.error("Webhook recibido pero no hay clave secreta de Webhooks configurada para {}: se rechaza", candidatos);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        // La firma se calcula con data.id de la URL (como el SDK oficial). El id del cuerpo solo es respaldo
-        // para identificar la order, y aun así la order se consulta en la API antes de usarla.
+        // La firma se calcula con el id que viene en la URL (igual que el SDK oficial). El id del cuerpo es solo
+        // respaldo, y aun así la order se consulta en la API antes de usarla.
         List<EntornoPago> validos = validadores.entornosConFirmaValida(candidatos, firma, idSolicitud, dataIdConsulta);
         if (validos.isEmpty()) {
-            // Solo se indica qué datos llegaron (nunca la clave ni la firma): ayuda a distinguir una clave secreta
-            // equivocada (p. ej. la del otro entorno) de una llamada que no viene de Mercado Pago.
+            // En el log solo se anota qué datos llegaron (nunca la clave ni la firma), para distinguir una clave
+            // mal configurada de una llamada falsa.
             log.warn("Webhook con firma inválida rechazado (x-request-id={}, x-signature presente={}, data.id en la URL={}, diagnóstico: {})",
                     idSolicitud, firma != null && !firma.isBlank(), dataIdConsulta != null,
                     validadores.diagnosticar(candidatos, firma, idSolicitud, dataIdConsulta));
@@ -114,7 +101,7 @@ public class WebhookMercadoPagoControlador {
         }
         String idOrden = OrdenMercadoPago.normalizarIdOrden(dataId);
         if (idOrden == null) {
-            // Firma válida pero el id no es el de una order (prueba "Simular" con 123456, por ejemplo).
+            // Firma válida, pero el id no es de una order (por ejemplo la prueba "Simular" con 123456).
             log.info("Webhook de tipo order con un id que no corresponde a una order: se ignora sin consultar la API");
             return ResponseEntity.ok().build();
         }

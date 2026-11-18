@@ -15,8 +15,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Un asiento en un viaje concreto (tabla viaje_asiento): estado, precio, sesión que lo bloquea y hasta
- * cuándo.
+ * Entidad JPA de la tabla viaje_asiento: un asiento dentro de un viaje concreto, con su estado (DISPONIBLE,
+ * BLOQUEADO_TEMPORAL u OCUPADO), su precio y, si está bloqueado, qué sesión lo tiene y hasta cuándo.
  */
 @Entity
 @Table(name = "viaje_asiento")
@@ -49,7 +49,7 @@ public class ViajeAsiento {
     @Column(name = "fecha_actualizacion", nullable = false)
     private LocalDateTime fechaActualizacion;
 
-    // --- Columnas de la Tarea 3 (bloqueo temporal) ---
+    // Datos del bloqueo temporal (mientras el cliente compra)
 
     @Column(name = "fecha_expiracion_bloqueo")
     private LocalDateTime fechaExpiracionBloqueo;

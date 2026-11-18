@@ -13,11 +13,8 @@ import com.transportes.pagos.configuracion.CredencialesMercadoPago;
 import com.transportes.pagos.entidades.EntornoPago;
 
 /**
- * Validadores de la firma {@code x-signature} de los Webhooks, uno por entorno (cada uno con su clave secreta).
- *
- * <p>Una notificación solo se acepta si su firma coincide con la clave de alguno de los entornos CANDIDATOS. Con la
- * URL de un entorno ({@code /api/pagos/webhook/sandbox} o {@code /production}) el único candidato es ese entorno;
- * con la URL heredada ({@code /api/pagos/webhook}) los candidatos son ambos.</p>
+ * Un validador de firma por entorno, cada uno con su clave secreta. Un aviso se acepta si su firma coincide con la
+ * de algún entorno candidato: con la URL de un entorno solo ese; con la URL antigua, ambos.
  */
 @Component
 public class ValidadoresWebhook {
@@ -32,12 +29,12 @@ public class ValidadoresWebhook {
         }
     }
 
-    /** Validador de firma del entorno indicado. */
+    /** Validador del entorno pedido. */
     public ValidadorFirmaWebhook de(EntornoPago entorno) {
         return validadores.get(entorno);
     }
 
-    /** ¿Alguno de los candidatos tiene clave secreta de Webhooks configurada? */
+    /** true si algún candidato tiene clave secreta configurada. */
     public boolean algunoConfigurado(Collection<EntornoPago> candidatos) {
         for (EntornoPago entorno : candidatos) {
             if (de(entorno).configurado()) {
@@ -47,7 +44,7 @@ public class ValidadoresWebhook {
         return false;
     }
 
-    /** Candidatos cuya clave secreta produce exactamente la firma recibida (vacío = firma inválida). */
+    /** Entornos cuya clave produce exactamente la firma recibida (lista vacía = firma inválida). */
     public List<EntornoPago> entornosConFirmaValida(Collection<EntornoPago> candidatos, String firma,
             String idSolicitud, String dataId) {
         List<EntornoPago> validos = new ArrayList<>();
@@ -59,7 +56,7 @@ public class ValidadoresWebhook {
         return validos;
     }
 
-    /** Motivo del rechazo, sin revelar claves ni firmas (solo para el registro del servidor). */
+    /** Motivo del rechazo, sin revelar claves ni firmas (solo para el log). */
     public String diagnosticar(Collection<EntornoPago> candidatos, String firma, String idSolicitud, String dataId) {
         StringBuilder sb = new StringBuilder();
         for (EntornoPago entorno : candidatos) {

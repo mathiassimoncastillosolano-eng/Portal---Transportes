@@ -8,9 +8,9 @@ import org.springframework.context.annotation.Configuration;
 import com.transportes.viajes.reglas.PoliticaReservaViaje;
 
 /**
- * Reloj de negocio: hora local de Perú, que es la zona en la que se guardan fecha_salida y hora_salida de los
- * viajes. Se inyecta (en lugar de llamar a LocalDateTime.now()) para no depender de la zona del servidor o de la
- * base de datos y para poder fijar la hora en las pruebas.
+ * Define el reloj del negocio: hora de Perú, que es la zona en que se guardan fecha_salida y hora_salida. Las
+ * clases reciben este Clock en vez de llamar a LocalDateTime.now(), así no dependen de la zona del servidor y en
+ * las pruebas se puede fijar una hora.
  */
 @Configuration
 public class ConfiguracionReloj {

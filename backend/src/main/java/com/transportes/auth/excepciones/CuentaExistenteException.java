@@ -1,9 +1,8 @@
 package com.transportes.auth.excepciones;
 
 /**
- * Conflicto de cuentas al entrar con Google: el correo ya pertenece a una
- * cuenta con contrasena (no se vincula automaticamente), o la cuenta de
- * Google ya esta asociada a otro usuario. Se responde 409.
+ * Choque de cuentas con Google (409): el correo ya tiene una cuenta con contraseña, o esa cuenta de Google ya es
+ * de otro usuario.
  */
 public class CuentaExistenteException extends RuntimeException {
 

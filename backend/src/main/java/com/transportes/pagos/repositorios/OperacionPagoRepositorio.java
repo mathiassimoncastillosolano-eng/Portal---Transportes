@@ -17,33 +17,38 @@ import com.transportes.pagos.entidades.OperacionPago;
 import jakarta.persistence.LockModeType;
 
 /**
- * Acceso a operacion_pago: cada intento de pago con Mercado Pago. Incluye el bloqueo de fila que evita
- * procesar dos veces el mismo pago.
+ * Repositorio de la tabla operacion_pago (intentos de pago). Incluye el bloqueo de fila que evita procesar dos
+ * veces el mismo pago.
  */
 public interface OperacionPagoRepositorio extends JpaRepository<OperacionPago, Integer> {
 
-    /** Detecta un doble clic: misma clave = misma operación. */
+    /** Busca por clave de idempotencia: misma clave = mismo intento (por ejemplo, un doble clic). */
     Optional<OperacionPago> findByClaveIdempotencia(String claveIdempotencia);
 
     Optional<OperacionPago> findByReferenciaExterna(String referenciaExterna);
 
     Optional<OperacionPago> findByMpOrderId(String mpOrderId);
 
-    /** Fila bloqueada (SELECT ... FOR UPDATE): serializa webhook, consulta y job sobre la misma operación. */
+    /**
+     * Lee la operación bloqueando su fila (SELECT ... FOR UPDATE): si el Webhook, la consulta del frontend y el
+     * job llegan a la vez, se atienden uno por uno.
+     */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM OperacionPago o WHERE o.idOperacionPago = :id")
     Optional<OperacionPago> bloquearPorId(@Param("id") Integer id);
 
-    /** Operaciones activas de una sesión de reserva. */
+    /** Operaciones de una sesión de reserva que están en ciertos estados. */
     List<OperacionPago> findByIdSesionReservaAndEstadoIn(String idSesionReserva, Collection<EstadoOperacion> estados);
 
-    /** Ids pendientes que el job de conciliación debe volver a consultar. */
+    /** Ids de operaciones pendientes que el job debe volver a consultar. */
     @Query("SELECT o.idOperacionPago FROM OperacionPago o WHERE o.estado IN :estados "
          + "AND (o.fechaUltimaConsulta IS NULL OR o.fechaUltimaConsulta < :antesDe) ORDER BY o.fechaCreacion")
     List<Integer> buscarParaConciliar(@Param("estados") Collection<EstadoOperacion> estados,
                                       @Param("antesDe") LocalDateTime antesDe);
 
-    /** Minimización de datos: borra la copia de pasajeros de operaciones cerradas hace más de una hora. */
+    /**
+     * Borra la copia de pasajeros de las operaciones cerradas hace más de una hora (guardar solo lo necesario).
+     */
     @Modifying
     @Query("UPDATE OperacionPago o SET o.datosPasajeros = null WHERE o.datosPasajeros IS NOT NULL "
          + "AND o.estado NOT IN :activos AND o.fechaExpiracion < :antesDe")

@@ -5,17 +5,11 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Validación centralizada del documento del pagador antes de enviarlo a Mercado Pago.
- *
- * <p>Reglas (todas verificables en el catálogo {@code GET /v1/identification_types} de Perú, que el
- * propio Brick usa para el formulario): DNI = 8 dígitos; C.E = 8 a 12 dígitos; RUC = 11 a 12 caracteres
- * alfanuméricos; Otro = 5 a 20 dígitos.
- *
- * <p>Principios: nunca se inventan dígitos ni se rellena con ceros; nunca se cambia el tipo del usuario por
- * otro "parecido" (C.E→CE, CE→CI, X→Otro). El único cambio de tipo posible es un mapeo EXPLÍCITO
- * configurado por el operador ({@code mercadopago.identificacion.mapeo-tipos}), vacío por defecto.
- * Si el documento no puede enviarse con seguridad, se OMITE la identificación (no se rechaza la compra
- * por ello) y se informa el motivo, sin datos personales.
+ * Valida el documento del pagador antes de enviarlo a Mercado Pago. Reglas de Perú: DNI = 8 dígitos; C.E = 8 a 12
+ * dígitos; RUC = 11 a 12 caracteres; Otro = 5 a 20 dígitos.
+ * Nunca se inventan dígitos ni se cambia el tipo por otro parecido (solo con un mapeo configurado a mano). Si el
+ * documento no se puede enviar con seguridad, se omite (la compra sigue) y se anota el motivo en el log, sin datos
+ * personales.
  */
 public final class DocumentoPagador {
 
@@ -33,17 +27,18 @@ public final class DocumentoPagador {
         }
     }
 
-    /** Tipos del catálogo de Perú, tal como los devuelve /v1/identification_types. */
+    /** Tipos de documento de Perú según el catálogo de Mercado Pago. */
     public static final Set<String> TIPOS_CATALOGO = Set.of("DNI", "C.E", "RUC", "Otro");
 
     private DocumentoPagador() {
     }
 
     /**
-     * @param tipo          tipo elegido por el usuario (id del catálogo, sensible a mayúsculas)
-     * @param numero        número tal como lo ingresó
-     * @param habilitados   tipos que el operador permite enviar a la API de Orders
-     * @param mapeo         traducciones explícitas catálogo→Orders (puede estar vacío)
+     * Decide si el documento se envía y con qué tipo.
+     * @param tipo tipo elegido por el usuario
+     * @param numero número tal como lo escribió
+     * @param habilitados tipos que se permite enviar
+     * @param mapeo traducciones de tipo configuradas (puede estar vacío)
      */
     public static Resultado evaluar(String tipo, String numero, Set<String> habilitados, Map<String, String> mapeo) {
         String t = tipo == null ? "" : tipo.strip();
@@ -75,7 +70,7 @@ public final class DocumentoPagador {
         };
     }
 
-    /** Convierte "C.E=CE,Otro=XX" en un mapa. Entradas mal formadas se ignoran. */
+    /** Convierte "C.E=CE,Otro=XX" en un mapa. Las entradas mal escritas se ignoran. */
     public static Map<String, String> analizarMapeo(String texto) {
         if (texto == null || texto.isBlank()) {
             return Map.of();
@@ -103,7 +98,7 @@ public final class DocumentoPagador {
         return Set.copyOf(s);
     }
 
-    /** Solo para el log: el motivo sin datos personales. */
+    /** Motivo del resultado para el log, sin datos personales. */
     public static Optional<String> descripcion(Resultado r) {
         return switch (r.motivo()) {
             case ENVIADO -> Optional.empty();

@@ -1,16 +1,8 @@
 package com.transportes.security.servicios;
 
 /**
- * Representa, dentro del contexto de seguridad de Spring, al usuario que ya
- * fue autenticado mediante un JWT valido. Se establece como "principal" de
- * la {@code Authentication} por el {@code JwtAuthenticationFilter}.
- *
- * Es un registro simple: no vuelve a consultar la base de datos en cada
- * peticion salvo cuando el propio filtro lo necesita para verificar que el
- * usuario siga activo.
- *
- * Tambien guarda el rol (AGENCIA, GERENTE o CLIENTE), para saber si es
- * personal de agencia, gerente o cliente (tarjeta CRC UsuarioAutenticado).
+ * El usuario de la petición actual, ya validado por el JWT. El filtro lo deja como "principal" de Spring y los
+ * controladores lo reciben con @AuthenticationPrincipal. Guarda id, correo y rol (AGENCIA, GERENTE o CLIENTE).
  */
 public record UsuarioAutenticado(Integer idUsuario, String correo, String rol) {
 }

@@ -14,14 +14,8 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * Entidad JPA que representa un tipo de bus registrado en la base de
- * datos (tabla "tipo_bus"). Estos tipos de bus son la fuente real de
- * las tarjetas que se muestran en la sección "Servicios" del
- * frontend.
- *
- * La estructura de la tabla no se modifica: esta entidad solo mapea
- * las columnas ya existentes (id_tipo_bus, nombre_tipo, descripcion,
- * fecha_creacion, url_imagen, descripcion_reclinacion).
+ * Entidad JPA de la tabla tipo_bus: un tipo de servicio (por ejemplo Económico o VIP). Son las tarjetas de la
+ * sección Servicios.
  */
 @Entity
 @Table(name = "tipo_bus")

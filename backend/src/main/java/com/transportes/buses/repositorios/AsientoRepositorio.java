@@ -6,13 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.transportes.buses.entidades.Asiento;
 
-/** Acceso a la tabla asiento (asientos físicos de cada bus). */
+/** Repositorio de la tabla asiento. Spring Data genera las consultas a partir del nombre del método. */
 public interface AsientoRepositorio extends JpaRepository<Asiento, Integer> {
 
-    /**
-     * Trae todos los asientos físicos de un bus, ya ordenados por piso
-     * y número de asiento — el mismo orden en que el frontend necesita
-     * pintarlos en el mapa (fila por fila, de arriba hacia abajo).
-     */
+    /** Asientos de un bus ordenados por piso y número: el mismo orden en que el frontend pinta el mapa. */
     List<Asiento> findByIdBusOrderByPisoAscNumeroAsientoAsc(Integer idBus);
 }

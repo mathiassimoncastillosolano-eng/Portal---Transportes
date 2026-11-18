@@ -23,8 +23,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 /**
- * Crea y valida el token de la sesión de reserva (un JWT propio, distinto al de login). Su id es el que marca
- * los asientos bloqueados.
+ * Crea y valida el token de la sesión de reserva (un JWT propio, distinto al del login). Su id es el que marca los
+ * asientos bloqueados.
  */
 @Service
 public class TokenSesionServicio {
@@ -45,7 +45,7 @@ public class TokenSesionServicio {
         this.minutosSesion = minutosSesion;
     }
 
-    /** idSesion = UUID (jti); es lo que se guarda en viaje_asiento.token_bloqueo. */
+    /** Datos de una sesión de reserva. idSesion (un UUID) es lo que se guarda en viaje_asiento.token_bloqueo. */
     public record SesionReserva(String tokenSesion, String idSesion, Long idViaje, LocalDateTime fechaExpiracion) {
         public long segundosRestantes() {
             return Math.max(0, Duration.between(LocalDateTime.now(), fechaExpiracion).getSeconds());
@@ -56,7 +56,7 @@ public class TokenSesionServicio {
         return crear(idViaje, null);
     }
 
-    /** Nueva sesión con su id (UUID) y vencimiento (máx. los minutos configurados). */
+    /** Crea una sesión nueva con su id y su vencimiento (como máximo los minutos configurados). */
     public SesionReserva crear(Long idViaje, Integer minutosSolicitados) {
         long minutos = minutosSolicitados == null ? minutosSesion : Math.max(1, Math.min(minutosSolicitados, minutosSesion));
         Instant ahora = Instant.now();
@@ -77,9 +77,8 @@ public class TokenSesionServicio {
     }
 
     /**
-     * Reemite el token de una sesión EXISTENTE (mismo id, mismos asientos) con una nueva expiración. Se usa
-     * cuando el servidor extiende el bloqueo de los asientos durante el pago, para que un reintento tras un
-     * rechazo siga siendo posible mientras los asientos continúan reservados.
+     * Vuelve a emitir el token de una sesión que ya existe (mismo id, mismos asientos) con un nuevo vencimiento.
+     * Se usa cuando el pago alarga el bloqueo, para que el cliente pueda reintentar.
      */
     public SesionReserva reemitir(String idSesion, Long idViaje, LocalDateTime nuevaExpiracion) {
         Instant ahora = Instant.now();
@@ -97,8 +96,9 @@ public class TokenSesionServicio {
     }
 
     /**
-     * @throws SesionExpiradaException si venció (-> 410)
-     * @throws SesionInvalidaException si es falsa, alterada o de otro viaje (-> 401)
+     * Valida el token de la sesión para ese viaje.
+     * @throws SesionExpiradaException si venció (410)
+     * @throws SesionInvalidaException si es falso, alterado o de otro viaje (401)
      */
     public SesionReserva validar(String token, Long idViaje) {
         try {

@@ -6,9 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.transportes.viajes.entidades.Pasajero;
 
-/** Acceso a la tabla pasajero. */
+/** Repositorio de la tabla pasajero. */
 public interface PasajeroRepositorio extends JpaRepository<Pasajero, Integer> {
 
-    /** Reutiliza el pasajero si ya existe con ese documento. */
+    /** Busca un pasajero por su documento, para reutilizarlo si ya existe. */
     Optional<Pasajero> findByTipoDocumentoAndNumeroDocumento(String tipoDocumento, String numeroDocumento);
 }

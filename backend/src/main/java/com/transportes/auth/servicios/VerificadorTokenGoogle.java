@@ -15,14 +15,10 @@ import java.security.Key;
 import java.util.Set;
 
 /**
- * Valida el ID token (JWT) que Google entrega al frontend y extrae la
- * identidad del usuario.
- *
- * <p>Comprobaciones: firma RS256 con las claves publicas de Google
- * ({@link ClavesPublicasGoogle}), emisor de Google, audiencia igual al
- * Client ID de esta aplicacion, expiracion (con 60 s de tolerancia de reloj)
- * y correo verificado por Google. No se usa el Client Secret: el ID token se
- * verifica con criptografia de clave publica.</p>
+ * Valida el ID token que Google entrega al frontend y saca los datos del usuario.
+ * Revisa: firma RS256 con las claves públicas de Google, emisor de Google, audiencia = nuestro Client ID, que no
+ * esté vencido (con 60 s de tolerancia) y que el correo esté verificado. No hace falta el Client Secret: se
+ * verifica con clave pública.
  */
 @Service
 public class VerificadorTokenGoogle {
@@ -39,10 +35,7 @@ public class VerificadorTokenGoogle {
         this.clientId = clientId;
     }
 
-    /**
-     * Valida firma, emisor, audiencia y correo verificado del ID token de Google. Si algo falla lanza
-     * GoogleTokenInvalidoException.
-     */
+    /** Devuelve la identidad si todo es correcto; si algo falla lanza GoogleTokenInvalidoException. */
     public IdentidadGoogle verificar(String credencial) {
         Claims datos;
         try {
@@ -67,7 +60,8 @@ public class VerificadorTokenGoogle {
         } catch (JwtException | IllegalArgumentException e) {
             throw new GoogleTokenInvalidoException(MENSAJE_TOKEN_INVALIDO, e);
         } catch (RuntimeException e) {
-            // JJWT puede envolver una excepcion lanzada por el localizador de claves.
+            // La librería JJWT puede envolver el error de "Google no responde"; se saca para responder 503 y no
+            // 401.
             if (e.getCause() instanceof GoogleServicioNoDisponibleException causa) {
                 throw causa;
             }
@@ -98,7 +92,7 @@ public class VerificadorTokenGoogle {
                 datos.get("name", String.class));
     }
 
-    /** Google envia email_verified como booleano; se tolera tambien la cadena "true". */
+    /** email_verified puede venir como booleano o como el texto "true". */
     private static boolean esVerdadero(Object valor) {
         return Boolean.TRUE.equals(valor) || "true".equalsIgnoreCase(String.valueOf(valor));
     }

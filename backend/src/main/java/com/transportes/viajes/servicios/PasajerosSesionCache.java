@@ -12,11 +12,9 @@ import org.springframework.stereotype.Component;
 import com.transportes.viajes.dto.PasajeroAsientoRequest;
 
 /**
- * Caché EN MEMORIA de los pasajeros ya validados en "Continuar al pago", por sesión de reserva.
- * No toca la base de datos: los datos solo pasan a PostgreSQL cuando el pago se confirma
- * (ver com.transportes.pagos.servicios.PagoServicio, que los copia a la operación de pago).
- * Cada entrada vence con la sesión y se descarta sola.
- * Como la denylist de tokens, se pierde al reiniciar el servidor (el usuario vuelve a continuar al pago).
+ * Guarda EN MEMORIA los pasajeros ya validados en "Continuar al pago", por sesión de reserva. No toca la base: los
+ * datos pasan a PostgreSQL solo cuando el pago se aprueba. Cada entrada vence con la sesión. Si el servidor se
+ * reinicia se pierde (el usuario vuelve a continuar al pago).
  */
 @Component
 public class PasajerosSesionCache {
@@ -26,7 +24,7 @@ public class PasajerosSesionCache {
 
     private final Map<String, Entrada> porSesion = new ConcurrentHashMap<>();
 
-    /** Reemplaza lo guardado para la sesión (vence cuando vence la sesión). */
+    /** Guarda (o reemplaza) los pasajeros de la sesión hasta que la sesión venza. */
     public void guardar(String idSesion, LocalDateTime expira, List<PasajeroAsientoRequest> pasajeros) {
         porSesion.put(idSesion, new Entrada(expira, List.copyOf(pasajeros)));
     }

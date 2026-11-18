@@ -27,12 +27,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Manejador global de excepciones para toda la API.
- *
- * Centraliza la traduccion de excepciones de negocio a respuestas HTTP
- * consistentes y evita filtrar informacion sensible (mensajes de
- * excepciones internas, detalles de la base de datos, stacktraces) hacia el
- * frontend.
+ * Manejador global de errores de toda la API (@RestControllerAdvice). Cada método atrapa un tipo de excepción y la
+ * convierte en una respuesta HTTP con el formato RespuestaError. Así los controladores no repiten try/catch y
+ * nunca se envían al frontend detalles internos (stacktraces, errores de la base).
  */
 @Slf4j
 @RestControllerAdvice
@@ -45,7 +42,9 @@ public class ManejadorGlobalExcepciones {
         return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request, null);
     }
 
-    /** 409 si choca con una restricción conocida de la BD; si no, 500. */
+    /**
+     * 409 si se violó una restricción conocida de la base (por ejemplo un dato duplicado); si no se reconoce, 500.
+     */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<RespuestaError> manejarIntegridad(
             DataIntegrityViolationException excepcion, HttpServletRequest request) {
@@ -63,7 +62,7 @@ public class ManejadorGlobalExcepciones {
                 "No se pudo guardar la cuenta", request, null);
     }
 
-    /** Errores lanzados con ResponseStatusException: se respeta el código que traen. */
+    /** Errores lanzados con ResponseStatusException: se responde con el código que traen. */
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<RespuestaError> manejarSolicitud(
             ResponseStatusException excepcion, HttpServletRequest request) {
@@ -79,21 +78,21 @@ public class ManejadorGlobalExcepciones {
                 "El cuerpo de la solicitud debe ser un JSON válido", request, null);
     }
 
-    /** Libro de Reclamaciones: código y detalles que trae ReclamoException. */
+    /** Libro de Reclamaciones: usa el código y los detalles que trae ReclamoException. */
     @ExceptionHandler(com.transportes.reclamos.excepciones.ReclamoException.class)
     public ResponseEntity<RespuestaError> manejarReclamo(
             com.transportes.reclamos.excepciones.ReclamoException excepcion, HttpServletRequest request) {
         return construirRespuesta(excepcion.getStatus(), excepcion.getMessage(), request, excepcion.getDetalles());
     }
 
-    /** Pagos: código y mensaje que trae PagoException. */
+    /** Pagos: usa el código y el mensaje que trae PagoException. */
     @ExceptionHandler(com.transportes.pagos.excepciones.PagoException.class)
     public ResponseEntity<RespuestaError> manejarPago(
             com.transportes.pagos.excepciones.PagoException excepcion, HttpServletRequest request) {
         return construirRespuesta(excepcion.getStatus(), excepcion.getMessage(), request, null);
     }
 
-    /** Mercado Pago no respondio a tiempo: el resultado se verifica luego (el pago NO se da por aprobado). */
+    /** Mercado Pago no respondió a tiempo: el resultado se revisa después (el pago NO se da por aprobado). */
     @ExceptionHandler(com.transportes.pagos.mercadopago.ErrorMercadoPagoException.class)
     public ResponseEntity<RespuestaError> manejarProveedorPago(
             com.transportes.pagos.mercadopago.ErrorMercadoPagoException excepcion, HttpServletRequest request) {
@@ -129,7 +128,10 @@ public class ManejadorGlobalExcepciones {
         return construirRespuesta(HttpStatus.FORBIDDEN, excepcion.getMessage(), request, null);
     }
 
-    /** Recuperacion de contrasena: el servicio ya fija estado y mensaje seguros (sin enumerar cuentas). */
+    /**
+     * Recuperación de contraseña: el servicio ya trae un código y un mensaje seguros (no revela si el correo
+     * existe).
+     */
     @ExceptionHandler(RecuperacionContrasenaException.class)
     public ResponseEntity<RespuestaError> manejarRecuperacionContrasena(
             RecuperacionContrasenaException excepcion, HttpServletRequest request) {
@@ -165,7 +167,7 @@ public class ManejadorGlobalExcepciones {
                 "No autenticado. Inicie sesion nuevamente.", request, null);
     }
 
-    /** 403: sesión válida pero sin permiso (rol). */
+    /** 403: hay sesión, pero el rol no tiene permiso. */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<RespuestaError> manejarAccesoDenegado(
             AccessDeniedException excepcion, HttpServletRequest request) {
@@ -180,7 +182,7 @@ public class ManejadorGlobalExcepciones {
         return construirRespuesta(HttpStatus.NOT_FOUND, excepcion.getMessage(), request, null);
     }
 
-    /** 400: falló un @Valid; en detalles va cada campo con su mensaje. */
+    /** 400: falló una validación @Valid; en detalles va cada campo con su mensaje. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<RespuestaError> manejarValidacion(
             MethodArgumentNotValidException excepcion, HttpServletRequest request) {
@@ -213,14 +215,16 @@ public class ManejadorGlobalExcepciones {
         return construirRespuesta(HttpStatus.UNAUTHORIZED, excepcion.getMessage(), request, null);
     }
 
-    /** El navegador cerró una conexión SSE: no hay a quién responder. */
+    /** El navegador cerró una conexión SSE (tiempo real): no hay a quién responder, así que no se hace nada. */
     @ExceptionHandler({org.springframework.web.context.request.async.AsyncRequestNotUsableException.class,
             java.io.IOException.class})
     public void manejarIoDeStream(Exception excepcion) {
         log.debug("Conexión de streaming cerrada: {}", excepcion.getMessage());
     }
 
-        /** 500: cualquier error no previsto (no expone detalles internos). */
+        /**
+         * 500: cualquier error no previsto. Se registra en el log y al frontend solo le llega un mensaje genérico.
+         */
     @ExceptionHandler(Exception.class)
         public ResponseEntity<RespuestaError> manejarErrorGeneral(
                 Exception excepcion, HttpServletRequest request) {
@@ -254,7 +258,8 @@ public class ManejadorGlobalExcepciones {
     @ExceptionHandler(com.transportes.viajes.excepciones.ReservaNoPermitidaException.class)
     public ResponseEntity<RespuestaError> manejarReservaNoPermitida(
             com.transportes.viajes.excepciones.ReservaNoPermitidaException excepcion, HttpServletRequest request) {
-        // La marca en «detalles» permite al frontend distinguirlo de «asiento tomado por otro» (también 409).
+        // La marca en detalles permite al frontend distinguir este caso de "asiento tomado por otro", que también
+        // es 409.
         return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request,
                 List.of("RESERVA_NO_PERMITIDA"));
     }

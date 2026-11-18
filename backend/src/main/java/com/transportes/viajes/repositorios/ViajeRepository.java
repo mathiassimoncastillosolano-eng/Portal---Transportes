@@ -19,8 +19,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * SQL (JDBC) de la búsqueda de viajes: viajes PROGRAMADOS con asientos disponibles, precio mínimo y
- * capacidad. Cada fila pasa por PoliticaReservaViaje.
+ * Consulta SQL (JdbcTemplate) de la búsqueda de viajes: viajes PROGRAMADOS de la ruta y fecha, con asientos
+ * libres, precio mínimo y capacidad. Luego cada viaje pasa por PoliticaReservaViaje para saber si se puede
+ * reservar.
  */
 @Repository
 public class ViajeRepository {
@@ -29,13 +30,10 @@ public class ViajeRepository {
 
     public ViajeRepository(NamedParameterJdbcTemplate jdbc) { this.jdbc = jdbc; }
 
-    // La búsqueda LISTA todos los viajes PROGRAMADOS de la fecha, incluidos los que ya salieron, los que cierran
-    // la reserva (menos de 20 min) y los llenos: si se pueden reservar o no lo decide PoliticaReservaViaje, no el
-    // WHERE. Los viajes cancelados u otros estados siguen sin aparecer. Se quitó el filtro por LOCALTIMESTAMP,
-    // que además usaba la zona de la base de datos y no la de Perú.
-    //
-    // Se agregan asientos y servicios por separado: unir ambas colecciones antes
-    // del COUNT multiplica cada asiento por el número de servicios del bus.
+    // Se listan TODOS los viajes PROGRAMADOS del día, también los que ya salieron, los que cerraron reserva y los
+    // llenos: si se puede reservar o no lo decide PoliticaReservaViaje, no el WHERE. Los cancelados no aparecen.
+    // Asientos y servicios se cuentan por separado: si se unieran antes del COUNT, cada asiento se contaría una
+    // vez por cada servicio del bus.
     private static final String BUSQUEDA = """
         SELECT v.id_viaje, uo.nombre AS origen, ud.nombre AS destino,
                v.fecha_salida, v.hora_salida, r.duracion_estimada_min,
@@ -77,7 +75,7 @@ public class ViajeRepository {
           AND EXTRACT(HOUR FROM v.hora_salida) < :horaHasta
         """;
 
-    /** Viajes del día cuya hora de salida está en el rango [desde, hasta). */
+    /** Viajes del día cuya hora de salida está entre desde (incluido) y hasta (excluido). */
     public List<ViajeResumenDto> buscar(String origen, String destino, LocalDate fecha, int desde, int hasta,
             LocalDateTime ahora) {
         Map<String, Object> parametros = new HashMap<>();
@@ -89,7 +87,7 @@ public class ViajeRepository {
         return jdbc.query(BUSQUEDA.formatted(CONDICION_HORAS), parametros, (rs, fila) -> mapear(rs, ahora));
     }
 
-    /** Igual, pero con varias franjas horarias. */
+    /** Lo mismo, pero con varias franjas horarias. */
     public List<ViajeResumenDto> buscarPorFranjas(String origen, String destino, LocalDate fecha,
             List<FranjaHorario> franjas, LocalDateTime ahora) {
         Map<String, Object> parametros = new HashMap<>();

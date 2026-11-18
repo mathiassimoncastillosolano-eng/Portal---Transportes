@@ -9,15 +9,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Health checks públicos de RutaLibre.
- *
- * <ul>
- * <li>{@code GET /api/health/live}: el proceso responde. No toca la base de datos.</li>
- * <li>{@code GET /api/health/ready}: la aplicación terminó de arrancar y PostgreSQL responde.
- * Lo usan el Health Check de Render y la pantalla de inicialización del frontend.</li>
- * </ul>
- *
- * <p>Las respuestas nunca se cachean: un proxy o el navegador no deben servir un READY viejo.</p>
+ * Controlador REST de salud del backend (públicos, sin caché):
+ * GET /api/health/live: el proceso responde (no toca la base).
+ * GET /api/health/ready: arrancó y PostgreSQL responde. Lo usan Render y la pantalla de carga del frontend.
  */
 @RestController
 @RequestMapping("/api/health")
@@ -31,13 +25,13 @@ public class SaludControlador {
         this.disponibilidadServicio = disponibilidadServicio;
     }
 
-    /** "¿Está vivo el proceso?": siempre 200 si responde. */
+    /** GET /live: siempre 200 si el proceso responde. */
     @GetMapping("/live")
     public ResponseEntity<EstadoSalud> live() {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(VIVO);
     }
 
-    /** "¿Puede atender?": revisa la BD; 503 si no está lista. */
+    /** GET /ready: revisa la base de datos; 503 si todavía no está lista. */
     @GetMapping("/ready")
     public ResponseEntity<EstadoSalud> ready() {
         DisponibilidadServicio.Resultado resultado = disponibilidadServicio.evaluar();

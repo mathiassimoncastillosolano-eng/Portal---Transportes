@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Entidad compartida por registro, login y perfil. */
+/**
+ * Entidad JPA de la tabla usuario: una cuenta. La usan el registro, el login, el perfil y los empleados del
+ * Sistema Empresarial.
+ */
 @Entity
 @Table(name = "usuario", schema = "public")
 @Getter
@@ -32,11 +35,11 @@ public class Usuario {
     @Column(name = "correo", nullable = false, unique = true, length = 150)
     private String correo;
 
-    /** Nulo en cuentas creadas solo con Google (no tienen contrasena propia). */
+    /** Hash BCrypt de la contraseña. Es null en cuentas creadas solo con Google. */
     @Column(name = "contrasena_hash", length = 255)
     private String contrasenaHash;
 
-    /** Identificador estable ("sub") de Google; nulo si la cuenta no usa Google. */
+    /** Id fijo que da Google ("sub"); null si la cuenta no usa Google. */
     @Column(name = "google_id", length = 255, unique = true)
     private String googleId;
 
@@ -52,7 +55,7 @@ public class Usuario {
     @Column(name = "nro_telefono", length = 20)
     private String nroTelefono;
 
-    /** Una cuenta solo esta activa si su indicador es true. */
+    /** true si la cuenta está activa. */
     public boolean estaActivo() {
         return Boolean.TRUE.equals(activo);
     }

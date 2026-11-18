@@ -24,17 +24,9 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Cliente HTTP de la API de Orders de Mercado Pago
- * (https://api.mercadopago.com/v1/orders).
- *
- * <p>
- * Usa el {@link HttpClient} del JDK, igual que la integración de correo, para
- * no agregar dependencias.
- * El Access Token (el de un entorno concreto: lo entrega {@link ClientesMercadoPago}) solo viaja en la cabecera
- * Authorization y nunca se registra. Los cuerpos de respuesta tampoco se
- * registran completos: pueden traer
- * datos del pagador.
- * </p>
+ * Implementación real de ClienteMercadoPago: hace las llamadas HTTP a https://api.mercadopago.com/v1/orders con el
+ * HttpClient de Java. El Access Token solo va en la cabecera Authorization y nunca se escribe en el log; las
+ * respuestas tampoco se registran completas porque traen datos del pagador.
  */
 public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
 
@@ -47,7 +39,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
     private final ObjectMapper json;
     private final HttpClient http;
 
-    /** Una instancia por entorno (ver {@link ClientesMercadoPago}); no es un bean de Spring. */
+    /** Se crea uno por entorno (ver ClientesMercadoPago); no es un bean de Spring. */
     public ClienteMercadoPagoHttp(String accessToken, String urlBase, long timeoutSegundos, ObjectMapper json) {
         this.accessToken = accessToken == null ? "" : accessToken.strip();
         this.urlBase = urlBase.replaceAll("/+$", "");
@@ -56,13 +48,13 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
     }
 
-    /** ¿Hay Access Token para este entorno? */
+    /** true si hay Access Token para este entorno. */
     @Override
     public boolean configurado() {
         return !accessToken.isEmpty();
     }
 
-    /** POST /v1/orders con la clave de idempotencia (Mercado Pago no cobra dos veces). */
+    /** POST /v1/orders con clave de idempotencia (Mercado Pago no cobra dos veces). */
     @Override
     public OrdenMercadoPago crearOrden(SolicitudOrden s, String claveIdempotencia) {
         try {
@@ -112,19 +104,15 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         return leerOrden(enviar("POST", "/v1/orders/" + codificar(idOrden) + "/cancel", null, claveIdempotencia));
     }
 
-    /** Devuelve el dinero (pago aprobado sin asientos). */
+    /** Devuelve el dinero (pago aprobado pero sin asientos). */
     @Override
     public OrdenMercadoPago reembolsarOrden(String idOrden, String claveIdempotencia) {
         return leerOrden(enviar("POST", "/v1/orders/" + codificar(idOrden) + "/refund", null, claveIdempotencia));
     }
 
-    // ------------------------------------------------------------------ cuerpo de
-    // la order
+    // ===== Cuerpo de la order =====
 
-    /**
-     * Cuerpo de POST /v1/orders según la documentación de Checkout API vía Orders
-     * (Perú).
-     */
+    /** Arma el JSON de POST /v1/orders según la documentación de Mercado Pago (Perú). */
     ObjectNode construirCuerpoOrden(SolicitudOrden s) {
         return construirCuerpoOrden(s, true);
     }
@@ -162,12 +150,12 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         }
         if (s.tipoDocumentoPagador() != null && s.numeroDocumentoPagador() != null) {
             ObjectNode identificacion = pagador.putObject("identification");
-            // El tipo ya fue validado/decidido por DocumentoPagador: se envía tal cual, sin cambios.
+            // El tipo de documento ya lo validó DocumentoPagador: se envía tal cual.
             identificacion.put("type", s.tipoDocumentoPagador());
             identificacion.put("number", s.numeroDocumentoPagador());
         }
         if (s.celularPagador() != null) {
-            // Ejemplo de la documentación de Yape en Orders (no verificado que sea obligatorio).
+            // Tomado del ejemplo de Yape de la documentación.
             pagador.put("entity_type", "individual");
             ObjectNode telefono = pagador.putObject("phone");
             telefono.put("area_code", "51");
@@ -188,8 +176,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         metodo.put("id", s.metodoPagoId());
         metodo.put("type", s.metodoPagoTipo());
         metodo.put("token", s.token());
-        // La documentación de Yape no incluye "installments" (solo id, type y token):
-        // no se envía.
+        // Yape no lleva cuotas ("installments"); solo las tarjetas.
         if (!"yape".equals(s.metodoPagoId())) {
             metodo.put("installments", s.cuotas());
             if (conDatosAdicionales) {
@@ -197,8 +184,8 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
             }
         }
 
-        // 3DS 2.0 (solo tarjetas): on_fraud_risk exige liability_shift=required; con
-        // "never" no se envía nada.
+        // Verificación 3DS (solo tarjetas): con on_fraud_risk se pide liability_shift=required; con never no se
+        // envía nada.
         if (s.validacion3ds() != null && !"never".equals(s.validacion3ds())) {
             ObjectNode seguridad = cuerpo.putObject("config").putObject("online").putObject("transaction_security");
             seguridad.put("validation", s.validacion3ds());
@@ -207,7 +194,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         return cuerpo;
     }
 
-    // ------------------------------------------------------------------ HTTP
+    // ===== Llamadas HTTP =====
 
     private JsonNode enviar(String metodo, String ruta, String cuerpo, String claveIdempotencia) {
         return enviar(metodo, ruta, cuerpo, claveIdempotencia, null);
@@ -284,14 +271,11 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
 
         String codigo = raiz == null ? null : codigoError(raiz);
         String detalle = raiz == null ? null : detalleError(raiz);
-        // El detalle (errors[].message/details) indica QUÉ propiedad rechazó Mercado
-        // Pago (p. ej. en un
-        // property_value); sin él solo se ve el código genérico. x-request-id sirve
-        // para soporte de Mercado Pago.
+        // El detalle del error dice qué campo rechazó Mercado Pago; x-request-id sirve para pedir soporte.
         log.warn("Mercado Pago respondió HTTP {} a {} {} (código: {}, detalle: {}, estructura: {}, x-request-id: {})",
                 estado, metodo, rutaSegura(ruta), codigo, detalle, estructuraRespuesta(raiz, cuerpo), idSolicitud);
 
-        // 402/422 pueden traer la order fallida en la raíz o dentro de "data".
+        // Los errores 402/422 pueden traer la order fallida (en la raíz o dentro de "data").
         OrdenMercadoPago adjunta = raiz == null ? null : ordenDeError(raiz);
 
         if (estado == 402) {
@@ -302,16 +286,14 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
             throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.NO_ENCONTRADO, estado, codigo,
                     "La order no existe en Mercado Pago.", null, detalle);
         }
-        // 423 resource_locked: otra solicitud con la misma clave sigue en curso.
-        // 429/5xx: reintentar más tarde.
+        // 423 (otra solicitud igual en curso), 429 (demasiadas solicitudes) o 5xx: el resultado es desconocido y
+        // se reintenta después.
         if (estado == 423 || estado == 429 || estado >= 500) {
             throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.RESULTADO_DESCONOCIDO, estado, codigo,
                     "Mercado Pago no está disponible en este momento.", null, detalle);
         }
-        // 422 con una order ya fallida adjunta es un rechazo del medio de pago; sin
-        // ella (o cualquier otro 4xx,
-        // como 400 property_value / invalid_path_param o 401 de credenciales) es un
-        // error de integración.
+        // 422 con una order fallida = el medio de pago fue rechazado. Cualquier otro 4xx es un error de
+        // integración nuestro.
         if (estado == 422 && adjunta != null && adjunta.fallidaOCerrada()) {
             throw new ErrorMercadoPagoException(ErrorMercadoPagoException.Tipo.PAGO_RECHAZADO, estado, codigo,
                     "Mercado Pago no pudo procesar el pago.", adjunta, detalle);
@@ -380,15 +362,11 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
     private static final String DESCRIPTOR_RESUMEN = "RUTALIBRE";
 
     /**
-     * Resume errors[0].message y errors[0].details (cadenas u objetos) para el
-     * registro. Se acota la longitud y se
-     * enmascaran correos y números largos (documentos, teléfonos); las credenciales
-     * y los tokens nunca viajan en la respuesta de error.
+     * Resume el mensaje de error para el log: lo acorta y oculta correos y números largos (documentos, teléfonos).
      */
     /**
-     * Forma de la respuesta de error SIN valores: nombres de campos de primer nivel, cantidad de errors[] y
-     * sus códigos. Sirve cuando el mensaje es genérico (p. ej. 422 "Unprocessable Entity") y no se sabe qué
-     * campo trajo Mercado Pago; nunca incluye datos del pagador.
+     * Describe la forma de la respuesta de error SIN valores (nombres de campos y códigos). Sirve cuando el
+     * mensaje es genérico; nunca incluye datos del pagador.
      */
     private static final String[] CAMPOS_CONOCIDOS = { "status", "error", "message", "cause", "errors", "data",
             "id", "code", "type", "details" };
@@ -400,7 +378,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         if (!raiz.isObject()) {
             return "JSON no objeto";
         }
-        // Solo se consultan nombres conocidos (evita depender de la API de iteración de Jackson).
+        // Solo se revisan nombres de campo conocidos.
         StringBuilder sb = new StringBuilder("campos=[");
         boolean primero = true;
         for (String nombre : CAMPOS_CONOCIDOS) {
@@ -483,10 +461,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         return URLEncoder.encode(valor, StandardCharsets.UTF_8);
     }
 
-    /**
-     * Sin parámetros de consulta: pueden contener la referencia y fechas, que no
-     * aportan al diagnóstico.
-     */
+    /** Ruta sin parámetros de consulta, para el log (no aportan y pueden traer datos). */
     private static String rutaSegura(String ruta) {
         int i = ruta.indexOf('?');
         return i < 0 ? ruta : ruta.substring(0, i);

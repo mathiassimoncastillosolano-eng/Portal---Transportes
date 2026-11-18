@@ -5,12 +5,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Datos que el usuario autenticado puede modificar en su propio perfil.
- *
- * Deliberadamente NO incluye {@code correo}, {@code contrasena}, {@code activo}
- * ni {@code idUsuario}: al no existir esos campos en este DTO, es imposible
- * que el frontend los modifique a traves de este endpoint, incluso si los
- * envia en el cuerpo de la peticion.
+ * Datos que el usuario puede cambiar en su perfil. A propósito no tiene correo, contraseña, activo ni id: como
+ * esos campos no existen aquí, no se pueden modificar aunque el frontend los envíe.
  */
 public class ActualizarPerfilRequest {
 

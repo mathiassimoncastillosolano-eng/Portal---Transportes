@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/** La constancia del reclamo (lo que el cliente ve e imprime). */
+/** La constancia del reclamo: lo que el cliente ve e imprime. */
 public record ConstanciaReclamoDto(
         String codigo, LocalDateTime fechaRegistro, LocalDate fechaLimiteRespuesta, int diasHabilesPlazo,
         String tipoRequerimiento, String estado,

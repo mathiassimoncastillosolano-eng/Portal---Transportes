@@ -22,21 +22,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 /**
- * Configuracion central de Spring Security para toda la API.
- *
- * <p>
- * Decisiones clave:
- * </p>
- * <ul>
- * <li>API sin estado (stateless): no se usan sesiones HTTP, toda la
- * autenticacion viaja en el JWT.</li>
- * <li>CSRF deshabilitado: es irrelevante para una API sin estado
- * consumida por un frontend SPA con Bearer tokens (no usa
- * cookies de sesion).</li>
- * <li>Login y POST /api/usuarios/registro son publicos.
- * El resto de rutas bajo {@code /api/usuarios/**} y
- * {@code /api/auth/logout} requieren un JWT valido.</li>
- * </ul>
+ * Configuración de Spring Security para toda la API.
+ * Sin estado (stateless): no hay sesiones en el servidor, cada petición trae su JWT.
+ * CSRF desactivado: no hace falta porque el frontend manda el token en la cabecera, no en cookies.
+ * Aquí se decide qué rutas son públicas, cuáles piden sesión y cuáles piden un rol.
  */
 @Configuration
 @EnableWebSecurity
@@ -69,10 +58,7 @@ public class ConfiguracionSeguridad {
                 return new BCryptPasswordEncoder();
         }
 
-        /**
-         * Reglas de acceso. Se leen de arriba abajo y gana la primera que coincide: públicas, con JWT o con
-         * rol.
-         */
+        /** Reglas de acceso. Se revisan de arriba abajo y gana la primera que coincide. */
         @Bean
         public SecurityFilterChain cadenaFiltrosSeguridad(HttpSecurity http) throws Exception {
                 FiltroAutenticacionJwt filtroJwt = new FiltroAutenticacionJwt(jwtService, tokenInvalidadoService,
@@ -85,7 +71,7 @@ public class ConfiguracionSeguridad {
                                                 sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .exceptionHandling(manejo -> manejo.authenticationEntryPoint(puntoEntradaJwt))
                                 .authorizeHttpRequests(rutas -> rutas
-                                                // Documentación Swagger/OpenAPI: acceso público.
+                                                // Documentación Swagger: pública.
                                                 .requestMatchers(
                                                                 "/swagger-ui/**",
                                                                 "/swagger-ui.html",
@@ -93,54 +79,53 @@ public class ConfiguracionSeguridad {
                                                                 "/v3/api-docs.yaml")
                                                 .permitAll()
 
-                                                // Health checks (liveness/readiness): públicos para Render y
-                                                // para la pantalla de inicialización del frontend. Explícito
-                                                // para que no dependa del anyRequest().permitAll() final.
+                                                // Salud del backend: pública (la usan Render y la pantalla de
+                                                // carga del frontend).
                                                 .requestMatchers(HttpMethod.GET, "/api/health/live",
                                                                 "/api/health/ready")
                                                 .permitAll()
 
-                                                // Crear una cuenta no requiere una sesión previa.
+                                                // Registro de cuenta: público.
                                                 .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
 
-                                                // Crear una cuenta no requiere una sesion previa.
+                                                // La regla de registro está repetida (no cambia nada). Login del
+                                                // Portal: público.
                                                 .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
                                                 .requestMatchers("/api/auth/login").permitAll()
-                                                // Login del Sistema Empresarial: publico; el servicio
-                                                // rechaza a quien no sea personal de agencia o gerente.
+                                                // Login del Sistema Empresarial: público; el servicio rechaza a
+                                                // quien no sea empleado.
                                                 .requestMatchers(HttpMethod.POST, "/api/auth/login-empresarial")
                                                 .permitAll()
-                                                // Inicio de sesion/registro con Google: la identidad se
-                                                // comprueba validando el ID token de Google en el servicio.
+                                                // Login o registro con Google: público; el servicio valida el
+                                                // token de Google.
                                                 .requestMatchers(HttpMethod.POST, "/api/auth/google").permitAll()
-                                                // Recuperacion de contrasena: se usa sin sesion; la autorizacion la da
-                                                // el
-                                                // codigo enviado al correo (ver RecuperacionContrasenaService).
+                                                // Recuperar contraseña: público; lo que autoriza es el código
+                                                // enviado al correo.
                                                 .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/**")
                                                 .permitAll()
-                                                // Perfil y cierre de sesion: requieren JWT valido.
+                                                // Perfil, logout y vincular Google: piden sesión (JWT).
                                                 .requestMatchers("/api/usuarios/**", "/api/auth/logout",
                                                                 "/api/auth/google/vincular")
                                                 .authenticated()
-                                                // Consulta de pasajeros por DNI: expone datos personales, exige JWT.
+                                                // Buscar pasajeros por DNI: pide sesión porque devuelve datos
+                                                // personales.
                                                 .requestMatchers("/api/pasajeros/**").authenticated()
-                                                // Webhook de Mercado Pago: publico, pero el controlador exige la firma
-                                                // x-signature.
+                                                // Webhook de Mercado Pago: público, pero el controlador exige la
+                                                // firma.
                                                 .requestMatchers(HttpMethod.POST, "/api/pagos/webhook",
                                                                 "/api/pagos/webhook/*")
                                                 .permitAll()
-                                                // Libro de Reclamaciones: publico; el JWT es opcional y solo asocia
-                                                // la cuenta. La consulta exige el token de la constancia.
+                                                // Libro de Reclamaciones: público; ver una constancia pide el
+                                                // token de la constancia.
                                                 .requestMatchers(HttpMethod.POST, "/api/reclamos").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/reclamos/**").permitAll()
-                                                // Clientes del Sistema Empresarial: expone datos personales de
-                                                // los pasajeros, solo para personal de agencia o gerente.
+                                                // Panel de clientes del Sistema Empresarial: solo roles AGENCIA o
+                                                // GERENTE (datos personales).
                                                 .requestMatchers("/api/clientes/**").hasAnyRole("AGENCIA", "GERENTE")
-                                                // Pagos: la venta se asocia al usuario autenticado.
+                                                // Pagos: piden sesión (la compra queda a nombre del usuario).
                                                 .requestMatchers("/api/pagos/**").authenticated()
-                                                // Cualquier otra ruta (dominios aun no implementados,
-                                                // como destinos/servicios/viajes) permanece publica por
-                                                // ahora, ya que estan fuera del alcance de esta tarea.
+                                                // Todo lo demás es público (búsqueda de viajes, destinos,
+                                                // servicios, asientos...).
                                                 .anyRequest().permitAll())
                                 .addFilterBefore(filtroJwt, UsernamePasswordAuthenticationFilter.class);
 

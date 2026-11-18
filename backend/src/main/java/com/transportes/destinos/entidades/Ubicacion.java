@@ -14,10 +14,8 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * Entidad JPA que representa una ubicación registrada en la base de datos
- * (tabla "ubicacion"). Estas ubicaciones son la fuente real de los
- * destinos que se muestran en las tarjetas de la sección "Destinos" del
- * frontend.
+ * Entidad JPA de la tabla ubicacion: una ciudad del sistema. Las ubicaciones activas son los destinos que se
+ * muestran en la sección Destinos.
  */
 @Entity
 @Table(name = "ubicacion")

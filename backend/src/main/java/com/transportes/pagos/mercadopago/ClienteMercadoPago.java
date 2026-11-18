@@ -3,23 +3,26 @@ package com.transportes.pagos.mercadopago;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
-/** Operaciones de la API de Orders que usa RutaLibre. Se reemplaza por un mock en las pruebas. */
+/**
+ * Operaciones de la API de Orders de Mercado Pago que usa el sistema. Es una interfaz para poder usar un simulador
+ * (mock) en las pruebas.
+ */
 public interface ClienteMercadoPago {
 
     boolean configurado();
 
-    /** POST /v1/orders con X-Idempotency-Key: repetir la llamada con la misma clave no crea otra order. */
+    /** Crea una order. La clave de idempotencia evita que repetir la llamada cree otra order. */
     OrdenMercadoPago crearOrden(SolicitudOrden solicitud, String claveIdempotencia);
 
-    /** GET /v1/orders/{id}: fuente de verdad del estado. */
+    /** Consulta una order por id: es la fuente de verdad de su estado. */
     OrdenMercadoPago consultarOrden(String idOrden);
 
-    /** GET /v1/orders?external_reference=...: recupera una order cuya creación terminó con resultado desconocido. */
+    /** Busca una order por nuestra referencia, cuando no se supo si su creación funcionó. */
     Optional<OrdenMercadoPago> buscarPorReferencia(String referenciaExterna, OffsetDateTime desde, OffsetDateTime hasta);
 
-    /** POST /v1/orders/{id}/cancel: cierra una order sin resultado al vencer la ventana de pago. */
+    /** Cancela una order que no se pagó a tiempo. */
     OrdenMercadoPago cancelarOrden(String idOrden, String claveIdempotencia);
 
-    /** POST /v1/orders/{id}/refund (total): devuelve un cobro que no pudo convertirse en compra. */
+    /** Devuelve todo el dinero de una order que no pudo convertirse en compra. */
     OrdenMercadoPago reembolsarOrden(String idOrden, String claveIdempotencia);
 }

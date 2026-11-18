@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** POST /api/usuarios/registro: crear una cuenta (ruta pública). */
+/** Controlador REST del registro de cuentas: POST /api/usuarios/registro (ruta pública). */
 @RestController
 @RequestMapping("/api/usuarios")
 public class RegistroUsuarioController {
@@ -23,7 +23,7 @@ public class RegistroUsuarioController {
         this.registroUsuarioService = registroUsuarioService;
     }
 
-    /** Valida con @Valid y responde 201 con los datos de la cuenta creada. */
+    /** Valida los datos con @Valid y responde 201 con la cuenta creada. */
     @PostMapping("/registro")
     @ResponseStatus(HttpStatus.CREATED)
     public RegistroUsuarioResponse registrar(

@@ -23,14 +23,9 @@ import com.transportes.viajes.dto.ViajeResumenDto;
 import com.transportes.viajes.servicios.ViajeService;
 
 /**
- * HU-02 · Cambio de pasaje. Esta clase atiende SOLO la parte "Consulta de viajes" (criterios 1, 2 y 3a).
- *
- * <p>Patrón: Fachada. El controlador llama a un solo método y esta clase coordina a las demás:
- * {@link CompraRepositorio} (el pasaje), {@link ReglasCompra} (si está vigente), {@link PoliticaPostergacion}
- * (la regla de 6 h) y {@link ViajeService} (la búsqueda de viajes que ya existía).</p>
- *
- * <p>Las otras actividades agregan aquí sus métodos. Confirmación agrega {@link #exigirPasajeCambiable} (la revalidación
- * previa); el cambio en sí está en {@link ConfirmacionPostergacionServicio}.</p>
+ * Consulta de viajes de HU-02 (criterios 1, 2 y 3a). Patrón Fachada: el controlador llama a un solo método y esta
+ * clase coordina a CompraRepositorio (busca el pasaje), ReglasCompra (¿está vigente?), PoliticaPostergacion (regla
+ * de 6 h) y ViajeService (búsqueda de viajes). También tiene exigirPasajeCambiable, que usa la confirmación.
  */
 @Service
 public class PostergacionServicio {
@@ -46,33 +41,32 @@ public class PostergacionServicio {
     }
 
     /**
-     * Viajes de la ruta y fecha elegidas para cambiar el pasaje (todos menos el original, cada uno con su estado).
-     *
-     * @throws ResponseStatusException 404 si el pasaje no existe o es de otra cuenta;
-     *                                 409 con el motivo si el pasaje no se puede cambiar
+     * Viajes de la ruta y fecha elegidas a los que se puede cambiar el pasaje (todos menos el original, cada uno
+     * con su estado).
+     * @throws ResponseStatusException 404 si el pasaje no existe o es de otra cuenta; 409 con el motivo si el
+     * pasaje no se puede cambiar
      */
     @Transactional(readOnly = true)
     public ConsultaPostergacionDto consultarViajes(int idUsuario, int idPasaje,
                                                    String origen, String destino, LocalDate fecha) {
         LocalDateTime ahora = LocalDateTime.now(reloj);
 
-        // 1) Criterio 1: el pasaje es del usuario y está vigente.
+        // Paso 1 (criterio 1): el pasaje es del usuario y está vigente.
         FilaCompra pasaje = buscarPasajePropio(idUsuario, idPasaje);
         if (!estaVigente(pasaje, ahora)) {
             throw rechazo("Este pasaje no está vigente, por eso no se puede cambiar.");
         }
 
-        // 2) Criterio 2: faltan 6 h o más para la salida original.
+        // Paso 2 (criterio 2): faltan 6 h o más para la salida original.
         PoliticaPostergacion.Resultado resultado =
                 PoliticaPostergacion.evaluar(pasaje.fechaSalida(), pasaje.horaSalida(), ahora);
         if (!resultado.aceptado()) {
             throw rechazo(resultado.mensaje());
         }
 
-        // 3) Criterio 3 (primera mitad): todos los viajes de esa ruta y fecha, menos el viaje original.
-        //    Se devuelven también los que ya salieron, están llenos o cerraron su reserva, igual que en la
-        //    búsqueda normal: cada viaje trae su estadoReserva y "reservable", y la pantalla solo deja
-        //    elegir los reservables. Al bloquear el asiento y al pagar el servidor vuelve a validar.
+        // Paso 3 (criterio 3): todos los viajes de esa ruta y fecha menos el original, igual que la búsqueda
+        // normal (también los que ya salieron o están llenos). Cada uno trae estadoReserva y reservable, y la
+        // pantalla solo deja elegir los reservables. Al reservar y pagar el servidor vuelve a validar.
         List<ViajeResumenDto> encontrados = viajes.buscar(origen, destino, fecha, "cualquiera");
         List<ViajeResumenDto> mostrados = encontrados.stream()
                 .filter(viaje -> esOtroViaje(viaje, pasaje.idViaje()))
@@ -81,12 +75,11 @@ public class PostergacionServicio {
     }
 
     /**
-     * HU-02 · Confirmación. Vuelve a comprobar, justo antes de aplicar el cambio, lo mismo que la consulta: el pasaje
-     * es del usuario, está vigente y faltan 6 h o más para su salida. Devuelve la fila del pasaje con su viaje y
-     * asiento ACTUALES. Lo usa {@link ConfirmacionPostergacionServicio}; el cambio en sí vive allí.
-     *
-     * @throws ResponseStatusException 404 si el pasaje no existe o es de otra cuenta;
-     *                                 409 (PostergacionRechazadaException) con el motivo si ya no se puede cambiar
+     * Revalida, justo antes de confirmar, lo mismo que la consulta: el pasaje es del usuario, está vigente y
+     * faltan 6 h o más. Devuelve el pasaje con su viaje y asiento actuales. Lo usa
+     * ConfirmacionPostergacionServicio.
+     * @throws ResponseStatusException 404 si el pasaje no existe o es de otra cuenta; 409 si ya no se puede
+     * cambiar
      */
     public FilaCompra exigirPasajeCambiable(int idUsuario, int idPasaje) {
         LocalDateTime ahora = LocalDateTime.now(reloj);
@@ -106,7 +99,7 @@ public class PostergacionServicio {
         return pasaje;
     }
 
-    /** Busca el pasaje entre las compras del usuario: si es de otra cuenta, no aparece (404). */
+    /** Busca el pasaje entre las compras del usuario. Si es de otra cuenta no aparece y se responde 404. */
     private FilaCompra buscarPasajePropio(int idUsuario, int idPasaje) {
         return compras.filasDelUsuario(idUsuario).stream()
                 .filter(fila -> Objects.equals(fila.idPasaje(), idPasaje))
@@ -124,7 +117,7 @@ public class PostergacionServicio {
         return ReglasCompra.esVigente(estado, fase);
     }
 
-    /** El viaje original del pasaje no se muestra: cambiar al mismo viaje no es un cambio. */
+    /** El viaje original no se muestra: cambiar al mismo viaje no sería un cambio. */
     private static boolean esOtroViaje(ViajeResumenDto viaje, Long idViajeOriginal) {
         return !Objects.equals(viaje.id(), idViajeOriginal);
     }

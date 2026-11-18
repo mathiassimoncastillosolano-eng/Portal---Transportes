@@ -11,11 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 /**
- * Logica de negocio relacionada con el usuario autenticado: consulta y
- * actualizacion limitada de su propio perfil.
- *
- * No expone ninguna operacion de creacion de cuentas: los usuarios se
- * insertan manualmente en la base de datos.
+ * Lógica del perfil del usuario con sesión: consultarlo y actualizar solo algunos datos. El registro de cuentas
+ * está en RegistroUsuarioService.
  */
 @Service
 public class UsuarioService {
@@ -26,10 +23,7 @@ public class UsuarioService {
         this.usuarioRepository = usuarioRepository;
     }
 
-    /**
-     * Busca un usuario por su identificador. Utilizado internamente por el
-     * filtro de autenticacion JWT y por las operaciones de perfil.
-     */
+    /** Busca un usuario por id. Lo usan el filtro JWT y el perfil. */
     @Transactional(readOnly = true)
     public Usuario obtenerPorId(Integer idUsuario) {
         return usuarioRepository.findById(idUsuario)
@@ -38,10 +32,8 @@ public class UsuarioService {
     }
 
     /**
-     * Devuelve los datos publicos del perfil del usuario autenticado. Las
-     * estadisticas NO se calculan aqui (se evita ejecutar consultas de compras
-     * dentro de esta transaccion): las agrega {@code UsuarioController} despues,
-     * con {@link com.transportes.usuarios.dto.PerfilUsuarioResponse#conEstadisticas}.
+     * Datos del perfil del usuario. Los contadores no se calculan aquí: los agrega UsuarioController después,
+     * fuera de esta transacción.
      */
     @Transactional(readOnly = true)
     public PerfilUsuarioResponse obtenerPerfil(Integer idUsuario) {
@@ -50,10 +42,8 @@ public class UsuarioService {
     }
 
     /**
-     * Actualiza unicamente nombres, apellidos y numero de telefono del
-     * usuario autenticado. El correo, la contrasena, el estado "activo" y
-     * el id del usuario nunca se modifican aqui, ya que
-     * {@link ActualizarPerfilRequest} ni siquiera declara esos campos.
+     * Actualiza solo nombres, apellidos y teléfono. Correo, contraseña, estado e id no se pueden cambiar porque
+     * ActualizarPerfilRequest no los tiene.
      */
     @Transactional
     public PerfilUsuarioResponse actualizarPerfil(Integer idUsuario, ActualizarPerfilRequest datos) {
@@ -79,7 +69,7 @@ public class UsuarioService {
                 usuario.getApellidos(),
                 usuario.getCorreo(),
                 usuario.getNroTelefono(),
-                null // las estadisticas las agrega el controlador, fuera de la transaccion
+                null // los contadores los agrega el controlador
         );
     }
 }

@@ -15,7 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Una hoja del Libro de Reclamaciones (tabla reclamo). */
+/** Entidad JPA de la tabla reclamo: una hoja del Libro de Reclamaciones. */
 @Entity
 @Table(name = "reclamo")
 @Getter

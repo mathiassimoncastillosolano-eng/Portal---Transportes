@@ -8,58 +8,32 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Mecanismo de cierre de sesion para JWT.
- *
- * <p><b>Decision de diseno (documentada tambien en
- * DOCUMENTACION_CAMBIOS_AUTENTICACION.docx):</b> un JWT es, por naturaleza,
- * stateless: el backend no guarda sesiones y cualquier token firmado
- * correctamente se considera valido hasta que expira. Eliminar el token en
- * el frontend evita que el propio navegador lo reenvie, pero no evita que
- * alguien que ya copio ese token lo siga usando.</p>
- *
- * <p>Para un proyecto de este tamano, la solucion mas simple y apropiada es
- * una <b>lista de tokens invalidados (denylist) en memoria</b>, indexada por
- * el identificador unico del token ({@code jti}):</p>
- * <ul>
- *     <li>Al cerrar sesion, el {@code jti} del token actual se agrega a la
- *         lista junto con su fecha de expiracion.</li>
- *     <li>El filtro de autenticacion rechaza cualquier token cuyo
- *         {@code jti} este en la lista, aunque su firma siga siendo
- *         valida.</li>
- *     <li>Una tarea programada limpia periodicamente las entradas ya
- *         expiradas, para que la lista no crezca indefinidamente.</li>
- * </ul>
- *
- * <p><b>Limitacion conocida:</b> al vivir en memoria, esta lista se pierde
- * si la aplicacion se reinicia (los tokens emitidos antes del reinicio
- * volverian a considerarse validos hasta su expiracion natural). Dado que
- * los tokens tienen una duracion corta (ver
- * {@code security.jwt.expiracion-minutos}) y que este es un entorno de
- * estudio/practica, se considera una limitacion aceptable. Si el proyecto
- * creciera, el siguiente paso natural seria mover esta lista a una tabla en
- * PostgreSQL o a Redis.</p>
+ * Logout con JWT. Un JWT sigue siendo válido hasta que vence, aunque el navegador lo borre. Para poder cerrarlo
+ * antes se usa una lista negra en memoria con el jti de cada token cerrado:
+ * al hacer logout, su jti entra a la lista hasta su vencimiento;
+ * el filtro rechaza cualquier token que esté en la lista;
+ * una tarea programada borra los que ya vencieron.
+ * Limitación: si el servidor se reinicia la lista se pierde. Se acepta porque los tokens duran poco; el siguiente
+ * paso sería guardarla en una tabla o en Redis.
  */
 @Service
 public class TokenInvalidadoService {
 
     private final Map<String, Instant> tokensInvalidados = new ConcurrentHashMap<>();
 
-    /** Logout: agrega el jti a la lista negra hasta que el token vencería. */
+    /** Logout: agrega el jti a la lista hasta que el token habría vencido. */
     public void invalidar(String jti, Instant expiracion) {
         if (jti != null) {
             tokensInvalidados.put(jti, expiracion);
         }
     }
 
-    /** ¿Este token ya se cerró con logout? */
+    /** true si este token ya se cerró con logout. */
     public boolean estaInvalidado(String jti) {
         return jti != null && tokensInvalidados.containsKey(jti);
     }
 
-    /**
-     * Elimina cada 30 minutos las entradas de tokens que ya expiraron por
-     * si mismos, ya que dejan de ser necesarias en la lista.
-     */
+    /** Cada 30 minutos borra de la lista los tokens que ya vencieron solos. */
     @Scheduled(fixedRate = 30, timeUnit = java.util.concurrent.TimeUnit.MINUTES)
     public void limpiarTokensExpirados() {
         Instant ahora = Instant.now();

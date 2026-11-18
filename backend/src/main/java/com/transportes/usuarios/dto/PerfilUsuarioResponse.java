@@ -1,8 +1,7 @@
 package com.transportes.usuarios.dto;
 
 /**
- * Datos del usuario autenticado devueltos por {@code GET /api/usuarios/perfil}.
- * Nunca incluye {@code contrasenaHash} ni ningun otro dato sensible.
+ * Datos del perfil que devuelve GET /api/usuarios/perfil. Nunca incluye la contraseña ni otros datos sensibles.
  */
 public class PerfilUsuarioResponse {
 
@@ -24,7 +23,7 @@ public class PerfilUsuarioResponse {
         this.estadisticas = estadisticas;
     }
 
-    /** Copia del perfil con las estadisticas indicadas (null = no disponibles). */
+    /** Copia del perfil con los contadores indicados (null = no disponibles). */
     public PerfilUsuarioResponse conEstadisticas(EstadisticasUsuarioResponse nuevasEstadisticas) {
         return new PerfilUsuarioResponse(idUsuario, nombres, apellidos, correo, nroTelefono, nuevasEstadisticas);
     }

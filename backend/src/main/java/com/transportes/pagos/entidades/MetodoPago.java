@@ -9,7 +9,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** Catálogo metodo_pago (solo lectura desde el backend). */
+/** Entidad JPA de la tabla metodo_pago (catálogo; el backend solo la lee). */
 @Entity
 @Table(name = "metodo_pago")
 @Getter

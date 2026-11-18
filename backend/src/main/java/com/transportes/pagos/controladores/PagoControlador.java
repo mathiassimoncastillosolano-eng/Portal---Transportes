@@ -20,8 +20,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 
 /**
- * Pagos con Mercado Pago. Requiere JWT: la venta queda asociada al usuario
- * autenticado.
+ * Controlador REST de pagos con Mercado Pago (/api/pagos). Exige sesión: la compra queda a nombre del usuario del
+ * token.
  */
 @RestController
 @RequestMapping("/api/pagos")
@@ -36,8 +36,8 @@ public class PagoControlador {
     }
 
     /**
-     * Entornos de pago que el usuario autenticado puede usar y la Public Key (pública) de cada uno. Un comprador
-     * normal solo recibe PRODUCTION; SANDBOX aparece únicamente para los usuarios autorizados en el servidor.
+     * GET /configuracion: entornos de pago que puede usar el usuario y su Public Key. Un comprador normal solo
+     * recibe PRODUCTION.
      */
     @GetMapping("/configuracion")
     public ResponseEntity<ConfiguracionPagoResponse> configuracion(@AuthenticationPrincipal UsuarioAutenticado usuario) {
@@ -45,10 +45,9 @@ public class PagoControlador {
     }
 
     /**
-     * Crea la operación y la order. 200 siempre que la solicitud sea válida: el
-     * resultado (APROBADO, RECHAZADO,
-     * EN_PROCESO, ACCION_REQUERIDA...) va en el cuerpo. Repetir la misma
-     * claveIdempotencia devuelve la misma operación.
+     * POST: inicia el pago (crea la operación y la order en Mercado Pago). Responde 200 si la solicitud es válida;
+     * el resultado (APROBADO, RECHAZADO, EN_PROCESO...) va en el cuerpo. Repetir la misma claveIdempotencia
+     * devuelve la misma operación (sin cobrar dos veces).
      */
     @PostMapping
     public ResponseEntity<EstadoPagoResponse> iniciar(@AuthenticationPrincipal UsuarioAutenticado usuario,
@@ -57,8 +56,7 @@ public class PagoControlador {
     }
 
     /**
-     * Estado verificado por el backend (consulta a Mercado Pago si la operación
-     * sigue pendiente).
+     * GET /{referencia}: estado del pago verificado por el backend. Si sigue pendiente, consulta a Mercado Pago.
      */
     @GetMapping("/{referencia}")
     public ResponseEntity<EstadoPagoResponse> consultar(@AuthenticationPrincipal UsuarioAutenticado usuario,

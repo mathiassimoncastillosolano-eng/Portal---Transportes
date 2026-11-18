@@ -5,11 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-/**
- * Acceso a datos para la entidad {@link Usuario}.
- *
- * Compartido por el registro de cuentas, el login y el perfil.
- */
+/** Repositorio de la tabla usuario. Lo usan el registro, el login y el perfil. */
 public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
 
     Optional<Usuario> findByCorreoIgnoreCase(String correo);

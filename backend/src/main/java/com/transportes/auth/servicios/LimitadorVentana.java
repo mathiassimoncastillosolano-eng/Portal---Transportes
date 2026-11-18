@@ -6,9 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
 
 /**
- * Limitador de ventana deslizante en memoria. Es una defensa por instancia contra
- * el abuso (por IP o por correo); la defensa por cuenta que debe sobrevivir a
- * reinicios (intentos y solicitudes por hora) esta en la base de datos.
+ * Cuenta eventos por clave (IP o correo) dentro de una ventana de tiempo, en memoria. Frena el abuso rápido; los
+ * límites que deben sobrevivir a un reinicio están en la base de datos.
  */
 public final class LimitadorVentana {
 
@@ -29,7 +28,7 @@ public final class LimitadorVentana {
         this.reloj = reloj;
     }
 
-    /** Registra el evento y devuelve true si aun cabe en la ventana; si no, devuelve false sin registrarlo. */
+    /** Si todavía cabe en la ventana, lo registra y devuelve true; si no, devuelve false. */
     public boolean permitir(String clave) {
         long ahora = reloj.getAsLong();
         boolean[] permitido = {false};
@@ -48,7 +47,7 @@ public final class LimitadorVentana {
         return permitido[0];
     }
 
-    /** Registra siempre el evento (por ejemplo, un fallo) y devuelve cuantos hay en la ventana. */
+    /** Registra el evento siempre (por ejemplo, un fallo) y devuelve cuántos hay en la ventana. */
     public int registrar(String clave) {
         long ahora = reloj.getAsLong();
         int[] total = {0};
@@ -62,7 +61,7 @@ public final class LimitadorVentana {
         return total[0];
     }
 
-    /** Eventos vigentes en la ventana, sin registrar ninguno. */
+    /** Cuántos eventos hay en la ventana, sin registrar ninguno. */
     public int cantidad(String clave) {
         long ahora = reloj.getAsLong();
         int[] total = {0};
@@ -74,12 +73,12 @@ public final class LimitadorVentana {
         return total[0];
     }
 
-    /** Borra el historial de intentos de una clave (por ejemplo, tras un éxito). */
+    /** Borra los eventos de una clave (por ejemplo, después de un acierto). */
     public void reiniciar(String clave) {
         eventos.remove(clave);
     }
 
-    /** Elimina las claves sin eventos vigentes (llamar periodicamente). */
+    /** Quita de memoria las claves que ya no tienen eventos (se llama cada cierto tiempo). */
     public void purgar() {
         long ahora = reloj.getAsLong();
         for (String clave : eventos.keySet()) {

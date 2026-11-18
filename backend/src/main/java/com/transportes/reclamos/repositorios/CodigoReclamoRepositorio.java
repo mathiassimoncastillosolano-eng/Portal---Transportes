@@ -3,7 +3,7 @@ package com.transportes.reclamos.repositorios;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-/** Pide a la BD el siguiente código correlativo de reclamo. */
+/** Pide a la base el siguiente código correlativo de reclamo. */
 @Repository
 public class CodigoReclamoRepositorio {
 

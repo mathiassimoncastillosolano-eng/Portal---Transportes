@@ -23,20 +23,11 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Filtro que se ejecuta una vez por cada peticion HTTP y es el corazon de
- * la proteccion de endpoints mediante JWT:
- *
- * <ol>
- *     <li>Extrae el token del encabezado {@code Authorization: Bearer <token>}.</li>
- *     <li>Si no hay token, deja que la peticion continue sin autenticar
- *         (las rutas publicas simplemente no lo requieren; las privadas
- *         seran rechazadas mas adelante por Spring Security).</li>
- *     <li>Si hay token, valida su firma y expiracion, y verifica que no
- *         haya sido invalidado por un cierre de sesion previo.</li>
- *     <li>Si el token es valido, carga al usuario y confirma que siga
- *         activo, y establece la autenticacion en el contexto de
- *         seguridad de Spring.</li>
- * </ol>
+ * Filtro que corre una vez en cada petición y revisa el JWT:
+ * 1) Lee el token de la cabecera "Authorization: Bearer ...".
+ * 2) Si no hay token, deja pasar sin sesión (las rutas privadas se rechazan después con 401).
+ * 3) Si hay token, valida firma, vencimiento y que no se haya cerrado con logout.
+ * 4) Revisa que el usuario siga activo, obtiene su rol y lo marca como autenticado en Spring.
  */
 public class FiltroAutenticacionJwt extends OncePerRequestFilter {
 
@@ -58,8 +49,8 @@ public class FiltroAutenticacionJwt extends OncePerRequestFilter {
     }
 
     /**
-     * Encabezado Bearer, firma, lista negra, usuario activo y rol. Si todo está bien, autentica la petición;
-     * nunca responde error aquí.
+     * Revisa la cabecera, la firma, la lista de tokens cerrados, el usuario activo y el rol. Si todo está bien
+     * autentica la petición; aquí nunca se responde error.
      */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -88,12 +79,12 @@ public class FiltroAutenticacionJwt extends OncePerRequestFilter {
             Usuario usuario = usuarioService.obtenerPorId(idUsuario);
 
             if (usuario.estaActivo() && SecurityContextHolder.getContext().getAuthentication() == null) {
-                // AGENCIA o GERENTE si esta en la tabla empleado; si no, CLIENTE.
+                // AGENCIA o GERENTE si está en la tabla empleado; si no, CLIENTE.
                 String rol = empleadoService.obtenerRol(usuario.getIdUsuario());
                 UsuarioAutenticado principal = new UsuarioAutenticado(usuario.getIdUsuario(), usuario.getCorreo(), rol);
 
-                // El rol se entrega a Spring como "ROLE_AGENCIA", "ROLE_GERENTE" o
-                // "ROLE_CLIENTE"; asi ConfiguracionSeguridad puede usar hasAnyRole(...).
+                // Spring espera el rol con prefijo: "ROLE_AGENCIA", "ROLE_GERENTE" o "ROLE_CLIENTE". Así funciona
+                // hasAnyRole(...).
                 SimpleGrantedAuthority permiso = new SimpleGrantedAuthority("ROLE_" + rol);
 
                 UsernamePasswordAuthenticationToken autenticacion =
@@ -102,13 +93,10 @@ public class FiltroAutenticacionJwt extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(autenticacion);
             }
         } catch (JwtException | IllegalArgumentException excepcion) {
-            // Token invalido, mal formado o expirado: simplemente no se
-            // autentica la peticion. Si el endpoint es privado, Spring
-            // Security respondera 401 mas adelante en la cadena.
+            // Token inválido o vencido: no se autentica. Si la ruta es privada, Spring responderá 401.
             SecurityContextHolder.clearContext();
         } catch (RuntimeException excepcion) {
-            // Por ejemplo, un id de usuario que ya no existe en la base de
-            // datos: se trata igual que un token invalido.
+            // Por ejemplo, el usuario del token ya no existe: se trata igual que un token inválido.
             SecurityContextHolder.clearContext();
         }
 

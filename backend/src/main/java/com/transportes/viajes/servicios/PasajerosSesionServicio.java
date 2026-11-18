@@ -26,9 +26,9 @@ import com.transportes.viajes.repositorios.ViajeAsientoRepositorio;
 import com.transportes.viajes.servicios.TokenSesionServicio.SesionReserva;
 
 /**
- * "Continuar al pago": valida los pasajeros contra los asientos bloqueados por la sesión y los deja
- * en una caché temporal en memoria. NO escribe en la base de datos ni ocupa asientos; eso ocurre
- * cuando el backend verifica un pago aprobado de Mercado Pago (ver com.transportes.pagos). Los mensajes nunca incluyen datos personales.
+ * Paso "Continuar al pago": valida los pasajeros contra los asientos bloqueados por la sesión y los guarda en
+ * memoria. NO escribe en la base ni ocupa asientos; eso pasa cuando el backend verifica el pago aprobado. Los
+ * mensajes nunca incluyen datos personales.
  */
 @Service
 public class PasajerosSesionServicio {
@@ -53,14 +53,15 @@ public class PasajerosSesionServicio {
     }
 
     /**
-     * @throws com.transportes.viajes.excepciones.SesionExpiradaException sesión vencida (-> 410)
-     * @throws com.transportes.viajes.excepciones.SesionInvalidaException token inválido (-> 401)
-     * @throws AsientoNoDisponibleException sin asientos vigentes (-> 409)
+     * Valida y guarda los pasajeros de la sesión.
+     * @throws com.transportes.viajes.excepciones.SesionExpiradaException sesión vencida (410)
+     * @throws com.transportes.viajes.excepciones.SesionInvalidaException token inválido (401)
+     * @throws AsientoNoDisponibleException la sesión ya no tiene asientos (409)
      */
     @Transactional(readOnly = true)
     public ResultadoPasajerosDTO guardar(Long idViaje, GuardarPasajerosRequest request) {
         SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);
-        validadorReserva.exigirReservable(idViaje); // "Continuar al pago" también exige >= 20 min de anticipación
+        validadorReserva.exigirReservable(idViaje); // también exige 20 minutos o más antes de la salida
         Integer idViajeInt = Math.toIntExact(idViaje);
         LocalDateTime ahora = LocalDateTime.now();
 
@@ -94,7 +95,7 @@ public class PasajerosSesionServicio {
         validarContraSesion(asientosPropios, pasajeros, errores);
 
         if (!errores.isEmpty()) {
-            cache.eliminar(sesion.idSesion()); // datos inválidos: no queda nada guardado de esta sesión
+            cache.eliminar(sesion.idSesion()); // datos inválidos: no se guarda nada de esta sesión
             return ResultadoPasajerosDTO.conErrores(errores);
         }
         cache.guardar(sesion.idSesion(), sesion.fechaExpiracion(), pasajeros);
@@ -102,9 +103,8 @@ public class PasajerosSesionServicio {
     }
 
     /**
-     * Pasajeros ya validados en "Continuar al pago" para la sesión (caché temporal). El servicio de pagos los
-     * copia a la operación de pago al crear la order: ese es el único camino que los lleva a PostgreSQL, y solo
-     * después de que el backend verifica el pago aprobado.
+     * Pasajeros ya validados de la sesión. El servicio de pagos los copia a la operación de pago; solo pasan a
+     * PostgreSQL cuando el pago se aprueba.
      */
     public java.util.Optional<List<PasajeroAsientoRequest>> pasajerosValidados(String idSesion) {
         return cache.obtener(idSesion);
@@ -126,8 +126,8 @@ public class PasajerosSesionServicio {
                 errores.add(new ErrorPasajeroDTO(p.idAsiento(), CAMPO_PASAJERO,
                         "Este asiento tiene más de un pasajero."));
             }
-            // Un mismo DNI puede tener varios asientos en el viaje (en esta compra o en compras anteriores): la
-            // unicidad que importa es la del ASIENTO, que garantizan el bloqueo atómico y uq_pasaje_viaje_asiento.
+            // Un mismo DNI puede tener varios asientos en el viaje. Lo que no se puede repetir es el ASIENTO, y
+            // eso lo aseguran el bloqueo y la restricción uq_pasaje_viaje_asiento.
         }
         for (Integer idAsiento : asientosPropios) {
             if (!atendidos.contains(idAsiento)) {
@@ -137,7 +137,7 @@ public class PasajerosSesionServicio {
         }
     }
 
-    /** Solo los 8 primeros caracteres: suficiente para comparar tokens en el log sin exponerlos. */
+    /** Solo los 8 primeros caracteres del token: sirve para compararlos en el log sin exponerlos. */
     private static String resumir(String token) {
         return token == null ? "null" : token.substring(0, Math.min(8, token.length()));
     }

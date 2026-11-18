@@ -18,19 +18,11 @@ import com.transportes.pagos.entidades.EntornoPago;
 import com.transportes.pagos.excepciones.PagoException;
 
 /**
- * Decide, EN EL BACKEND, qué entorno de pago puede usar cada usuario.
- *
- * <ul>
- *   <li>PRODUCTION: cualquier usuario autenticado (cuando las credenciales productivas están configuradas).</li>
- *   <li>SANDBOX: solo los usuarios cuyo {@code id_usuario} figura en {@code MERCADOPAGO_SANDBOX_USUARIOS_AUTORIZADOS}.
- *       Con la variable vacía, nadie puede usar Sandbox.</li>
- * </ul>
- *
- * <p>La autorización es por {@code id_usuario} (identificador interno que el usuario no puede elegir) y no por
- * correo: el registro de RutaLibre no exige verificar el correo, y una lista de correos permitiría que otra persona
- * se registre antes con ese correo y obtenga acceso a Sandbox.</p>
- *
- * <p>Lo que envía el navegador ({@code entorno}) es solo una solicitud; esta clase la valida siempre.</p>
+ * Decide en el backend qué entorno de pago puede usar cada usuario.
+ * PRODUCTION (dinero real): cualquier usuario con sesión, si las credenciales reales están configuradas.
+ * SANDBOX (pruebas): solo los id_usuario listados en MERCADOPAGO_SANDBOX_USUARIOS_AUTORIZADOS (vacía = nadie).
+ * Se autoriza por id y no por correo porque el registro no verifica correos: otra persona podría registrarse con
+ * ese correo. Lo que pide el navegador es solo una solicitud; aquí siempre se valida.
  */
 @Component
 public class AutorizadorEntornoPago {
@@ -47,7 +39,10 @@ public class AutorizadorEntornoPago {
         this.credenciales = credenciales;
     }
 
-    /** "12, 15,abc,,12" -> {12, 15}. Los valores que no son enteros positivos se ignoran (con aviso en el log). */
+    /**
+     * Convierte el texto de la variable en ids: "12, 15,abc,,12" -> {12, 15}. Lo que no es un entero positivo se
+     * ignora y se avisa en el log.
+     */
     static Set<Integer> analizarUsuarios(String texto) {
         Set<Integer> ids = new TreeSet<>();
         if (texto == null) {
@@ -65,7 +60,7 @@ public class AutorizadorEntornoPago {
                     continue;
                 }
             } catch (NumberFormatException e) {
-                // se informa abajo
+                // se avisa más abajo
             }
             log.warn("MERCADOPAGO_SANDBOX_USUARIOS_AUTORIZADOS: se ignora el valor '{}' (debe ser un id_usuario numérico)",
                     valor.length() > 20 ? valor.substring(0, 20) : valor);
@@ -73,17 +68,16 @@ public class AutorizadorEntornoPago {
         return ids;
     }
 
-    /** ¿Este usuario está en la lista de autorizados para pagos de prueba? */
+    /** true si el usuario está en la lista de autorizados para pagos de prueba. */
     public boolean puedeUsarSandbox(Integer idUsuario) {
         return idUsuario != null && usuariosSandbox.contains(idUsuario);
     }
 
     /**
-     * Entorno con el que se procesará el pago.
-     *
-     * @param solicitado texto enviado por el navegador (puede faltar: se asume PRODUCTION, el entorno seguro)
-     * @throws PagoException 400 si el valor no es válido; 403 si pide Sandbox sin autorización; 503 si el entorno
-     *                       no tiene credenciales configuradas en el servidor
+     * Decide con qué entorno se procesará el pago.
+     * @param solicitado lo que pidió el navegador (si falta se usa PRODUCTION)
+     * @throws PagoException 400 si el valor no es válido, 403 si pide SANDBOX sin permiso, 503 si el entorno no
+     * tiene credenciales
      */
     public EntornoPago resolver(String solicitado, Integer idUsuario) {
         EntornoPago entorno = solicitado == null || solicitado.isBlank()
@@ -103,14 +97,14 @@ public class AutorizadorEntornoPago {
         return entorno;
     }
 
-    /** Entornos que la interfaz puede ofrecer a este usuario (con sus Public Keys, que son públicas). */
+    /** Entornos que la pantalla de pago puede ofrecer a este usuario, con su Public Key (que es pública). */
     public ConfiguracionPagoResponse configuracionPara(Integer idUsuario) {
         List<EntornoDisponible> entornos = new ArrayList<>();
         entornos.add(descripcion(EntornoPago.PRODUCTION));
         if (puedeUsarSandbox(idUsuario)) {
             entornos.add(descripcion(EntornoPago.SANDBOX));
         }
-        // PRODUCTION es el valor por defecto aunque aún no esté configurado: el usuario normal no debe caer en pruebas.
+        // Por defecto siempre PRODUCTION: un comprador normal nunca debe caer en pruebas.
         return new ConfiguracionPagoResponse(entornos, EntornoPago.PRODUCTION.name());
     }
 

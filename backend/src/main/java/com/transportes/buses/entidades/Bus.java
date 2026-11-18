@@ -13,11 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Entidad JPA que representa un bus físico registrado en la base de
- * datos (tabla "bus"). Cada bus pertenece a un tipo de bus (tipo_bus)
- * y tiene una capacidad de asientos definida.
- */
+/** Entidad JPA de la tabla bus: un bus físico, con su tipo (tipo_bus) y su capacidad de asientos. */
 @Entity
 @Table(name = "bus")
 @Getter

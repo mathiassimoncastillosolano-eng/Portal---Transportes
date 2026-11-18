@@ -24,13 +24,10 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Obtiene y guarda en memoria las claves publicas con las que Google firma
- * sus ID tokens (JWKS), identificadas por {@code kid}.
- *
- * <p>Las claves se descargan de Google solo cuando hace falta: si el
- * {@code kid} no esta en cache o el cache supero una hora. Para que un
- * atacante no pueda forzar descargas continuas con {@code kid} falsos, no se
- * vuelve a consultar a Google antes de {@link #INTERVALO_MINIMO_REFRESCO}.</p>
+ * Descarga y guarda en memoria las claves públicas con las que Google firma sus ID tokens (cada una tiene un
+ * "kid").
+ * Solo vuelve a descargar si falta un kid o pasó una hora, y nunca antes del intervalo mínimo: así nadie puede
+ * forzar descargas enviando kid falsos.
  */
 @Component
 public class ClavesPublicasGoogle {
@@ -54,10 +51,8 @@ public class ClavesPublicasGoogle {
     }
 
     /**
-     * Devuelve la clave publica para el {@code kid} indicado, o vacio si
-     * Google no publica ninguna con ese identificador.
-     *
-     * @throws GoogleServicioNoDisponibleException si Google no responde
+     * La clave pública de ese kid, o vacío si Google no tiene ninguna con ese id. Si Google no responde ->
+     * GoogleServicioNoDisponibleException.
      */
     public synchronized Optional<PublicKey> obtener(String kid) {
         if (kid == null || kid.isBlank()) {
@@ -103,7 +98,7 @@ public class ClavesPublicasGoogle {
             throw new GoogleServicioNoDisponibleException(
                     "No se pudo contactar con Google. Intente nuevamente.", e);
         } catch (IOException | GeneralSecurityException | RuntimeException e) {
-            // Se registra el intento para no reintentar de inmediato ante un fallo.
+            // Se anota la hora del intento aunque falle, para no reintentar enseguida.
             ultimaDescarga = Instant.now();
             throw new GoogleServicioNoDisponibleException(
                     "No se pudo contactar con Google. Intente nuevamente.", e);

@@ -38,7 +38,7 @@ public class PasajeUsuarioRepositorio {
         this.jdbc = jdbc;
     }
 
-    /** Solo devuelve el pasaje si pertenece a ese usuario. */
+    /** Devuelve el pasaje solo si pertenece a ese usuario. */
     public Optional<ReferenciaPasaje> buscar(int idUsuario, int idPasaje) {
         List<ReferenciaPasaje> filas = jdbc.query(CONSULTA, Map.of("idUsuario", idUsuario, "idPasaje", idPasaje),
                 (rs, fila) -> new ReferenciaPasaje(

@@ -12,8 +12,8 @@ import org.springframework.data.repository.query.Param;
 import com.transportes.viajes.entidades.ViajeAsiento;
 
 /**
- * Acceso a viaje_asiento (estado de cada asiento en cada viaje). Los UPDATE son condicionados: devuelven 0 si
- * alguien se adelantó.
+ * Repositorio de la tabla viaje_asiento (estado de cada asiento en cada viaje). Los UPDATE tienen condición y
+ * devuelven cuántas filas cambiaron: 0 significa que otro cliente se adelantó.
  */
 public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Integer> {
 
@@ -24,7 +24,7 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
     List<ViajeAsiento> findByIdViajeAndTokenBloqueoAndEstadoViajeAsiento(
             Integer idViaje, String tokenBloqueo, String estadoViajeAsiento);
 
-    /** Asientos bloqueados cuyo tiempo ya pasó. */
+    /** Asientos bloqueados cuyo tiempo ya venció. */
     @Query("SELECT va FROM ViajeAsiento va WHERE va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL' "
          + "AND va.fechaExpiracionBloqueo < :ahora")
     List<ViajeAsiento> buscarBloqueosVencidos(@Param("ahora") LocalDateTime ahora);
@@ -42,7 +42,7 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
          + "AND va.fechaExpiracionBloqueo < :ahora")
     int liberarPorIds(@Param("ids") List<Integer> ids, @Param("ahora") LocalDateTime ahora);
 
-    /** Bloquea solo si está DISPONIBLE (evita que dos clientes tomen el mismo). */
+    /** Bloquea el asiento solo si está DISPONIBLE (así dos clientes no pueden tomar el mismo). */
     @Modifying
     @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'BLOQUEADO_TEMPORAL', "
          + "va.fechaExpiracionBloqueo = :expiracion, va.tokenBloqueo = :token "
@@ -50,7 +50,7 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
     int bloquearAsientoSiDisponible(@Param("idViaje") Integer idViaje, @Param("idAsiento") Integer idAsiento,
                                      @Param("expiracion") LocalDateTime expiracion, @Param("token") String token);
 
-    /** Libera solo si lo bloqueó esta sesión. */
+    /** Libera el asiento solo si lo bloqueó esta sesión. */
     @Modifying
     @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'DISPONIBLE', "
          + "va.fechaExpiracionBloqueo = null, va.tokenBloqueo = null, va.idPasajero = null "
@@ -60,10 +60,9 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
                                 @Param("token") String token);
 
     /**
-     * Pasa a OCUPADO solo si el asiento SIGUE bloqueado por esa sesión. Si el job ya lo liberó (y quizá otro
-     * cliente lo tomó), la condición falla y no se toca: un pago tardío nunca roba un asiento ajeno.
-     * Sin clearAutomatically: se ejecuta dentro de la transacción del registro de compra y no debe desvincular
-     * la operación de pago que esa transacción tiene bloqueada.
+     * Pasa el asiento a OCUPADO solo si SIGUE bloqueado por esa sesión. Si ya se liberó (y quizá otro lo tomó), no
+     * cambia nada: un pago tardío nunca roba un asiento ajeno. No usa clearAutomatically porque corre dentro de la
+     * transacción de la compra.
      */
     @Modifying(flushAutomatically = true)
     @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'OCUPADO', "
@@ -73,7 +72,7 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
     int ocuparAsientoDeSesion(@Param("idViajeAsiento") Integer idViajeAsiento, @Param("token") String token,
                               @Param("idPasajero") Integer idPasajero);
 
-    /** Extiende el bloqueo de los asientos vigentes de la sesión mientras se procesa el pago. */
+    /** Alarga el bloqueo de los asientos de la sesión mientras se procesa el pago. */
     @Modifying(flushAutomatically = true)
     @Query("UPDATE ViajeAsiento va SET va.fechaExpiracionBloqueo = :expiracion "
          + "WHERE va.idViaje = :idViaje AND va.tokenBloqueo = :token "

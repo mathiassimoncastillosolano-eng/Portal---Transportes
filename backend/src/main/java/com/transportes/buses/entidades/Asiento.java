@@ -14,10 +14,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Entidad JPA que representa un asiento físico de un bus (tabla
- * "asiento"). El estado real de ocupación de un asiento NO vive aquí
- * — vive en viaje_asiento, porque un mismo asiento físico cambia de
- * estado según el viaje. Esta entidad solo describe su posición.
+ * Entidad JPA de la tabla asiento: un asiento físico de un bus y su posición. Su estado (libre, reservado,
+ * ocupado) no se guarda aquí sino en viaje_asiento, porque cambia en cada viaje.
  */
 @Entity
 @Table(name = "asiento")

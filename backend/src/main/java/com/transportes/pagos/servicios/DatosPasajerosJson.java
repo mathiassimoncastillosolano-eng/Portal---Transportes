@@ -9,7 +9,7 @@ import com.transportes.viajes.dto.PasajeroAsientoRequest;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
-/** Serializa la copia temporal de pasajeros que acompaña a una operación de pago pendiente. */
+/** Convierte la lista de pasajeros a JSON y de vuelta, para guardarla temporalmente en la operación de pago. */
 @Component
 public class DatosPasajerosJson {
 
@@ -22,7 +22,7 @@ public class DatosPasajerosJson {
         this.json = json;
     }
 
-    /** Lista de pasajeros a texto JSON (se guarda en la operación). */
+    /** Lista de pasajeros a texto JSON. */
     public String escribir(List<PasajeroAsientoRequest> pasajeros) {
         return json.writeValueAsString(pasajeros);
     }

@@ -14,26 +14,14 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 /**
- * Inicio de sesion, registro y vinculacion con Google.
- *
- * <p>Reglas para {@link #iniciarSesion(String)}:</p>
- * <ol>
- *     <li>Si existe un usuario con ese {@code google_id}: inicia sesion.</li>
- *     <li>Si no, pero existe un usuario con ese correo:
- *         <ul>
- *             <li>cuenta con contrasena y sin Google: <b>no se vincula
- *                 automaticamente</b> (responde 409). El registro de la
- *                 aplicacion no verifica el correo, asi que otra persona
- *                 pudo haber creado esa cuenta con una contrasena que ella
- *                 conoce; vincular sin mas le daria acceso permanente a la
- *                 cuenta de Google del dueno real. La vinculacion se hace
- *                 estando ya autenticado ({@link #vincular}).</li>
- *             <li>cuenta con otro {@code google_id}: 409.</li>
- *         </ul></li>
- *     <li>Si no existe: se crea el usuario (sin contrasena, sin telefono).</li>
- * </ol>
- *
- * El JWT emitido es el mismo del login tradicional.
+ * Entrar, registrarse y vincular la cuenta con Google. El JWT que se entrega es el mismo del login normal.
+ * Reglas de iniciarSesion:
+ * 1) Si ya hay un usuario con ese google_id -> entra.
+ * 2) Si el correo ya existe con contraseña -> 409. No se vincula solo: el registro no verifica correos, así que
+ * otra persona pudo crear esa cuenta; vincularla le daría acceso a la cuenta del dueño real. Se vincula desde el
+ * perfil (vincular).
+ * 3) Si el correo existe con otro google_id -> 409.
+ * 4) Si no existe -> se crea el usuario sin contraseña.
  */
 @Service
 public class GoogleAuthService {
@@ -53,8 +41,7 @@ public class GoogleAuthService {
     }
 
     /**
-     * Login con Google: verifica el ID token, busca la cuenta por su id de Google o la crea si no existe, y
-     * devuelve nuestro propio JWT.
+     * Login con Google: valida el ID token, busca la cuenta por su google_id o la crea, y devuelve nuestro JWT.
      */
     public LoginResponse iniciarSesion(String credencial) {
         IdentidadGoogle identidad = verificador.verificar(credencial);
@@ -75,9 +62,8 @@ public class GoogleAuthService {
     }
 
     /**
-     * Asocia una cuenta de Google a un usuario ya autenticado. Exige que el
-     * correo verificado de Google sea el mismo de la cuenta, y que esa cuenta
-     * de Google no pertenezca a otro usuario.
+     * Vincular Google a un usuario que ya inició sesión: el correo de Google debe ser el mismo de la cuenta y esa
+     * cuenta de Google no puede ser de otro usuario.
      */
     public void vincular(Integer idUsuario, String credencial) {
         IdentidadGoogle identidad = verificador.verificar(credencial);
@@ -107,14 +93,14 @@ public class GoogleAuthService {
         }
     }
 
-    /** Rechaza (409) el alta si el correo ya pertenece a una cuenta existente. */
+    /** 409 si el correo ya pertenece a otra cuenta. */
     private void comprobarCorreoDisponible(IdentidadGoogle identidad) {
         Optional<Usuario> existente = usuarioRepository.findByCorreoIgnoreCase(identidad.correo());
         if (existente.isEmpty()) {
             return;
         }
         if (existente.get().getGoogleId() != null) {
-            // Mismo correo, distinta cuenta de Google que la ya asociada.
+            // Mismo correo, pero otra cuenta de Google.
             throw new CuentaExistenteException("Este correo esta asociado a otra cuenta de Google.");
         }
         throw new CuentaExistenteException(
@@ -131,10 +117,10 @@ public class GoogleAuthService {
         usuario.setActivo(true);
 
         try {
-            // save confirma su propia transaccion antes de devolver el usuario.
+            // save guarda y confirma antes de devolver el usuario.
             return usuarioRepository.save(usuario);
         } catch (DataIntegrityViolationException e) {
-            // Dos primeros ingresos simultaneos: el otro ya inserto la fila.
+            // Dos primeros ingresos al mismo tiempo: el otro ya creó la fila, se usa esa.
             Optional<Usuario> concurrente = usuarioRepository.findByGoogleId(identidad.googleId());
             if (concurrente.isPresent()) {
                 return concurrente.get();
@@ -167,7 +153,7 @@ public class GoogleAuthService {
                 return partes[1];
             }
         }
-        // La columna es NOT NULL; el usuario puede completarlo despues en su perfil.
+        // La columna apellidos no admite nulos; el usuario lo puede completar luego en su perfil.
         return SIN_APELLIDO;
     }
 

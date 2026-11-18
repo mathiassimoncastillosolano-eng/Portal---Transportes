@@ -12,16 +12,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Acceso a los desafios de recuperacion. Las operaciones que deben ser atomicas
- * (consumir, invalidar) son sentencias UPDATE condicionales: la base de datos
- * decide quien gana ante solicitudes simultaneas.
+ * Acceso a los códigos de recuperación. Consumir y anular son UPDATE condicionados: si dos peticiones llegan a la
+ * vez, la base de datos deja ganar solo a una.
  */
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
 
     /**
-     * Desafios que aun admiten verificar el codigo (no usados, no verificados, no
-     * vencidos), del mas reciente al mas antiguo. Bloquea la fila (SELECT ... FOR
-     * UPDATE) para que los intentos concurrentes se cuenten uno a uno.
+     * Códigos que todavía se pueden verificar (sin usar, sin verificar, sin vencer), del más nuevo al más viejo.
+     * Bloquea las filas (SELECT ... FOR UPDATE) para contar bien los intentos simultáneos.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select t from PasswordResetToken t "
@@ -31,20 +29,20 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     List<PasswordResetToken> buscarPendientesParaVerificar(@Param("idUsuario") Integer idUsuario,
                                                            @Param("ahora") LocalDateTime ahora);
 
-    /** Invalida todos los desafios aun abiertos de un usuario. Devuelve cuantos cerro. */
+    /** Anula todos los códigos abiertos de un usuario. Devuelve cuántos anuló. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update PasswordResetToken t set t.fechaUso = :ahora "
             + "where t.idUsuario = :idUsuario and t.fechaUso is null")
     int invalidarPendientes(@Param("idUsuario") Integer idUsuario, @Param("ahora") LocalDateTime ahora);
 
-    /** Invalida un desafio concreto (por ejemplo, si el correo no pudo enviarse). */
+    /** Anula un código concreto (por ejemplo, si el correo no se pudo enviar). */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update PasswordResetToken t set t.fechaUso = :ahora where t.id = :id and t.fechaUso is null")
     int invalidar(@Param("id") Long id, @Param("ahora") LocalDateTime ahora);
 
     /**
-     * Consume el desafio una unica vez: solo tiene exito si esta verificado, sin usar
-     * y dentro de la ventana de cambio. Devuelve 1 si lo consumio, 0 en caso contrario.
+     * Usa el código una sola vez: solo funciona si está verificado, sin usar y dentro del tiempo para cambiar la
+     * contraseña. Devuelve 1 si lo usó y 0 si no.
      */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update PasswordResetToken t set t.fechaUso = :ahora "
@@ -58,7 +56,7 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
 
     boolean existsByTokenHash(String tokenHash);
 
-    /** Limpieza periodica de desafios vencidos hace mucho. */
+    /** Borra códigos vencidos hace tiempo (limpieza). */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from PasswordResetToken t where t.fechaExpiracion < :limite")
     int eliminarVencidosAntesDe(@Param("limite") LocalDateTime limite);

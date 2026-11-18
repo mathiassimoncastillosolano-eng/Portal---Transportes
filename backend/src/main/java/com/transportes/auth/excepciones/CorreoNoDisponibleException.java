@@ -2,7 +2,7 @@ package com.transportes.auth.excepciones;
 
 import org.springframework.http.HttpStatus;
 
-/** El proveedor de correo no confirmo el envio (error de red, credenciales, dominio, etc.). */
+/** El servicio de correo (Resend) no confirmó el envío. El código generado se anula. */
 public class CorreoNoDisponibleException extends RecuperacionContrasenaException {
 
     public CorreoNoDisponibleException() {

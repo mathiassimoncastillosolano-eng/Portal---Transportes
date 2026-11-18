@@ -1,18 +1,18 @@
 package com.transportes.pagos.mercadopago;
 
-/** Fallo al comunicarse con la API de Mercado Pago. Nunca incluye credenciales ni tokens en el mensaje. */
+/** Error al comunicarse con Mercado Pago. El mensaje nunca incluye credenciales ni tokens. */
 public class ErrorMercadoPagoException extends RuntimeException {
 
     public enum Tipo {
         /** Falta el Access Token en la configuración del backend. */
         NO_CONFIGURADO,
-        /** 4xx: la solicitud fue rechazada; la order no se creó. Es seguro reintentar con datos nuevos. */
+        /** 4xx: Mercado Pago rechazó la solicitud y la order no se creó. */
         SOLICITUD_INVALIDA,
-        /** 402: Mercado Pago no pudo procesar el pago (rechazo). */
+        /** 402: Mercado Pago rechazó el pago. */
         PAGO_RECHAZADO,
-        /** 404: recurso inexistente. */
+        /** 404: no existe lo que se buscó. */
         NO_ENCONTRADO,
-        /** Timeout, error de red, 5xx, 423 o 429: el resultado es DESCONOCIDO, hay que verificar antes de reintentar. */
+        /** Timeout, error de red, 5xx, 423 o 429: no se sabe qué pasó; hay que verificar antes de reintentar. */
         RESULTADO_DESCONOCIDO
     }
 
@@ -48,29 +48,27 @@ public class ErrorMercadoPagoException extends RuntimeException {
         return estadoHttp;
     }
 
-    /** Código de error de Mercado Pago (p. ej. invalid_email_for_sandbox), si vino en la respuesta. */
+    /** Código de error de Mercado Pago, si vino en la respuesta. */
     public String getCodigo() {
         return codigo;
     }
 
-    /** Algunas respuestas de error (402) traen la order fallida; puede ser null. */
+    /** Order fallida que traen algunas respuestas de error (402); puede ser null. */
     public OrdenMercadoPago getOrdenAdjunta() {
         return ordenAdjunta;
     }
 
     /**
-     * Texto de diagnóstico de {@code errors[].message/details} (p. ej. la propiedad que Mercado Pago señala en un
-     * {@code property_value}). Está acotado y sin direcciones de correo; nunca incluye credenciales. Puede ser null.
+     * Detalle del error (por ejemplo, qué campo rechazó Mercado Pago). Acotado y sin correos ni credenciales.
+     * Puede ser null.
      */
     public String getDetalle() {
         return detalle;
     }
 
     /**
-     * Para el Webhook: ¿tiene sentido que Mercado Pago reenvíe la notificación? Solo si el fallo es temporal
-     * (sin respuesta, 423/429/5xx) o de configuración nuestra (sin Access Token, 401/403 por credenciales o
-     * permisos): al corregirlo, el reintento sí tendrá éxito. Un 400 {@code invalid_path_param}, un 404 o un 422
-     * no mejoran al repetir la misma notificación.
+     * Para el Webhook: true si conviene que Mercado Pago reenvíe el aviso (fallo temporal o de configuración
+     * nuestra, que al corregirse sí funcionará). Un 400, 404 o 422 no mejora al repetir.
      */
     public boolean esReintentable() {
         return switch (tipo) {

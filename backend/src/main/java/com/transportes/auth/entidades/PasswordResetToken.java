@@ -10,14 +10,10 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 /**
- * Desafio de recuperacion de contrasena (tabla {@code password_reset_tokens}).
- *
- * <p>Nunca guarda el codigo en claro: {@code token_hash} es un HMAC-SHA256 en
- * hexadecimal (64 caracteres) calculado con un secreto del servidor.</p>
- *
- * <p>Ciclo de vida: se crea con {@code fechaUso = null}; al acertar el codigo se
- * rellena {@code fechaVerificacion}; al cambiar la contrasena (o al invalidarlo)
- * se rellena {@code fechaUso}. Todas las fechas se guardan en UTC.</p>
+ * Un código de recuperación de contraseña (tabla password_reset_tokens).
+ * El código nunca se guarda tal cual: se guarda su HMAC-SHA256 (token_hash).
+ * Ciclo de vida: se crea sin usar -> al acertar el código se llena fechaVerificacion -> al cambiar la contraseña
+ * (o al anularlo) se llena fechaUso. Las fechas están en UTC.
  */
 @Entity
 @Table(name = "password_reset_tokens", schema = "public")
@@ -43,11 +39,11 @@ public class PasswordResetToken {
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
 
-    /** Intentos fallidos de verificacion de este desafio. */
+    /** Cuántas veces se escribió mal el código. */
     @Column(name = "intentos", nullable = false)
     private Integer intentos = 0;
 
-    /** Momento en que se acerto el codigo; habilita (por tiempo limitado) el cambio de contrasena. */
+    /** Cuándo se acertó el código. Desde ese momento hay unos minutos para cambiar la contraseña. */
     @Column(name = "fecha_verificacion")
     private LocalDateTime fechaVerificacion;
 

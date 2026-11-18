@@ -15,7 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Tabla venta (esquema existente). Solo se inserta cuando el pago está aprobado y verificado. */
+/** Entidad JPA de la tabla venta (la compra). Solo se crea cuando el pago está aprobado y verificado. */
 @Entity
 @Table(name = "venta")
 @Getter
@@ -46,8 +46,8 @@ public class Venta {
     private String estadoVenta;
 
     /**
-     * SANDBOX = compra de prueba (sin dinero real); PRODUCTION = compra real. Las estadísticas y reportes
-     * financieros deben filtrar por PRODUCTION (ver la vista v_venta_produccion).
+     * SANDBOX = compra de prueba; PRODUCTION = compra real. Los reportes de dinero deben usar solo PRODUCTION
+     * (vista v_venta_produccion).
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "entorno", nullable = false, length = 12)

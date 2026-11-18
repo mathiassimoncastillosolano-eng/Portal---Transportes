@@ -13,9 +13,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Empleado del Sistema Empresarial. Cada empleado es una cuenta de la
- * tabla {@code usuario} (correo y contrasena) con datos de trabajo:
- * su rol y la sede (agencia) donde trabaja.
+ * Entidad JPA de la tabla empleado. Un empleado es una cuenta de la tabla usuario (correo y contraseña) más sus
+ * datos de trabajo: rol y sede (agencia).
  */
 @Entity
 @Table(name = "empleado", schema = "public")
@@ -28,7 +27,7 @@ public class Empleado {
     @Column(name = "id_empleado")
     private Integer idEmpleado;
 
-    /** Cuenta con la que inicia sesion (una cuenta, un empleado). */
+    /** Cuenta de usuario con la que inicia sesión (una cuenta = un empleado). */
     @Column(name = "id_usuario", nullable = false, unique = true)
     private Integer idUsuario;
 
@@ -36,7 +35,7 @@ public class Empleado {
     @Column(name = "rol", nullable = false, length = 20)
     private RolEmpleado rol;
 
-    /** Sede donde trabaja; es nula para el gerente (supervisa todas). */
+    /** Sede donde trabaja. Es nula para el gerente porque supervisa todas. */
     @Column(name = "id_agencia")
     private Long idAgencia;
 
