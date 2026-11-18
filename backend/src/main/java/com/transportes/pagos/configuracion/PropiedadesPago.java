@@ -32,7 +32,7 @@ public class PropiedadesPago {
     private final long segundosResultadoDesconocido;
     /** Tipos de documento que se envían a Mercado Pago (por defecto solo DNI). */
     private final Set<String> tiposIdentificacion;
-    /** Traducciones de tipo de documento configuradas a mano, por ejemplo "C.E=CE". Vacío por defecto. */
+    /** Traducciones de tipo de documento configuradas a mano. */
     private final Map<String, String> mapeoTiposIdentificacion;
 
     public PropiedadesPago(

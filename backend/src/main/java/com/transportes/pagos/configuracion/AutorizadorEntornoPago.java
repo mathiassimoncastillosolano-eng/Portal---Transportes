@@ -17,13 +17,7 @@ import com.transportes.pagos.dto.ConfiguracionPagoResponse.EntornoDisponible;
 import com.transportes.pagos.entidades.EntornoPago;
 import com.transportes.pagos.excepciones.PagoException;
 
-/**
- * Decide en el backend qué entorno de pago puede usar cada usuario.
- * PRODUCTION (dinero real): cualquier usuario con sesión, si las credenciales reales están configuradas.
- * SANDBOX (pruebas): solo los id_usuario listados en MERCADOPAGO_SANDBOX_USUARIOS_AUTORIZADOS (vacía = nadie).
- * Se autoriza por id y no por correo porque el registro no verifica correos: otra persona podría registrarse con
- * ese correo. Lo que pide el navegador es solo una solicitud; aquí siempre se valida.
- */
+/** Decide qué entorno de pago puede usar cada usuario: real (PRODUCTION) o de prueba (SANDBOX). */
 @Component
 public class AutorizadorEntornoPago {
 
@@ -39,10 +33,7 @@ public class AutorizadorEntornoPago {
         this.credenciales = credenciales;
     }
 
-    /**
-     * Convierte el texto de la variable en ids: "12, 15,abc,,12" -> {12, 15}. Lo que no es un entero positivo se
-     * ignora y se avisa en el log.
-     */
+    /** Convierte el texto de la configuración en una lista de ids de usuario. */
     static Set<Integer> analizarUsuarios(String texto) {
         Set<Integer> ids = new TreeSet<>();
         if (texto == null) {
@@ -73,12 +64,7 @@ public class AutorizadorEntornoPago {
         return idUsuario != null && usuariosSandbox.contains(idUsuario);
     }
 
-    /**
-     * Decide con qué entorno se procesará el pago.
-     * @param solicitado lo que pidió el navegador (si falta se usa PRODUCTION)
-     * @throws PagoException 400 si el valor no es válido, 403 si pide SANDBOX sin permiso, 503 si el entorno no
-     * tiene credenciales
-     */
+    /** Decide con qué entorno se hará el pago. Lanza error si no es válido o el usuario no tiene permiso. */
     public EntornoPago resolver(String solicitado, Integer idUsuario) {
         EntornoPago entorno = solicitado == null || solicitado.isBlank()
                 ? EntornoPago.PRODUCTION : EntornoPago.desde(solicitado);

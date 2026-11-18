@@ -13,11 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-/**
- * Responde 401 cuando alguien entra a una ruta privada sin sesión válida (sin token, token inválido, vencido o
- * cerrado). Esto pasa en el filtro, antes de llegar a los controladores, así que el manejador global no lo atrapa;
- * por eso aquí se arma a mano el mismo formato RespuestaError.
- */
+/** Responde 401 cuando se entra a una ruta privada sin sesión válida. */
 @Component
 public class PuntoEntradaJwt implements AuthenticationEntryPoint {
 

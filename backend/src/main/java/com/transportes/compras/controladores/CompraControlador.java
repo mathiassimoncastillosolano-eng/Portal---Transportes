@@ -17,9 +17,8 @@ import com.transportes.compras.servicios.CompraServicio;
 import com.transportes.security.servicios.UsuarioAutenticado;
 
 /**
- * Controlador REST de "Mis pasajes", historial y resumen del perfil (/api/usuarios/perfil). Exige sesión (JWT). El
- * id del usuario siempre se toma del token validado, nunca de la URL ni del cuerpo, así nadie puede ver compras
- * ajenas.
+ * Recibe las peticiones de "Mis pasajes", historial y resumen del perfil. Usa siempre el id del usuario que viene
+ * en el token.
  */
 @RestController
 @RequestMapping("/api/usuarios/perfil")
@@ -31,25 +30,25 @@ public class CompraControlador {
         this.compras = compras;
     }
 
-    /** GET /resumen: contadores del perfil (pasajes, viajes completados, tickets, compras vigentes). */
+    /** Devuelve los contadores del perfil. */
     @GetMapping("/resumen")
     public ResumenPerfilDto resumen(@AuthenticationPrincipal UsuarioAutenticado usuario) {
         return compras.resumen(idDe(usuario));
     }
 
-    /** GET /pasajes: pantalla "Mis pasajes", con las compras vigentes primero. */
+    /** Devuelve las compras del usuario, primero las vigentes. */
     @GetMapping("/pasajes")
     public ListaComprasDto pasajes(@AuthenticationPrincipal UsuarioAutenticado usuario) {
         return compras.listar(idDe(usuario));
     }
 
-    /** GET /pasajes/{idVenta}: detalle de una compra. 404 si no existe o es de otra cuenta. */
+    /** Devuelve el detalle de una compra del usuario. */
     @GetMapping("/pasajes/{idVenta}")
     public CompraDto detalle(@AuthenticationPrincipal UsuarioAutenticado usuario, @PathVariable int idVenta) {
         return compras.detalle(idDe(usuario), idVenta);
     }
 
-    /** GET /historial: compras que ya no están vigentes, de la más reciente a la más antigua. */
+    /** Devuelve las compras que ya no están vigentes. */
     @GetMapping("/historial")
     public List<CompraDto> historial(@AuthenticationPrincipal UsuarioAutenticado usuario) {
         return compras.historial(idDe(usuario));

@@ -22,10 +22,7 @@ import com.transportes.security.servicios.UsuarioAutenticado;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
-/**
- * Controlador REST del Libro de Reclamaciones (/api/reclamos). Registrar es público (si hay sesión, se asocia al
- * usuario); para ver una constancia hace falta el token que se entregó al registrar.
- */
+/** Recibe las peticiones del Libro de Reclamaciones. */
 @RestController
 @RequestMapping("/api/reclamos")
 public class ReclamoControlador {
@@ -40,7 +37,7 @@ public class ReclamoControlador {
         this.proveedor = proveedor;
     }
 
-    /** GET /proveedor: datos de la empresa que muestra el formulario. */
+    /** Devuelve los datos de la empresa. */
     @GetMapping("/proveedor")
     public ProveedorDto proveedor() {
         return proveedor.obtener();
@@ -57,7 +54,7 @@ public class ReclamoControlador {
                 .body(servicio.registrar(datos, idUsuario, request.getRemoteAddr()));
     }
 
-    /** GET /{codigo}: muestra la constancia si la cabecera X-Token-Consulta trae el token correcto. */
+    /** Devuelve la constancia de un reclamo si el token es correcto. */
     @GetMapping("/{codigo}")
     public ConstanciaReclamoDto consultar(
             @PathVariable String codigo,

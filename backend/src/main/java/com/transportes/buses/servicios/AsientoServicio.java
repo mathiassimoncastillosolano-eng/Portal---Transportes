@@ -13,10 +13,7 @@ import com.transportes.buses.dto.AsientoFisicoDTO;
 import com.transportes.buses.entidades.Asiento;
 import com.transportes.buses.repositorios.AsientoRepositorio;
 
-/**
- * Lógica de los asientos físicos. En la base el número viene junto ("1A"), así que aquí se separa con una
- * expresión regular en fila (1) y letra (A) y se calcula el lado (A y B izquierda, C y D derecha).
- */
+/** Lógica de los asientos de un bus: separa el número "1A" en fila y letra, y calcula el lado. */
 @Service
 public class AsientoServicio {
 
@@ -29,10 +26,7 @@ public class AsientoServicio {
         this.asientoRepositorio = asientoRepositorio;
     }
 
-    /**
-     * Asientos del bus en un mapa por id. Lo usa ViajeAsientoServicio para juntar la posición con el estado de
-     * cada asiento en un viaje.
-     */
+    /** Devuelve los asientos del bus en un mapa por id. */
     public Map<Integer, AsientoFisicoDTO> mapaAsientosFisicosPorId(Integer idBus) {
         List<Asiento> asientos = asientoRepositorio.findByIdBusOrderByPisoAscNumeroAsientoAsc(idBus);
         Map<Integer, AsientoFisicoDTO> mapa = new java.util.LinkedHashMap<>();
@@ -71,8 +65,7 @@ public class AsientoServicio {
         Matcher matcher = PATRON_NUMERO_ASIENTO.matcher(asiento.getNumeroAsiento());
 
         if (!matcher.matches()) {
-            // Si un número de asiento no tiene el formato "1A", se salta ese asiento (no se rompe toda la
-            // respuesta) y se deja un aviso en el log para corregir el dato.
+            // Si el número de asiento tiene un formato raro, se salta ese asiento y se avisa en el log.
             log.warn("numero_asiento con formato inesperado, id_asiento={}, valor='{}'",
                     asiento.getIdAsiento(), asiento.getNumeroAsiento());
             return null;

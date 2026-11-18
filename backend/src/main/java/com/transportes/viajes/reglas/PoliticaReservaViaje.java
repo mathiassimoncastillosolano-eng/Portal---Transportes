@@ -6,17 +6,13 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 
-/**
- * Regla de reserva de un viaje: solo se puede reservar si faltan AL MENOS 20 minutos para la salida (con salida a
- * las 08:00 se puede hasta las 07:40 inclusive). Patrón Regla pura: sin Spring ni base de datos, se prueba con un
- * reloj fijo. Siempre compara fecha + hora completas en hora de Perú, así funciona bien al cruzar la medianoche.
- */
+/** Regla para reservar un viaje: deben faltar 20 minutos o más para la salida. */
 public final class PoliticaReservaViaje {
 
     public static final ZoneId ZONA_NEGOCIO = ZoneId.of("America/Lima");
     public static final int MINUTOS_ANTICIPACION = 20;
     public static final Duration ANTICIPACION_MINIMA = Duration.ofMinutes(MINUTOS_ANTICIPACION);
-    /** Único estado de viaje que acepta reservas; cualquier otro (por ejemplo CANCELADO) las bloquea. */
+    /** Único estado de viaje que acepta reservas. */
     public static final String ESTADO_VIAJE_RESERVABLE = "PROGRAMADO";
 
     /** Estado de reserva de un viaje. Están en orden de prioridad: gana el primero que se cumple. */
@@ -62,12 +58,7 @@ public final class PoliticaReservaViaje {
         return !ahora.isBefore(salida(fechaSalida, horaSalida));
     }
 
-    /**
-     * Calcula el estado de reserva del viaje.
-     * @param totalAsientos asientos registrados del viaje (0 = sin información)
-     * @param asientosDisponibles asientos libres ahora
-     * @param ahora hora actual de Perú
-     */
+    /** Calcula el estado de reserva del viaje. */
     public static EstadoReserva evaluar(String estadoViaje, LocalDate fechaSalida, LocalTime horaSalida,
                                         int totalAsientos, int asientosDisponibles, LocalDateTime ahora) {
         if (!ESTADO_VIAJE_RESERVABLE.equals(estadoViaje)) return EstadoReserva.NO_DISPONIBLE;

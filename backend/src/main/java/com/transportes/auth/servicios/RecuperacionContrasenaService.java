@@ -29,18 +29,7 @@ import java.util.Locale;
 import java.util.OptionalLong;
 import java.util.regex.Pattern;
 
-/**
- * Recuperación de contraseña por correo en 3 pasos: solicitar código, verificarlo y poner la nueva contraseña.
- * Reglas de seguridad:
- * - No revela cuentas: el paso 1 responde siempre igual y los errores del paso 2 no dicen si no existe, venció o
- * está mal.
- * - El código no se guarda tal cual (HMAC con clave secreta) y se compara en tiempo constante.
- * - Intentos limitados por código (en la BD) y por IP y correo (en memoria).
- * - Un solo uso, aun con peticiones simultáneas: el código se consume con un UPDATE condicionado en la misma
- * transacción que cambia la contraseña.
- * - El cliente no elige la cuenta: la sacamos de la prueba firmada.
- * - El correo se envía fuera de la transacción (para no ocupar conexiones de la BD).
- */
+/** Lógica para recuperar la contraseña: enviar el código, verificarlo y guardar la nueva contraseña. */
 @Service
 public class RecuperacionContrasenaService {
 
@@ -112,12 +101,8 @@ public class RecuperacionContrasenaService {
         this.porIpCambio = new LimitadorVentana(maxCambiosIp, VENTANA_LIMITES);
     }
 
-    // ===== Paso 1: solicitar y reenviar el código =====
 
-    /**
-     * Paso 1 (y reenvío): crea un código y lo envía si la cuenta puede recuperarse. La respuesta es la misma en
-     * todos los casos, salvo límites de uso o fallo del correo.
-     */
+    /** Crea un código y lo envía al correo si la cuenta existe y está activa. */
     public SolicitudRecuperacionResponse solicitarCodigo(String correoCrudo, String ip) {
         String direccion = normalizarCorreo(correoCrudo);
 
@@ -203,11 +188,8 @@ public class RecuperacionContrasenaService {
         throw new IllegalStateException("No se pudo generar un código de recuperación único.");
     }
 
-    // ===== Paso 2: verificar el código =====
 
-    /**
-     * Paso 2: si el código es correcto, entrega la prueba para cambiar la contraseña. Si falla, suma un intento.
-     */
+    /** Revisa el código. Si es correcto entrega la prueba; si no, suma un intento fallido. */
     public PruebaRecuperacionResponse verificarCodigo(String correoCrudo, String codigoCrudo, String ip) {
         String direccion = normalizarCorreo(correoCrudo);
 
@@ -272,11 +254,8 @@ public class RecuperacionContrasenaService {
         return fallos >= maxIntentos ? intentosAgotados() : codigoInvalido();
     }
 
-    // ===== Paso 3: poner la nueva contraseña =====
 
-    /**
-     * Paso 3: con la prueba verificada, guarda la nueva contraseña y consume el código (todo en una transacción).
-     */
+    /** Guarda la nueva contraseña y marca el código como usado. */
     public void completarRecuperacion(String prueba, String contrasena, String confirmacion, String ip) {
         if (!porIpCambio.permitir("ip:" + ipSegura(ip))) {
             throw demasiadasSolicitudes();
@@ -331,7 +310,6 @@ public class RecuperacionContrasenaService {
         }
     }
 
-    // ===== Mantenimiento =====
 
     /** Cada 5 min: quita de memoria los contadores de intentos vencidos. */
     @Scheduled(fixedDelay = 300_000L, initialDelay = 300_000L)
@@ -352,7 +330,6 @@ public class RecuperacionContrasenaService {
         }
     }
 
-    // ===== Utilidades =====
 
     private SolicitudRecuperacionResponse respuestaGenerica() {
         return new SolicitudRecuperacionResponse(MENSAJE_GENERICO, codigoMinutos, reenvioSegundos);

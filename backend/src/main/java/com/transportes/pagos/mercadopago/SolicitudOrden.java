@@ -2,10 +2,7 @@ package com.transportes.pagos.mercadopago;
 
 import java.math.BigDecimal;
 
-/**
- * Datos para crear una order en Mercado Pago. El monto lo calcula el backend; el token (tarjeta o Yape) lo genera
- * MercadoPago.js en el navegador y sirve una sola vez.
- */
+/** Datos para crear un pago en Mercado Pago. */
 public record SolicitudOrden(
         String referenciaExterna,
         BigDecimal monto,

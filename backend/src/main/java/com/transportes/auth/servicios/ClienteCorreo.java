@@ -1,13 +1,8 @@
 package com.transportes.auth.servicios;
 
-/**
- * Interfaz para enviar correos (patrón Adaptador). La versión real usa Resend; en las pruebas se usa una falsa.
- */
+/** Interfaz para enviar correos. */
 public interface ClienteCorreo {
 
-    /**
-     * Envía el mensaje. Si el proveedor no lo confirma lanza CorreoNoDisponibleException. Nunca debe escribir el
-     * contenido en los logs.
-     */
+    /** Envía el correo. Lanza error si no se pudo enviar. */
     void enviar(MensajeCorreo mensaje);
 }

@@ -22,10 +22,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
-/**
- * Crea y valida el token de la sesión de reserva (un JWT propio, distinto al del login). Su id es el que marca los
- * asientos bloqueados.
- */
+/** Crea y valida el token de la sesión de reserva. */
 @Service
 public class TokenSesionServicio {
 
@@ -76,10 +73,7 @@ public class TokenSesionServicio {
         return new SesionReserva(token, idSesion, idViaje, aLocal(expira));
     }
 
-    /**
-     * Vuelve a emitir el token de una sesión que ya existe (mismo id, mismos asientos) con un nuevo vencimiento.
-     * Se usa cuando el pago alarga el bloqueo, para que el cliente pueda reintentar.
-     */
+    /** Crea un token nuevo para la misma sesión con otro vencimiento. */
     public SesionReserva reemitir(String idSesion, Long idViaje, LocalDateTime nuevaExpiracion) {
         Instant ahora = Instant.now();
         Instant expira = nuevaExpiracion.atZone(ZoneId.systemDefault()).toInstant();
@@ -95,11 +89,7 @@ public class TokenSesionServicio {
         return new SesionReserva(token, idSesion, idViaje, aLocal(expira));
     }
 
-    /**
-     * Valida el token de la sesión para ese viaje.
-     * @throws SesionExpiradaException si venció (410)
-     * @throws SesionInvalidaException si es falso, alterado o de otro viaje (401)
-     */
+    /** Valida el token de la sesión de reserva. Lanza error si venció o no es válido. */
     public SesionReserva validar(String token, Long idViaje) {
         try {
             Claims c = Jwts.parser().verifyWith(clave).build()

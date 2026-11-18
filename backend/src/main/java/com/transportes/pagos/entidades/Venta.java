@@ -45,10 +45,7 @@ public class Venta {
     @Column(name = "estado_venta", nullable = false, length = 30)
     private String estadoVenta;
 
-    /**
-     * SANDBOX = compra de prueba; PRODUCTION = compra real. Los reportes de dinero deben usar solo PRODUCTION
-     * (vista v_venta_produccion).
-     */
+    /** Indica si la venta fue de prueba (SANDBOX) o real (PRODUCTION). */
     @Enumerated(EnumType.STRING)
     @Column(name = "entorno", nullable = false, length = 12)
     private EntornoPago entorno;

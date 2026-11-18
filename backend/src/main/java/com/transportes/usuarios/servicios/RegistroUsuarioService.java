@@ -28,10 +28,7 @@ public class RegistroUsuarioService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Crea una cuenta: pasa el correo a minúsculas, revisa que no exista (409), revisa que la contraseña no pase
-     * 72 bytes (límite de BCrypt), la guarda como hash y responde sin la contraseña.
-     */
+    /** Crea una cuenta nueva con la contraseña cifrada. Si el correo ya existe, responde 409. */
     public RegistroUsuarioResponse registrar(
             RegistroUsuarioRequest solicitud) {
 

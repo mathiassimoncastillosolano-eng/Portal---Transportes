@@ -13,16 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-/**
- * Entrar, registrarse y vincular la cuenta con Google. El JWT que se entrega es el mismo del login normal.
- * Reglas de iniciarSesion:
- * 1) Si ya hay un usuario con ese google_id -> entra.
- * 2) Si el correo ya existe con contraseña -> 409. No se vincula solo: el registro no verifica correos, así que
- * otra persona pudo crear esa cuenta; vincularla le daría acceso a la cuenta del dueño real. Se vincula desde el
- * perfil (vincular).
- * 3) Si el correo existe con otro google_id -> 409.
- * 4) Si no existe -> se crea el usuario sin contraseña.
- */
+/** Lógica del inicio de sesión, registro y vinculación con Google. Entrega el mismo token que el login normal. */
 @Service
 public class GoogleAuthService {
 
@@ -61,10 +52,7 @@ public class GoogleAuthService {
                 usuario.getIdUsuario(), usuario.getNombres(), usuario.getApellidos(), usuario.getCorreo()));
     }
 
-    /**
-     * Vincular Google a un usuario que ya inició sesión: el correo de Google debe ser el mismo de la cuenta y esa
-     * cuenta de Google no puede ser de otro usuario.
-     */
+    /** Une la cuenta de Google al usuario que ya inició sesión, si el correo es el mismo. */
     public void vincular(Integer idUsuario, String credencial) {
         IdentidadGoogle identidad = verificador.verificar(credencial);
 

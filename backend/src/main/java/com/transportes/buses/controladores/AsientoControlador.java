@@ -12,10 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.transportes.buses.dto.AsientoFisicoDTO;
 import com.transportes.buses.servicios.AsientoServicio;
 
-/**
- * Controlador REST de los asientos físicos de un bus (/api/buses). Es público: no pide token porque solo muestra
- * la forma del bus, no datos de nadie.
- */
+/** Recibe las peticiones de los asientos de un bus. */
 @RestController
 @RequestMapping("/api/buses")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -27,10 +24,7 @@ public class AsientoControlador {
         this.asientoServicio = asientoServicio;
     }
 
-    /**
-     * GET /api/buses/{idBus}/asientos: devuelve todos los asientos del bus (fila, letra, lado y piso) para dibujar
-     * el mapa.
-     */
+    /** Devuelve los asientos del bus (fila, letra, lado y piso) para dibujar el mapa. */
     @GetMapping("/{idBus}/asientos")
     public ResponseEntity<List<AsientoFisicoDTO>> obtenerAsientosPorBus(@PathVariable Integer idBus) {
         return ResponseEntity.ok(asientoServicio.listarAsientosPorBus(idBus));

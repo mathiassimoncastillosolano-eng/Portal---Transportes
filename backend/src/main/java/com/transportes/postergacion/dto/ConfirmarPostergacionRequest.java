@@ -8,14 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-/**
- * Lo que envía el navegador para confirmar el cambio. No trae el usuario: sale del token.
- * @param idViajeNuevo viaje al que se pasa el pasaje
- * @param idAsiento asiento elegido en ese viaje (ya bloqueado por la sesión de reserva)
- * @param tokenSesion sesión de reserva que bloqueó ese asiento
- * @param montoAdicional diferencia pagada (0 si no hubo cobro); el pago todavía es simulado
- * @param referenciaPago referencia del pago simulado (obligatoria si el monto es mayor que 0)
- */
+/** Datos que envía el navegador para confirmar el cambio: viaje nuevo, asiento, sesión y pago. */
 public record ConfirmarPostergacionRequest(
         @NotNull(message = "El viaje nuevo es obligatorio") Long idViajeNuevo,
         @NotNull(message = "El asiento nuevo es obligatorio") Integer idAsiento,

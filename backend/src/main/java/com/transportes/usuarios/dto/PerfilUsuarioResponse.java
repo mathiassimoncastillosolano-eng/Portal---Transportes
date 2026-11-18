@@ -1,8 +1,6 @@
 package com.transportes.usuarios.dto;
 
-/**
- * Datos del perfil que devuelve GET /api/usuarios/perfil. Nunca incluye la contraseña ni otros datos sensibles.
- */
+/** Datos del perfil que se envían al frontend. */
 public class PerfilUsuarioResponse {
 
     private final Integer idUsuario;

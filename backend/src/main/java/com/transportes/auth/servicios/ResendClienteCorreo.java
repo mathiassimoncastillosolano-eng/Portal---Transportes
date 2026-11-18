@@ -14,12 +14,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
-/**
- * Envía correos con la API de Resend (POST /emails) usando el HttpClient del JDK.
- * La clave y el remitente vienen de variables de entorno (RESEND_API_KEY, RESEND_FROM). La clave solo viaja en la
- * cabecera Authorization y nunca se escribe en los logs. El correo cuenta como enviado solo si Resend responde
- * 2xx.
- */
+/** Envía correos usando el servicio Resend. */
 @Component
 public class ResendClienteCorreo implements ClienteCorreo {
 
@@ -69,8 +64,7 @@ public class ResendClienteCorreo implements ClienteCorreo {
 
         int estado = respuesta.statusCode();
         if (estado < 200 || estado >= 300) {
-            // El error de Resend explica el problema (dominio no verificado, clave inválida...). No contiene el
-            // código ni la clave, así que se registra recortado para poder diagnosticar.
+            // Guarda en el log el error de Resend, recortado.
             log.error("Resend rechazó el envío (HTTP {}): {}", estado, recortar(respuesta.body(), 300));
             throw new CorreoNoDisponibleException();
         }

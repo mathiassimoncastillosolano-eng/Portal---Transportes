@@ -23,11 +23,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
-/**
- * Implementación real de ClienteMercadoPago: hace las llamadas HTTP a https://api.mercadopago.com/v1/orders con el
- * HttpClient de Java. El Access Token solo va en la cabecera Authorization y nunca se escribe en el log; las
- * respuestas tampoco se registran completas porque traen datos del pagador.
- */
+/** Hace las llamadas HTTP a la API de Mercado Pago. */
 public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
 
     private static final Logger log = LoggerFactory.getLogger(ClienteMercadoPagoHttp.class);
@@ -54,7 +50,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         return !accessToken.isEmpty();
     }
 
-    /** POST /v1/orders con clave de idempotencia (Mercado Pago no cobra dos veces). */
+    /** Crea el pago en Mercado Pago. */
     @Override
     public OrdenMercadoPago crearOrden(SolicitudOrden s, String claveIdempotencia) {
         try {
@@ -73,7 +69,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         }
     }
 
-    /** GET /v1/orders/{id}: estado real de la order. */
+    /** Consulta el estado de un pago. */
     @Override
     public OrdenMercadoPago consultarOrden(String idOrden) {
         return leerOrden(enviar("GET", "/v1/orders/" + codificar(idOrden), null, null));
@@ -110,9 +106,8 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         return leerOrden(enviar("POST", "/v1/orders/" + codificar(idOrden) + "/refund", null, claveIdempotencia));
     }
 
-    // ===== Cuerpo de la order =====
 
-    /** Arma el JSON de POST /v1/orders según la documentación de Mercado Pago (Perú). */
+    /** Arma los datos que se envían para crear el pago. */
     ObjectNode construirCuerpoOrden(SolicitudOrden s) {
         return construirCuerpoOrden(s, true);
     }
@@ -155,7 +150,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
             identificacion.put("number", s.numeroDocumentoPagador());
         }
         if (s.celularPagador() != null) {
-            // Tomado del ejemplo de Yape de la documentación.
+            // Dato que pide Mercado Pago para Yape.
             pagador.put("entity_type", "individual");
             ObjectNode telefono = pagador.putObject("phone");
             telefono.put("area_code", "51");
@@ -194,7 +189,6 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         return cuerpo;
     }
 
-    // ===== Llamadas HTTP =====
 
     private JsonNode enviar(String metodo, String ruta, String cuerpo, String claveIdempotencia) {
         return enviar(metodo, ruta, cuerpo, claveIdempotencia, null);
@@ -364,10 +358,7 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
     /**
      * Resume el mensaje de error para el log: lo acorta y oculta correos y números largos (documentos, teléfonos).
      */
-    /**
-     * Describe la forma de la respuesta de error SIN valores (nombres de campos y códigos). Sirve cuando el
-     * mensaje es genérico; nunca incluye datos del pagador.
-     */
+    /** Resume la forma del error para el log, sin datos del pagador. */
     private static final String[] CAMPOS_CONOCIDOS = { "status", "error", "message", "cause", "errors", "data",
             "id", "code", "type", "details" };
 

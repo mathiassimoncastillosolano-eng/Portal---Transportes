@@ -26,10 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-/**
- * Lógica del panel de clientes. Valida los filtros y la paginación, y arma el historial usando las mismas reglas
- * de "Mis pasajes" (ReglasCompra) para que ambos muestren lo mismo.
- */
+/** Lógica del panel de clientes: valida los filtros y arma la lista, los totales y el historial. */
 @Service
 public class ClientesServicio {
 

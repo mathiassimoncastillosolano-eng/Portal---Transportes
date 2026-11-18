@@ -4,21 +4,7 @@ import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-/**
- * Lo mínimo de una order de Mercado Pago que necesitamos para verificar el pago (nunca datos de tarjeta).
- * @param id id de la order (ORD...)
- * @param estado estado de la order: created, processing, action_required, processed, failed, canceled, expired,
- * refunded...
- * @param estadoDetalle detalle del estado: accredited, in_process, pending_challenge, failed...
- * @param referenciaExterna nuestra referencia de la operación
- * @param montoTotal monto total de la order
- * @param montoPagado monto pagado (puede ser null)
- * @param moneda moneda (puede ser null)
- * @param idPago id de la transacción de pago (PAY...)
- * @param estadoPago estado de esa transacción
- * @param estadoDetallePago motivo de rechazo de esa transacción
- * @param urlDesafio3ds URL de la verificación 3DS, si el banco la pide
- */
+/** Datos de un pago (order) devueltos por Mercado Pago. */
 public record OrdenMercadoPago(
         String id,
         String estado,
@@ -34,11 +20,7 @@ public record OrdenMercadoPago(
 
     private static final Pattern ID_ORDEN = Pattern.compile("^ORD[A-Z0-9_-]{0,61}$");
 
-    /**
-     * Limpia el id de order que llega en un aviso. Los ids reales empiezan por ORD y van en mayúsculas; la prueba
-     * "Simular" puede mandar otros valores (como 123456) que no son orders.
-     * @return el id limpio, o null si no parece un id de order
-     */
+    /** Limpia el id de pago que llega en un aviso. Devuelve null si no es un id válido. */
     public static String normalizarIdOrden(String id) {
         if (id == null) {
             return null;

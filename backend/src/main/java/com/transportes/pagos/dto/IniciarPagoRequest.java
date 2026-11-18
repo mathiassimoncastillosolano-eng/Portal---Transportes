@@ -8,11 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-/**
- * Lo que envía el navegador para pagar. A propósito NO trae el monto: el total lo calcula el backend con los
- * precios de los asientos. Tampoco trae datos de tarjeta, solo el token de un solo uso de MercadoPago.js. El
- * entorno pedido se valida en el backend.
- */
+/** Datos que envía el navegador para pagar. No trae el monto: el backend lo calcula. */
 public record IniciarPagoRequest(
         @NotNull(message = "El viaje es obligatorio") Long idViaje,
         @NotBlank(message = "El tokenSesion es obligatorio") @Size(max = 2000) String tokenSesion,

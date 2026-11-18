@@ -13,10 +13,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidad JPA de la tabla tipo_bus: un tipo de servicio (por ejemplo Económico o VIP). Son las tarjetas de la
- * sección Servicios.
- */
+/** Tipo de bus (tabla tipo_bus). */
 @Entity
 @Table(name = "tipo_bus")
 @Getter

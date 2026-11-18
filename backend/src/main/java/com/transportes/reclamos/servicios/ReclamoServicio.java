@@ -29,10 +29,7 @@ import com.transportes.reclamos.repositorios.PasajeUsuarioRepositorio;
 import com.transportes.reclamos.repositorios.PasajeUsuarioRepositorio.ReferenciaPasaje;
 import com.transportes.reclamos.repositorios.ReclamoRepositorio;
 
-/**
- * Lógica del Libro de Reclamaciones: limpia y valida los datos, evita registrar dos veces el mismo reclamo, genera
- * el código y calcula la fecha límite de respuesta (15 días hábiles).
- */
+/** Lógica del Libro de Reclamaciones: valida, genera el código, calcula la fecha límite y guarda el reclamo. */
 @Service
 public class ReclamoServicio {
 
@@ -63,10 +60,7 @@ public class ReclamoServicio {
         this.limitador = new LimitadorVentana(maximoPorHoraIp, Duration.ofHours(1));
     }
 
-    /**
-     * Registra un reclamo. Si la clave de idempotencia ya se usó, devuelve el mismo reclamo (no lo duplica); si
-     * no, valida, genera el código, calcula el plazo y guarda.
-     */
+    /** Registra un reclamo. Si ya se registró antes, devuelve el mismo. */
     public RegistroReclamoRespuesta registrar(RegistrarReclamoRequest datos, Integer idUsuario, String ip) {
         String correo = NormalizadorReclamo.correo(datos.correo());
 

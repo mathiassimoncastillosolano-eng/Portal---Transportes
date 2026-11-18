@@ -1,9 +1,6 @@
 package com.transportes.auth.dto;
 
-/**
- * Datos básicos del usuario que acompañan al token (id, nombres, apellidos y correo). El perfil completo se pide
- * aparte en GET /api/usuarios/perfil.
- */
+/** Datos básicos del usuario que se envían junto al token. */
 public class UsuarioResumenResponse {
 
     private final Integer idUsuario;

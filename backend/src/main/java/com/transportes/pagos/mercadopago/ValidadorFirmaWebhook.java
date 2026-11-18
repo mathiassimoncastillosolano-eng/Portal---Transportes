@@ -10,11 +10,7 @@ import java.util.Locale;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/**
- * Verifica la firma x-signature de los avisos de Mercado Pago, con el mismo algoritmo que el SDK oficial: arma el
- * texto "id:...;request-id:...;ts:...;", calcula HMAC-SHA256 con la clave secreta y compara en tiempo constante.
- * Si la firma coincide, el aviso viene de verdad de Mercado Pago.
- */
+/** Revisa la firma de los avisos para confirmar que vienen de Mercado Pago. */
 public class ValidadorFirmaWebhook {
 
     private final String secreto;

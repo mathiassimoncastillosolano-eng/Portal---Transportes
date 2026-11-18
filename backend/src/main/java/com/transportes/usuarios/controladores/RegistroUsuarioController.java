@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Controlador REST del registro de cuentas: POST /api/usuarios/registro (ruta pública). */
+/** Recibe las peticiones de registro de cuentas. */
 @RestController
 @RequestMapping("/api/usuarios")
 public class RegistroUsuarioController {

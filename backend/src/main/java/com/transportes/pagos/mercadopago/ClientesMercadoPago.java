@@ -11,10 +11,7 @@ import com.transportes.pagos.entidades.EntornoPago;
 
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Guarda un cliente HTTP por entorno, cada uno creado con su propio Access Token. Así es imposible consultar una
- * order de Producción con credenciales de Sandbox: se elige el cliente según el entorno guardado en la operación.
- */
+/** Guarda un cliente de Mercado Pago por entorno, cada uno con sus credenciales. */
 @Component
 public class ClientesMercadoPago {
 

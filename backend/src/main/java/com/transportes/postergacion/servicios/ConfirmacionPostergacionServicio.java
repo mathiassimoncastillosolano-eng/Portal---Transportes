@@ -39,15 +39,8 @@ import static com.transportes.postergacion.excepciones.PostergacionRechazadaExce
 import static com.transportes.postergacion.excepciones.PostergacionRechazadaException.VIAJE_NO_RESERVABLE;
 
 /**
- * Confirma el cambio de pasaje (HU-02, criterios 8 a 11). Patrón Fachada transaccional: confirmar hace todo en UNA
- * transacción, en este orden:
- * 1) Revalida el pasaje (del usuario, vigente, 6 h) y el viaje nuevo.
- * 2) Pasa el asiento nuevo a OCUPADO (solo si sigue bloqueado por la sesión del usuario).
- * 3) Cambia el asiento del pasaje al nuevo (mismo pasaje, misma venta).
- * 4) Libera el asiento original.
- * 5) Guarda el historial en postergacion.
- * Si algo falla en cualquier paso se lanza un error y se deshace todo: el pasaje queda como estaba (criterios 8 y
- * 9).
+ * Lógica para confirmar el cambio de pasaje: ocupa el asiento nuevo, mueve el pasaje, libera el anterior y guarda
+ * el registro.
  */
 @Service
 public class ConfirmacionPostergacionServicio {
@@ -81,17 +74,13 @@ public class ConfirmacionPostergacionServicio {
         this.reloj = relojNegocio;
     }
 
-    /**
-     * Aplica el cambio del pasaje.
-     * @throws ResponseStatusException 404 si el pasaje no existe o es de otra cuenta
-     * @throws PostergacionRechazadaException 409 con el motivo si no se puede aplicar (no se guarda nada)
-     */
+    /** Confirma el cambio. Si algo falla, no se guarda nada. */
     @Transactional
     public ConfirmacionPostergacionDto confirmar(int idUsuario, int idPasaje, ConfirmarPostergacionRequest solicitud) {
-        // Paso 0: una confirmación a la vez por pasaje, así un doble clic no lo mueve dos veces.
+        // Evita que dos confirmaciones del mismo pasaje se hagan a la vez.
         asientos.bloquearSesion("postergacion:" + idPasaje);
 
-        // Paso 1: revalida el pasaje con la hora actual (vigente y 6 h) y la sesión del asiento nuevo.
+        // Vuelve a revisar el pasaje y la sesión del asiento nuevo.
         FilaCompra antes = postergaciones.exigirPasajeCambiable(idUsuario, idPasaje);
         SesionReserva sesion = validarSesion(solicitud);
         Pasaje pasaje = pasajes.findById(idPasaje)
@@ -111,21 +100,20 @@ public class ConfirmacionPostergacionServicio {
         exigirViajeReservable(solicitud.idViajeNuevo());
         BigDecimal importe = exigirPagoSuficiente(solicitud, pasaje, antes, nuevo);
 
-        // Paso 2: el asiento nuevo pasa a OCUPADO solo si sigue bloqueado por esta sesión.
+        // Ocupa el asiento nuevo.
         if (asientos.ocuparAsientoDeSesion(nuevo.getIdViajeAsiento(), sesion.idSesion(), pasaje.getIdPasajero()) != 1) {
             throw rechazo(ASIENTO_NO_DISPONIBLE, MOTIVO_ASIENTO);
         }
-        // Paso 3: el pasaje (misma venta) pasa al asiento nuevo.
+        // Mueve el pasaje al asiento nuevo.
         if (historial.moverPasajeAlAsiento(idPasaje, original.getIdViajeAsiento(), nuevo.getIdViajeAsiento()) != 1) {
             throw rechazo(CAMBIO_NO_APLICADO, "No pudimos actualizar tu pasaje. No se hizo ningún cambio.");
         }
-        // Paso 4: se libera el asiento original. Si no estaba ocupado algo anda mal y se deshace todo.
+        // Libera el asiento anterior.
         if (historial.liberarAsientoOcupado(original.getIdViajeAsiento()) != 1) {
             throw rechazo(CAMBIO_NO_APLICADO, "No pudimos liberar tu asiento anterior. No se hizo ningún cambio.");
         }
 
-        // Paso 5 (criterio 10): guarda el historial con viaje anterior y nuevo, asientos, monto y referencia del
-        // pago.
+        // Guarda el registro del cambio.
         LocalDateTime ahora = LocalDateTime.now(reloj);
         Postergacion fila = new Postergacion();
         fila.setIdPasaje(idPasaje);
@@ -139,7 +127,7 @@ public class ConfirmacionPostergacionServicio {
         fila.setFechaPostergacion(ahora);
         fila = historial.save(fila);
 
-        // Paso 6 (criterio 11): la respuesta se arma con lo que quedó guardado, no con lo que mandó el navegador.
+        // Arma la respuesta con los datos guardados.
         FilaCompra despues = compras.filasDelUsuario(idUsuario).stream()
                 .filter(f -> Objects.equals(f.idPasaje(), idPasaje))
                 .findFirst()
@@ -186,11 +174,7 @@ public class ConfirmacionPostergacionServicio {
         }
     }
 
-    /**
-     * Revisa que el pago cubra la diferencia entre el precio del asiento nuevo y TODO lo que ya se pagó por el
-     * pasaje (precio + pagos de cambios anteriores), así un segundo cambio no cobra otra vez lo ya pagado. Si hay
-     * monto, la referencia de pago es obligatoria. Devuelve el monto que se guarda.
-     */
+    /** Revisa que el pago cubra la diferencia de precio y devuelve el monto a guardar. */
     private BigDecimal exigirPagoSuficiente(ConfirmarPostergacionRequest solicitud, Pasaje pasaje, FilaCompra antes,
                                             ViajeAsiento nuevo) {
         BigDecimal adicionalPrevio = antes.adicionalPagado() == null ? BigDecimal.ZERO : antes.adicionalPagado();

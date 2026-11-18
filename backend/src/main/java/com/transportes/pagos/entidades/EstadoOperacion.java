@@ -1,11 +1,8 @@
 package com.transportes.pagos.entidades;
 
-/**
- * Estados de una operación de pago. Solo APROBADO tiene venta. Un estado final nunca vuelve atrás, aunque llegue
- * un aviso tardío o repetido.
- */
+/** Estados posibles de un pago. */
 public enum EstadoOperacion {
-    /** Guardada en la base; la order aún no se creó o no se sabe si se creó (por ejemplo, por un timeout). */
+    /** Guardada; todavía no se sabe si Mercado Pago creó el pago. */
     CREANDO,
     /** Order creada; Mercado Pago todavía no da un resultado final. */
     EN_PROCESO,

@@ -4,10 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-/**
- * Clase que arranca el backend (Spring Boot). @EnableScheduling activa las tareas programadas (@Scheduled):
- * liberar asientos vencidos, revisar pagos pendientes y limpiar datos temporales.
- */
+/** Clase principal: arranca el backend y activa las tareas programadas (@Scheduled). */
 @SpringBootApplication
 @EnableScheduling 
 public class BackendApplication {

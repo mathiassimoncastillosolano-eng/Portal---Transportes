@@ -58,18 +58,12 @@ public class ErrorMercadoPagoException extends RuntimeException {
         return ordenAdjunta;
     }
 
-    /**
-     * Detalle del error (por ejemplo, qué campo rechazó Mercado Pago). Acotado y sin correos ni credenciales.
-     * Puede ser null.
-     */
+    /** Detalle del error que devolvió Mercado Pago. Puede ser null. */
     public String getDetalle() {
         return detalle;
     }
 
-    /**
-     * Para el Webhook: true si conviene que Mercado Pago reenvíe el aviso (fallo temporal o de configuración
-     * nuestra, que al corregirse sí funcionará). Un 400, 404 o 422 no mejora al repetir.
-     */
+    /** Devuelve true si conviene que Mercado Pago reenvíe el aviso. */
     public boolean esReintentable() {
         return switch (tipo) {
             case RESULTADO_DESCONOCIDO, NO_CONFIGURADO -> true;

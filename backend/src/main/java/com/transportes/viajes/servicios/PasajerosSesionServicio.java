@@ -25,11 +25,7 @@ import com.transportes.viajes.excepciones.AsientoNoDisponibleException;
 import com.transportes.viajes.repositorios.ViajeAsientoRepositorio;
 import com.transportes.viajes.servicios.TokenSesionServicio.SesionReserva;
 
-/**
- * Paso "Continuar al pago": valida los pasajeros contra los asientos bloqueados por la sesión y los guarda en
- * memoria. NO escribe en la base ni ocupa asientos; eso pasa cuando el backend verifica el pago aprobado. Los
- * mensajes nunca incluyen datos personales.
- */
+/** Valida los datos de los pasajeros y los guarda en memoria hasta que se pague. */
 @Service
 public class PasajerosSesionServicio {
 
@@ -52,12 +48,7 @@ public class PasajerosSesionServicio {
         this.validadorReserva = validadorReserva;
     }
 
-    /**
-     * Valida y guarda los pasajeros de la sesión.
-     * @throws com.transportes.viajes.excepciones.SesionExpiradaException sesión vencida (410)
-     * @throws com.transportes.viajes.excepciones.SesionInvalidaException token inválido (401)
-     * @throws AsientoNoDisponibleException la sesión ya no tiene asientos (409)
-     */
+    /** Valida los pasajeros de la sesión y los guarda si están bien. */
     @Transactional(readOnly = true)
     public ResultadoPasajerosDTO guardar(Long idViaje, GuardarPasajerosRequest request) {
         SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);
@@ -102,10 +93,7 @@ public class PasajerosSesionServicio {
         return ResultadoPasajerosDTO.ok();
     }
 
-    /**
-     * Pasajeros ya validados de la sesión. El servicio de pagos los copia a la operación de pago; solo pasan a
-     * PostgreSQL cuando el pago se aprueba.
-     */
+    /** Devuelve los pasajeros validados de la sesión. */
     public java.util.Optional<List<PasajeroAsientoRequest>> pasajerosValidados(String idSesion) {
         return cache.obtener(idSesion);
     }
@@ -126,8 +114,7 @@ public class PasajerosSesionServicio {
                 errores.add(new ErrorPasajeroDTO(p.idAsiento(), CAMPO_PASAJERO,
                         "Este asiento tiene más de un pasajero."));
             }
-            // Un mismo DNI puede tener varios asientos en el viaje. Lo que no se puede repetir es el ASIENTO, y
-            // eso lo aseguran el bloqueo y la restricción uq_pasaje_viaje_asiento.
+            // Un mismo DNI puede tener varios asientos.
         }
         for (Integer idAsiento : asientosPropios) {
             if (!atendidos.contains(idAsiento)) {

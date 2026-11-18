@@ -14,10 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Entidad JPA de la tabla viaje_asiento: un asiento dentro de un viaje concreto, con su estado (DISPONIBLE,
- * BLOQUEADO_TEMPORAL u OCUPADO), su precio y, si está bloqueado, qué sesión lo tiene y hasta cuándo.
- */
+/** Asiento dentro de un viaje (tabla viaje_asiento): su estado, precio y bloqueo. */
 @Entity
 @Table(name = "viaje_asiento")
 @Getter

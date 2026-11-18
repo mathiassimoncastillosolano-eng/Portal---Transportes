@@ -24,13 +24,8 @@ import com.transportes.pagos.mercadopago.ValidadoresWebhook;
 import com.transportes.pagos.servicios.PagoServicio;
 
 /**
- * Recibe los avisos (Webhooks) que Mercado Pago envía cuando cambia una order. URLs públicas:
- * /api/pagos/webhook/sandbox, /api/pagos/webhook/production y /api/pagos/webhook (antigua, acepta ambos entornos).
- * Reglas:
- * 1) Se verifica la firma x-signature; si no es válida se responde 401 y no se hace nada.
- * 2) No se confía en el cuerpo: solo se toma el id y se consulta la order real en la API.
- * 3) Si la consulta falla por algo temporal se responde 503 para que Mercado Pago reintente; si no, 200.
- * Avisos repetidos o desordenados no causan efectos dobles (ver PagoServicio).
+ * Recibe los avisos que manda Mercado Pago cuando cambia un pago. Revisa la firma y consulta el estado real del
+ * pago.
  */
 @RestController
 @RequestMapping("/api/pagos/webhook")
@@ -47,7 +42,7 @@ public class WebhookMercadoPagoControlador {
         this.pagoServicio = pagoServicio;
     }
 
-    /** POST /api/pagos/webhook (URL antigua): la firma decide de qué entorno es el aviso. */
+    /** Recibe un aviso en la dirección general. */
     @PostMapping
     public ResponseEntity<Void> recibir(
             @RequestHeader(value = "x-signature", required = false) String firma,
@@ -58,7 +53,7 @@ public class WebhookMercadoPagoControlador {
         return procesar(AMBOS, firma, idSolicitud, dataIdConsulta, tipoConsulta, cuerpo);
     }
 
-    /** POST /api/pagos/webhook/{entorno}: solo vale la clave secreta de ese entorno. */
+    /** Recibe un aviso de un entorno concreto. */
     @PostMapping("/{entorno}")
     public ResponseEntity<Void> recibirDeEntorno(
             @PathVariable("entorno") String entornoTexto,
@@ -80,12 +75,10 @@ public class WebhookMercadoPagoControlador {
             log.error("Webhook recibido pero no hay clave secreta de Webhooks configurada para {}: se rechaza", candidatos);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        // La firma se calcula con el id que viene en la URL (igual que el SDK oficial). El id del cuerpo es solo
-        // respaldo, y aun así la order se consulta en la API antes de usarla.
+        // Revisa la firma del aviso.
         List<EntornoPago> validos = validadores.entornosConFirmaValida(candidatos, firma, idSolicitud, dataIdConsulta);
         if (validos.isEmpty()) {
-            // En el log solo se anota qué datos llegaron (nunca la clave ni la firma), para distinguir una clave
-            // mal configurada de una llamada falsa.
+            // Firma inválida: se anota en el log y se rechaza.
             log.warn("Webhook con firma inválida rechazado (x-request-id={}, x-signature presente={}, data.id en la URL={}, diagnóstico: {})",
                     idSolicitud, firma != null && !firma.isBlank(), dataIdConsulta != null,
                     validadores.diagnosticar(candidatos, firma, idSolicitud, dataIdConsulta));
@@ -101,7 +94,7 @@ public class WebhookMercadoPagoControlador {
         }
         String idOrden = OrdenMercadoPago.normalizarIdOrden(dataId);
         if (idOrden == null) {
-            // Firma válida, pero el id no es de una order (por ejemplo la prueba "Simular" con 123456).
+            // La firma es válida pero el id no es de un pago real: se ignora.
             log.info("Webhook de tipo order con un id que no corresponde a una order: se ignora sin consultar la API");
             return ResponseEntity.ok().build();
         }

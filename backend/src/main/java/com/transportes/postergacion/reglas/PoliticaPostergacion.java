@@ -5,11 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-/**
- * Regla de tiempo de HU-02 (criterio 2): un pasaje se puede cambiar si faltan 6 horas o más para la salida de su
- * viaje original (6 h exactas sí vale). Si faltan menos o el viaje ya salió, se rechaza con el motivo. Patrón
- * Política (regla pura): sin Spring ni base de datos, se prueba con una hora fija. Todas las horas son de Perú.
- */
+/** Regla para cambiar un pasaje: deben faltar 6 horas o más para la salida. */
 public final class PoliticaPostergacion {
 
     public static final int HORAS_MINIMAS = 6;

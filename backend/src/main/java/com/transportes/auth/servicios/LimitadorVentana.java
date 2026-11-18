@@ -5,10 +5,7 @@ import java.util.ArrayDeque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
 
-/**
- * Cuenta eventos por clave (IP o correo) dentro de una ventana de tiempo, en memoria. Frena el abuso rápido; los
- * límites que deben sobrevivir a un reinicio están en la base de datos.
- */
+/** Cuenta intentos por IP o correo en un tiempo dado, para frenar abusos. */
 public final class LimitadorVentana {
 
     private static final int MAXIMO_CLAVES = 200_000;
@@ -47,7 +44,7 @@ public final class LimitadorVentana {
         return permitido[0];
     }
 
-    /** Registra el evento siempre (por ejemplo, un fallo) y devuelve cuántos hay en la ventana. */
+    /** Registra un intento y devuelve cuántos hay en el tiempo de control. */
     public int registrar(String clave) {
         long ahora = reloj.getAsLong();
         int[] total = {0};
@@ -73,7 +70,7 @@ public final class LimitadorVentana {
         return total[0];
     }
 
-    /** Borra los eventos de una clave (por ejemplo, después de un acierto). */
+    /** Borra los intentos guardados de una clave. */
     public void reiniciar(String clave) {
         eventos.remove(clave);
     }

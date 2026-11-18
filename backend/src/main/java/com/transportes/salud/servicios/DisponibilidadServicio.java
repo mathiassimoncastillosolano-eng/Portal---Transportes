@@ -7,13 +7,7 @@ import org.springframework.boot.availability.ReadinessState;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-/**
- * Decide si el backend está listo para atender. Junta dos señales: que Spring terminó de arrancar y que PostgreSQL
- * responde.
- * DEGRADED existe porque Render reinicia la instancia si /ready falla seguido; si la base se cae un rato,
- * reiniciar no ayuda. Por eso, si ya estuvo lista antes, una caída de la base se informa como 200 DEGRADED (Render
- * no reinicia, pero el frontend espera READY). Antes del primer READY se responde 503 NOT_READY.
- */
+/** Decide si el backend está listo para atender, revisando el arranque y la base de datos. */
 @Service
 public class DisponibilidadServicio {
 

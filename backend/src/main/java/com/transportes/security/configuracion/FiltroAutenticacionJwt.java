@@ -22,13 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
-/**
- * Filtro que corre una vez en cada petición y revisa el JWT:
- * 1) Lee el token de la cabecera "Authorization: Bearer ...".
- * 2) Si no hay token, deja pasar sin sesión (las rutas privadas se rechazan después con 401).
- * 3) Si hay token, valida firma, vencimiento y que no se haya cerrado con logout.
- * 4) Revisa que el usuario siga activo, obtiene su rol y lo marca como autenticado en Spring.
- */
+/** Se ejecuta en cada petición: lee el token, lo valida y marca al usuario como autenticado. */
 public class FiltroAutenticacionJwt extends OncePerRequestFilter {
 
     private static final String PREFIJO_BEARER = "Bearer ";
@@ -48,10 +42,7 @@ public class FiltroAutenticacionJwt extends OncePerRequestFilter {
         this.empleadoService = empleadoService;
     }
 
-    /**
-     * Revisa la cabecera, la firma, la lista de tokens cerrados, el usuario activo y el rol. Si todo está bien
-     * autentica la petición; aquí nunca se responde error.
-     */
+    /** Valida el token de la petición y, si está bien, marca al usuario como autenticado. */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
@@ -96,7 +87,7 @@ public class FiltroAutenticacionJwt extends OncePerRequestFilter {
             // Token inválido o vencido: no se autentica. Si la ruta es privada, Spring responderá 401.
             SecurityContextHolder.clearContext();
         } catch (RuntimeException excepcion) {
-            // Por ejemplo, el usuario del token ya no existe: se trata igual que un token inválido.
+            // El usuario del token ya no existe: se trata como token inválido.
             SecurityContextHolder.clearContext();
         }
 

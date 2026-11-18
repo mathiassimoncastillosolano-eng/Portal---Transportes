@@ -15,11 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.transportes.pagos.entidades.EstadoOperacion;
 import com.transportes.pagos.repositorios.OperacionPagoRepositorio;
 
-/**
- * Tarea programada de respaldo por si un Webhook no llega (por ejemplo, si el servidor estaba dormido): vuelve a
- * consultar los pagos pendientes, vence los que pasaron su tiempo, reintenta devoluciones pendientes y borra
- * copias temporales de pasajeros.
- */
+/** Tarea automática que revisa los pagos pendientes por si no llegó el aviso de Mercado Pago. */
 @Component
 public class ConciliacionPagosJob {
 

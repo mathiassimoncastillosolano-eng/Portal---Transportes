@@ -16,23 +16,17 @@ import com.transportes.pagos.entidades.OperacionPago;
 
 import jakarta.persistence.LockModeType;
 
-/**
- * Repositorio de la tabla operacion_pago (intentos de pago). Incluye el bloqueo de fila que evita procesar dos
- * veces el mismo pago.
- */
+/** Consultas a la tabla operacion_pago. */
 public interface OperacionPagoRepositorio extends JpaRepository<OperacionPago, Integer> {
 
-    /** Busca por clave de idempotencia: misma clave = mismo intento (por ejemplo, un doble clic). */
+    /** Busca un intento de pago por su clave, para no repetirlo. */
     Optional<OperacionPago> findByClaveIdempotencia(String claveIdempotencia);
 
     Optional<OperacionPago> findByReferenciaExterna(String referenciaExterna);
 
     Optional<OperacionPago> findByMpOrderId(String mpOrderId);
 
-    /**
-     * Lee la operación bloqueando su fila (SELECT ... FOR UPDATE): si el Webhook, la consulta del frontend y el
-     * job llegan a la vez, se atienden uno por uno.
-     */
+    /** Lee el pago bloqueándolo, para que no se procese dos veces a la vez. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM OperacionPago o WHERE o.idOperacionPago = :id")
     Optional<OperacionPago> bloquearPorId(@Param("id") Integer id);

@@ -4,10 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-/**
- * Datos que el usuario puede cambiar en su perfil. A propósito no tiene correo, contraseña, activo ni id: como
- * esos campos no existen aquí, no se pueden modificar aunque el frontend los envíe.
- */
+/** Datos que el usuario puede cambiar en su perfil: nombres, apellidos y teléfono. */
 public class ActualizarPerfilRequest {
 
     @NotBlank(message = "Los nombres son obligatorios.")

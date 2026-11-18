@@ -13,12 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Entidad JPA de la tabla postergacion (HU-02, criterio 10). Una fila por cada cambio aceptado: guarda el viaje y
- * asiento anterior, el viaje y asiento nuevo y el pago adicional. El pasaje y la venta no se crean de nuevo; solo
- * cambia el asiento del pasaje. El pago va aquí porque la tabla pago permite uno solo por venta. Tabla creada por
- * backend/sql/004_postergacion.sql.
- */
+/** Registro de un cambio de pasaje (tabla postergacion): viaje y asiento anterior, nuevos y monto pagado. */
 @Entity
 @Table(name = "postergacion")
 @Getter

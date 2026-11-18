@@ -6,10 +6,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Reglas de los empleados: quién puede entrar al Sistema Empresarial, con qué rol y en qué sede trabaja. Lo usan
- * el login empresarial y el filtro JWT.
- */
+/** Lógica de los empleados: si puede entrar, qué rol tiene y en qué sede trabaja. */
 @Service
 public class EmpleadoService {
 

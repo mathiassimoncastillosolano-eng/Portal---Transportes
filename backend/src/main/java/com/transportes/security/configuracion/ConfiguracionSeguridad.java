@@ -21,12 +21,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-/**
- * Configuración de Spring Security para toda la API.
- * Sin estado (stateless): no hay sesiones en el servidor, cada petición trae su JWT.
- * CSRF desactivado: no hace falta porque el frontend manda el token en la cabecera, no en cookies.
- * Aquí se decide qué rutas son públicas, cuáles piden sesión y cuáles piden un rol.
- */
+/** Configura la seguridad: qué rutas son públicas, cuáles piden iniciar sesión y cuáles piden un rol. */
 @Configuration
 @EnableWebSecurity
 public class ConfiguracionSeguridad {

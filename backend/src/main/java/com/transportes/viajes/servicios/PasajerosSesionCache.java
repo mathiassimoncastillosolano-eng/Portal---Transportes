@@ -11,11 +11,7 @@ import org.springframework.stereotype.Component;
 
 import com.transportes.viajes.dto.PasajeroAsientoRequest;
 
-/**
- * Guarda EN MEMORIA los pasajeros ya validados en "Continuar al pago", por sesión de reserva. No toca la base: los
- * datos pasan a PostgreSQL solo cuando el pago se aprueba. Cada entrada vence con la sesión. Si el servidor se
- * reinicia se pierde (el usuario vuelve a continuar al pago).
- */
+/** Guarda en memoria los pasajeros validados de cada sesión de reserva hasta que se pague. */
 @Component
 public class PasajerosSesionCache {
 

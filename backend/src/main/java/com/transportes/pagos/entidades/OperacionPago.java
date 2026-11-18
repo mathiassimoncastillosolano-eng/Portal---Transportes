@@ -15,10 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Entidad JPA de la tabla operacion_pago: un intento de pago. Une la sesión de reserva (asientos bloqueados), la
- * order de Mercado Pago y, solo si se aprueba, la venta. Nunca guarda datos de tarjeta.
- */
+/** Intento de pago (tabla operacion_pago). */
 @Entity
 @Table(name = "operacion_pago")
 @Getter

@@ -5,14 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-/**
- * Fila interna de la consulta de compras: una por pasaje (no se envía al frontend).
- * Los datos de viaje son los del viaje ACTUAL del pasaje (el nuevo si se cambió).
- * adicionalPagado: suma de lo pagado en sus cambios (0 si nunca se cambió).
- * Solo si el pasaje fue cambiado vienen: viajeAnterior (antes del último cambio), viajeOriginal (en el que se
- * compró) y fechaCambio; si no, son null.
- * duracionMin: duración estimada de la ruta, o null si no se conoce.
- */
+/** Una fila leída de la base en la consulta de compras (una por pasaje). */
 public record FilaCompra(
         int idVenta, String estadoVenta, BigDecimal montoTotal, LocalDateTime fechaVenta,
         String estadoPago, String estadoOperacion, String moneda,
@@ -49,10 +42,7 @@ public record FilaCompra(
         return viajeOriginal != null;
     }
 
-    /**
-     * Copia de la fila con los datos del viaje en que se COMPRÓ el pasaje. Sirve para describir la compra
-     * original. Si el pasaje nunca se cambió, devuelve la misma fila.
-     */
+    /** Devuelve una copia de la fila con los datos del viaje en que se compró el pasaje. */
     public FilaCompra conViajeOriginal() {
         if (!fueCambiado()) {
             return this;

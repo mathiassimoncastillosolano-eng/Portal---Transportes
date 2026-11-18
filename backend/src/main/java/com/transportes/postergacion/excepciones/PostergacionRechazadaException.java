@@ -3,10 +3,7 @@ package com.transportes.postergacion.excepciones;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-/**
- * Error de HU-02 cuando el cambio se rechaza (409). Lleva el mensaje para el cliente y un código fijo para que el
- * frontend sepa qué pasó (por ejemplo, ASIENTO_NO_DISPONIBLE: puede elegir otro asiento).
- */
+/** Error 409 cuando no se puede cambiar el pasaje. Lleva el mensaje y un código del motivo. */
 public class PostergacionRechazadaException extends ResponseStatusException {
 
     /** Códigos que viajan en detalles. Son los mismos que CODIGOS_RECHAZO del frontend. */
@@ -27,7 +24,7 @@ public class PostergacionRechazadaException extends ResponseStatusException {
         this.codigo = codigo;
     }
 
-    /** Código fijo del motivo, por ejemplo ASIENTO_NO_DISPONIBLE. */
+    /** Código del motivo del rechazo. */
     public String getCodigo() {
         return codigo;
     }

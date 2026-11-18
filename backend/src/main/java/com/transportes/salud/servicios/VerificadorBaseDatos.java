@@ -16,13 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * Revisa rápido si PostgreSQL responde, cuidando el pool pequeño de conexiones:
- * no hace consultas de negocio (solo pide una conexión y la valida);
- * nunca hace esperar más de timeoutMs;
- * si muchos preguntan a la vez, comparten una sola comprobación;
- * un éxito se recuerda durante cacheMs (los fallos no, para notar pronto que volvió).
- */
+/** Revisa rápido si la base de datos responde. */
 @Component
 public class VerificadorBaseDatos implements DisposableBean {
 

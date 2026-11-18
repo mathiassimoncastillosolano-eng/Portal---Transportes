@@ -13,10 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Entidad JPA de la tabla asiento: un asiento físico de un bus y su posición. Su estado (libre, reservado,
- * ocupado) no se guarda aquí sino en viaje_asiento, porque cambia en cada viaje.
- */
+/** Asiento físico de un bus (tabla asiento). */
 @Entity
 @Table(name = "asiento")
 @Getter

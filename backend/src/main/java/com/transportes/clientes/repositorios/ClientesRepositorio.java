@@ -16,10 +16,7 @@ import java.util.Optional;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-/**
- * Consultas SQL de solo lectura (con JdbcTemplate) para el panel de clientes. Los filtros siempre van como
- * parámetros "?", nunca pegados al texto, para evitar inyección SQL.
- */
+/** Consultas a la base para el panel de clientes. */
 @Repository
 public class ClientesRepositorio {
 

@@ -12,10 +12,7 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Entidad JPA de la tabla empleado. Un empleado es una cuenta de la tabla usuario (correo y contraseña) más sus
- * datos de trabajo: rol y sede (agencia).
- */
+/** Empleado del Sistema Empresarial (tabla empleado): su cuenta, rol y sede. */
 @Entity
 @Table(name = "empleado", schema = "public")
 @Getter

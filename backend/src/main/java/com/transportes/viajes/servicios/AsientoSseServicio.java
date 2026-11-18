@@ -17,10 +17,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.transportes.viajes.dto.AsientoEventoDTO;
 import com.transportes.viajes.eventos.AsientoCambiadoEvento;
 
-/**
- * Envía en tiempo real los cambios de asientos a los navegadores (Server-Sent Events). Patrón Observador: guarda
- * las conexiones abiertas de cada viaje y les avisa cuando un asiento cambia.
- */
+/** Envía en vivo a los navegadores los cambios de estado de los asientos. */
 @Service
 public class AsientoSseServicio {
 
@@ -43,10 +40,7 @@ public class AsientoSseServicio {
         return emisor;
     }
 
-    /**
-     * Avisa a los navegadores después de confirmar la transacción. fallbackExecution hace que también funcione si
-     * el evento se publica fuera de una transacción (por ejemplo, desde el job).
-     */
+    /** Avisa del cambio de un asiento a los navegadores conectados a ese viaje. */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void alCambiarAsiento(AsientoCambiadoEvento evento) {
         List<SseEmitter> lista = emisoresPorViaje.get(evento.idViaje());

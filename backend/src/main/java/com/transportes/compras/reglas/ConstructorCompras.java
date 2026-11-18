@@ -24,11 +24,7 @@ import com.transportes.compras.dto.ViajeFila;
 import com.transportes.compras.reglas.ReglasCompra.EstadoCompra;
 import com.transportes.compras.reglas.ReglasCompra.FaseViaje;
 
-/**
- * Arma las compras a partir de las filas de la consulta (una fila por pasaje): agrupa los pasajes de cada venta,
- * ordena las compras y calcula los contadores del perfil. No consulta la base: recibe filas ya filtradas por el
- * usuario.
- */
+/** Junta las filas de la consulta en compras con sus boletos, las ordena y calcula los contadores del perfil. */
 public final class ConstructorCompras {
 
     /** Nombre de la empresa que se muestra en los boletos. */
@@ -250,10 +246,7 @@ public final class ConstructorCompras {
         return compra.fechaSalida().atTime(LocalTime.parse(compra.horaSalida(), HORA));
     }
 
-    /**
-     * Calcula los contadores del perfil (ResumenPerfilDto). Solo cuentan compras confirmadas y cada pasaje o viaje
-     * se cuenta una sola vez.
-     */
+    /** Calcula los contadores del perfil. */
     public static ResumenPerfilDto resumen(List<FilaResumen> filas, LocalDateTime ahora) {
         Map<Integer, List<FilaResumen>> porVenta = new LinkedHashMap<>();
         for (FilaResumen fila : filas) {
