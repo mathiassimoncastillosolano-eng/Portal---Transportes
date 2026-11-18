@@ -23,12 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Descarga y guarda en memoria las claves públicas con las que Google firma sus ID tokens (cada una tiene un
- * "kid").
- * Solo vuelve a descargar si falta un kid o pasó una hora, y nunca antes del intervalo mínimo: así nadie puede
- * forzar descargas enviando kid falsos.
- */
+/** Descarga y guarda en memoria las claves de Google que sirven para revisar sus tokens. */
 @Component
 public class ClavesPublicasGoogle {
 
@@ -50,10 +45,7 @@ public class ClavesPublicasGoogle {
         this.urlJwks = urlJwks;
     }
 
-    /**
-     * La clave pública de ese kid, o vacío si Google no tiene ninguna con ese id. Si Google no responde ->
-     * GoogleServicioNoDisponibleException.
-     */
+    /** Devuelve la clave pública de Google con ese id, o vacío si no existe. */
     public synchronized Optional<PublicKey> obtener(String kid) {
         if (kid == null || kid.isBlank()) {
             return Optional.empty();

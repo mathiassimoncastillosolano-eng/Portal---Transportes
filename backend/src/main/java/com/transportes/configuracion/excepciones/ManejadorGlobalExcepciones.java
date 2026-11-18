@@ -26,11 +26,7 @@ import com.transportes.usuarios.excepciones.UsuarioNoEncontradoException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Manejador global de errores de toda la API (@RestControllerAdvice). Cada método atrapa un tipo de excepción y la
- * convierte en una respuesta HTTP con el formato RespuestaError. Así los controladores no repiten try/catch y
- * nunca se envían al frontend detalles internos (stacktraces, errores de la base).
- */
+/** Atrapa los errores de toda la API y los convierte en respuestas con código HTTP y mensaje. */
 @Slf4j
 @RestControllerAdvice
 public class ManejadorGlobalExcepciones {
@@ -42,9 +38,7 @@ public class ManejadorGlobalExcepciones {
         return construirRespuesta(HttpStatus.CONFLICT, excepcion.getMessage(), request, null);
     }
 
-    /**
-     * 409 si se violó una restricción conocida de la base (por ejemplo un dato duplicado); si no se reconoce, 500.
-     */
+    /** 409 si se rompió una regla de la base, como un dato repetido; si no, 500. */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<RespuestaError> manejarIntegridad(
             DataIntegrityViolationException excepcion, HttpServletRequest request) {

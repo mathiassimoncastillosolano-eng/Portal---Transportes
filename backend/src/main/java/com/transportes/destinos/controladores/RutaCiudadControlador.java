@@ -7,10 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Controlador REST de /api/rutas-ciudad: devuelve los pares origen-destino activos (tabla ruta_ciudad). El
- * buscador del Portal lo usa para ofrecer solo destinos a los que sí hay viajes desde el origen elegido.
- */
+/** Recibe las peticiones de las rutas entre ciudades. */
 @RestController
 @RequestMapping("/api/rutas-ciudad")
 public class RutaCiudadControlador {
@@ -24,7 +21,7 @@ public class RutaCiudadControlador {
     /** Un par de ciudades: origen y destino. */
     public record RutaCiudad(String origen, String destino) {}
 
-    /** GET /api/rutas-ciudad: consulta SQL directa; solo pares activos entre ciudades activas, ordenados por nombre. */
+    /** Devuelve los pares origen-destino activos. */
     @GetMapping
     public List<RutaCiudad> listar() {
         return jdbc.query("""

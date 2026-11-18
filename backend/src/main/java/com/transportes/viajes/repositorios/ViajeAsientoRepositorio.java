@@ -11,10 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.transportes.viajes.entidades.ViajeAsiento;
 
-/**
- * Repositorio de la tabla viaje_asiento (estado de cada asiento en cada viaje). Los UPDATE tienen condición y
- * devuelven cuántas filas cambiaron: 0 significa que otro cliente se adelantó.
- */
+/** Consultas a la tabla viaje_asiento. */
 public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Integer> {
 
     List<ViajeAsiento> findByIdViaje(Integer idViaje);
@@ -59,11 +56,7 @@ public interface ViajeAsientoRepositorio extends JpaRepository<ViajeAsiento, Int
     int liberarAsientoSiPropio(@Param("idViaje") Integer idViaje, @Param("idAsiento") Integer idAsiento,
                                 @Param("token") String token);
 
-    /**
-     * Pasa el asiento a OCUPADO solo si SIGUE bloqueado por esa sesión. Si ya se liberó (y quizá otro lo tomó), no
-     * cambia nada: un pago tardío nunca roba un asiento ajeno. No usa clearAutomatically porque corre dentro de la
-     * transacción de la compra.
-     */
+    /** Pasa el asiento a OCUPADO solo si sigue bloqueado por esa sesión. */
     @Modifying(flushAutomatically = true)
     @Query("UPDATE ViajeAsiento va SET va.estadoViajeAsiento = 'OCUPADO', "
          + "va.fechaExpiracionBloqueo = null, va.idPasajero = :idPasajero "

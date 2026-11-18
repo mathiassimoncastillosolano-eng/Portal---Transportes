@@ -23,10 +23,7 @@ import com.transportes.security.servicios.UsuarioAutenticado;
 
 import jakarta.validation.Valid;
 
-/**
- * Controlador REST de HU-02, cambio de fecha de un pasaje (/api/usuarios/postergaciones). Exige sesión (JWT): el
- * id del usuario siempre se toma del token, nunca del navegador.
- */
+/** Recibe las peticiones para cambiar la fecha de un pasaje. */
 @RestController
 @RequestMapping("/api/usuarios/postergaciones")
 public class PostergacionControlador {
@@ -40,10 +37,7 @@ public class PostergacionControlador {
         this.confirmaciones = confirmaciones;
     }
 
-    /**
-     * GET /{idPasaje}/viajes: viajes a los que se puede cambiar el pasaje para una ruta y fecha.
-     * Ejemplo: GET /api/usuarios/postergaciones/26/viajes?origen=Trujillo&destino=Lima&fecha=2026-11-20
-     */
+    /** Devuelve los viajes a los que se puede cambiar el pasaje. */
     @GetMapping("/{idPasaje}/viajes")
     public ConsultaPostergacionDto viajes(@AuthenticationPrincipal UsuarioAutenticado usuario,
                                          @PathVariable int idPasaje,
@@ -53,10 +47,7 @@ public class PostergacionControlador {
         return postergaciones.consultarViajes(idDe(usuario), idPasaje, origen, destino, fecha);
     }
 
-    /**
-     * POST /{idPasaje}/confirmar: aplica el cambio (criterios 8 a 11). Si se acepta responde 200 con el nuevo
-     * viaje, fecha, horario y asiento; si se rechaza responde 409 con el motivo y el pasaje queda como estaba.
-     */
+    /** Confirma el cambio del pasaje al nuevo viaje y asiento. */
     @PostMapping("/{idPasaje}/confirmar")
     public ConfirmacionPostergacionDto confirmar(@AuthenticationPrincipal UsuarioAutenticado usuario,
                                                  @PathVariable int idPasaje,

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/** Controlador REST de la sección Destinos del Portal (/api/destinos). */
+/** Recibe las peticiones de la sección Destinos. */
 @RestController
 @RequestMapping("/api/destinos")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -21,7 +21,7 @@ public class DestinoControlador {
         this.destinoServicio = destinoServicio;
     }
 
-    /** GET /api/destinos: destinos activos con lo que necesita cada tarjeta (id, ciudad e imagen). */
+    /** Devuelve los destinos activos. */
     @GetMapping
     public List<DestinoRespuestaDTO> obtenerDestinos() {
         return destinoServicio.obtenerDestinosActivos();

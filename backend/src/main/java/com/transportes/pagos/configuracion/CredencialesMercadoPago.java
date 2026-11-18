@@ -10,15 +10,7 @@ import org.springframework.stereotype.Component;
 
 import com.transportes.pagos.entidades.EntornoPago;
 
-/**
- * Credenciales de Mercado Pago de cada entorno (SANDBOX y PRODUCTION). Es el único lugar que lee estos secretos de
- * las variables de entorno.
- * Cada entorno tiene: Access Token (privado, para que el backend llame a la API), Public Key (pública, la usa
- * MercadoPago.js en el navegador) y clave secreta de Webhooks (privada, para validar la firma de las
- * notificaciones).
- * Protección: si el token o la Public Key de Producción son iguales a los de Sandbox, Producción se considera NO
- * configurado, para nunca cobrar "real" con credenciales de prueba.
- */
+/** Lee y guarda las credenciales de Mercado Pago de cada entorno. */
 @Component
 public class CredencialesMercadoPago {
 

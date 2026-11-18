@@ -18,14 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-/**
- * Consultas SQL de solo lectura de las compras de un usuario (JdbcTemplate). Todas filtran por venta.id_usuario,
- * que viene del token, y usan parámetros "?" (sin pegar datos al texto).
- * Devuelven una fila por pasaje. pago, operacion_pago y comprobante son 1 a 1 con la venta, así que no repiten
- * filas.
- * Todos los joins son LEFT: una venta con datos incompletos igual aparece. No se filtra por activo: una compra
- * vieja se sigue mostrando aunque la ruta o el bus se desactiven.
- */
+/** Consultas a la base para leer las compras de un usuario. */
 @Repository
 public class CompraRepositorio {
 
@@ -69,13 +62,7 @@ public class CompraRepositorio {
             WHERE ve.id_usuario = :idUsuario
             """;
 
-    /*
-     * Cambios de viaje (tabla postergacion). Un pasaje puede tener varios:
-     * pu = el último cambio (viaje y asiento anteriores y fecha) -> columnas ant_*
-     * pp = el primer cambio (su viaje anterior es el viaje en que se compró) -> columnas orig_*
-     * Si el pasaje nunca se cambió, todo viene null. Se eligen por id_postergacion (el mayor y el menor) para que
-     * funcione igual en PostgreSQL y en H2 (pruebas).
-     */
+    /* Une los cambios de viaje del pasaje: el último y el primero. */
 
     /**
      * Columnas de un viaje unido con unirViaje: id, fecha, hora, estado, origen, destino, tipo de bus y duración
@@ -134,10 +121,7 @@ public class CompraRepositorio {
         return jdbc.query(SELECT_COMPRAS + ORDEN_COMPRAS, Map.of("idUsuario", idUsuario), MAPA_COMPRA);
     }
 
-    /**
-     * Una compra, SOLO si es del usuario: el filtro por dueño va en la misma consulta, así una venta ajena se ve
-     * igual que una que no existe (lista vacía).
-     */
+    /** Devuelve una compra solo si es del usuario. */
     public List<FilaCompra> filasDeCompra(int idUsuario, int idVenta) {
         return jdbc.query(SELECT_COMPRAS + " AND ve.id_venta = :idVenta" + ORDEN_COMPRAS,
                 Map.of("idUsuario", idUsuario, "idVenta", idVenta), MAPA_COMPRA);

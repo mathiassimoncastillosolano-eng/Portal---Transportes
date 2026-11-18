@@ -14,10 +14,7 @@ import com.transportes.postergacion.controladores.PostergacionControlador;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-/**
- * Manejador de errores solo para PostergacionControlador (se aplica antes que el global). Convierte un rechazo en
- * 409 con el formato normal de error y agrega en detalles el código del motivo.
- */
+/** Convierte el rechazo de un cambio de pasaje en una respuesta 409. */
 @RestControllerAdvice(assignableTypes = PostergacionControlador.class)
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ManejadorPostergacion {

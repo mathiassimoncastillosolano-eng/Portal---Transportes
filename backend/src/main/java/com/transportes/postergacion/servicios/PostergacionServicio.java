@@ -22,11 +22,7 @@ import com.transportes.postergacion.reglas.PoliticaPostergacion;
 import com.transportes.viajes.dto.ViajeResumenDto;
 import com.transportes.viajes.servicios.ViajeService;
 
-/**
- * Consulta de viajes de HU-02 (criterios 1, 2 y 3a). Patrón Fachada: el controlador llama a un solo método y esta
- * clase coordina a CompraRepositorio (busca el pasaje), ReglasCompra (¿está vigente?), PoliticaPostergacion (regla
- * de 6 h) y ViajeService (búsqueda de viajes). También tiene exigirPasajeCambiable, que usa la confirmación.
- */
+/** Lógica para buscar los viajes a los que se puede cambiar un pasaje. */
 @Service
 public class PostergacionServicio {
 
@@ -40,33 +36,26 @@ public class PostergacionServicio {
         this.reloj = relojNegocio;
     }
 
-    /**
-     * Viajes de la ruta y fecha elegidas a los que se puede cambiar el pasaje (todos menos el original, cada uno
-     * con su estado).
-     * @throws ResponseStatusException 404 si el pasaje no existe o es de otra cuenta; 409 con el motivo si el
-     * pasaje no se puede cambiar
-     */
+    /** Devuelve los viajes de la ruta y fecha elegidas, sin el viaje original. */
     @Transactional(readOnly = true)
     public ConsultaPostergacionDto consultarViajes(int idUsuario, int idPasaje,
                                                    String origen, String destino, LocalDate fecha) {
         LocalDateTime ahora = LocalDateTime.now(reloj);
 
-        // Paso 1 (criterio 1): el pasaje es del usuario y está vigente.
+        // Revisa que el pasaje sea del usuario y esté vigente.
         FilaCompra pasaje = buscarPasajePropio(idUsuario, idPasaje);
         if (!estaVigente(pasaje, ahora)) {
             throw rechazo("Este pasaje no está vigente, por eso no se puede cambiar.");
         }
 
-        // Paso 2 (criterio 2): faltan 6 h o más para la salida original.
+        // Revisa que falten 6 horas o más para la salida.
         PoliticaPostergacion.Resultado resultado =
                 PoliticaPostergacion.evaluar(pasaje.fechaSalida(), pasaje.horaSalida(), ahora);
         if (!resultado.aceptado()) {
             throw rechazo(resultado.mensaje());
         }
 
-        // Paso 3 (criterio 3): todos los viajes de esa ruta y fecha menos el original, igual que la búsqueda
-        // normal (también los que ya salieron o están llenos). Cada uno trae estadoReserva y reservable, y la
-        // pantalla solo deja elegir los reservables. Al reservar y pagar el servidor vuelve a validar.
+        // Busca los viajes de esa ruta y fecha.
         List<ViajeResumenDto> encontrados = viajes.buscar(origen, destino, fecha, "cualquiera");
         List<ViajeResumenDto> mostrados = encontrados.stream()
                 .filter(viaje -> esOtroViaje(viaje, pasaje.idViaje()))
@@ -74,13 +63,7 @@ public class PostergacionServicio {
         return new ConsultaPostergacionDto(mostrados, encontrados.size() - mostrados.size());
     }
 
-    /**
-     * Revalida, justo antes de confirmar, lo mismo que la consulta: el pasaje es del usuario, está vigente y
-     * faltan 6 h o más. Devuelve el pasaje con su viaje y asiento actuales. Lo usa
-     * ConfirmacionPostergacionServicio.
-     * @throws ResponseStatusException 404 si el pasaje no existe o es de otra cuenta; 409 si ya no se puede
-     * cambiar
-     */
+    /** Revisa que el pasaje todavía se pueda cambiar y lo devuelve. */
     public FilaCompra exigirPasajeCambiable(int idUsuario, int idPasaje) {
         LocalDateTime ahora = LocalDateTime.now(reloj);
         FilaCompra pasaje = buscarPasajePropio(idUsuario, idPasaje);
@@ -108,7 +91,7 @@ public class PostergacionServicio {
                         "No encontramos este pasaje entre tus compras."));
     }
 
-    /** Vigente = compra pagada y viaje programado que todavía no sale (mismo criterio que "Mis pasajes"). */
+    /** Revisa si la compra está pagada y el viaje todavía no sale. */
     private static boolean estaVigente(FilaCompra pasaje, LocalDateTime ahora) {
         EstadoCompra estado = ReglasCompra.estadoCompra(
                 pasaje.estadoVenta(), pasaje.estadoPago(), pasaje.estadoOperacion());

@@ -12,10 +12,7 @@ import org.springframework.stereotype.Component;
 import com.transportes.pagos.configuracion.CredencialesMercadoPago;
 import com.transportes.pagos.entidades.EntornoPago;
 
-/**
- * Un validador de firma por entorno, cada uno con su clave secreta. Un aviso se acepta si su firma coincide con la
- * de algún entorno candidato: con la URL de un entorno solo ese; con la URL antigua, ambos.
- */
+/** Guarda un validador de firma por entorno. */
 @Component
 public class ValidadoresWebhook {
 

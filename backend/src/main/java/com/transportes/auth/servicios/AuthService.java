@@ -16,10 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Lógica del login (Portal y Sistema Empresarial) y del logout.
- * Patrón Fachada: el controlador llama a un solo método y este coordina usuarios, BCrypt, empleados y JWT.
- */
+/** Lógica del inicio y cierre de sesión: revisa correo y contraseña, revisa si es empleado y genera el token. */
 @Service
 public class AuthService {
 
@@ -53,8 +50,7 @@ public class AuthService {
     }
 
     /**
-     * Login del Sistema Empresarial: además de las credenciales, exige una fila activa en la tabla empleado. Si no
-     * la hay -> 403 y no se entrega token.
+     * Inicia sesión en el Sistema Empresarial: además de la contraseña, la cuenta debe ser de un empleado activo.
      */
     @Transactional(readOnly = true)
     public LoginEmpresarialResponse iniciarSesionEmpresarial(LoginRequest datos) {
@@ -72,10 +68,7 @@ public class AuthService {
                 empleadoService.obtenerNombreSede(empleado));
     }
 
-    /**
-     * Reglas comunes de los dos logins: el correo existe, la cuenta está activa, tiene contraseña y la contraseña
-     * coincide. Si algo falla -> 401 con el mismo mensaje.
-     */
+    /** Revisa que el correo exista, la cuenta esté activa y la contraseña sea correcta. */
     private Usuario validarCredenciales(LoginRequest datos) {
         Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(datos.getCorreo())
                 .orElseThrow(() -> new CredencialesInvalidasException(MENSAJE_CREDENCIALES_INVALIDAS));

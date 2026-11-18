@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Datos del paso 3 de la recuperación. No trae el id del usuario: la cuenta se obtiene de la prueba verificada.
+ * Datos para guardar la nueva contraseña: la prueba verificada y la contraseña nueva.
  */
 public record CompletarRecuperacionRequest(
         @NotBlank(message = "La verificación es obligatoria.")

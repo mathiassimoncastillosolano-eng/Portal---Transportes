@@ -8,10 +8,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.transportes.viajes.dto.ConsultaDniResponseDTO;
 import com.transportes.viajes.repositorios.PasajeroRepositorio;
 
-/**
- * Autocompletar por DNI: primero busca en nuestra base; solo si el pasajero no existe consulta el servicio
- * externo. Solo lee, nunca guarda.
- */
+/** Busca los datos de un pasajero por DNI: primero en la base y luego en el servicio externo. */
 @Service
 public class ConsultaDniServicio {
 
@@ -25,10 +22,7 @@ public class ConsultaDniServicio {
         this.clienteDni = clienteDni;
     }
 
-    /**
-     * Valida que el DNI tenga 8 dígitos (si no, 400). Busca en nuestra base, luego en el servicio externo; si
-     * tampoco está, el usuario lo llena a mano.
-     */
+    /** Valida el DNI y busca sus datos. */
     @Transactional(readOnly = true)
     public ConsultaDniResponseDTO consultar(String dni) {
         if (dni == null || !dni.matches("\\d{8}")) {

@@ -10,10 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-/**
- * Lógica del perfil del usuario con sesión: consultarlo y actualizar solo algunos datos. El registro de cuentas
- * está en RegistroUsuarioService.
- */
+/** Lógica del perfil: consultarlo y actualizarlo. */
 @Service
 public class UsuarioService {
 
@@ -31,20 +28,14 @@ public class UsuarioService {
                         "No se encontro un usuario con id " + idUsuario));
     }
 
-    /**
-     * Datos del perfil del usuario. Los contadores no se calculan aquí: los agrega UsuarioController después,
-     * fuera de esta transacción.
-     */
+    /** Devuelve los datos del perfil. */
     @Transactional(readOnly = true)
     public PerfilUsuarioResponse obtenerPerfil(Integer idUsuario) {
         Usuario usuario = obtenerPorId(idUsuario);
         return mapearAPerfilResponse(usuario);
     }
 
-    /**
-     * Actualiza solo nombres, apellidos y teléfono. Correo, contraseña, estado e id no se pueden cambiar porque
-     * ActualizarPerfilRequest no los tiene.
-     */
+    /** Actualiza nombres, apellidos y teléfono. */
     @Transactional
     public PerfilUsuarioResponse actualizarPerfil(Integer idUsuario, ActualizarPerfilRequest datos) {
         Usuario usuario = obtenerPorId(idUsuario);

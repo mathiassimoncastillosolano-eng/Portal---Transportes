@@ -9,12 +9,7 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
-/**
- * Un código de recuperación de contraseña (tabla password_reset_tokens).
- * El código nunca se guarda tal cual: se guarda su HMAC-SHA256 (token_hash).
- * Ciclo de vida: se crea sin usar -> al acertar el código se llena fechaVerificacion -> al cambiar la contraseña
- * (o al anularlo) se llena fechaUso. Las fechas están en UTC.
- */
+/** Código de recuperación de contraseña (tabla password_reset_tokens). Se guarda cifrado, nunca tal cual. */
 @Entity
 @Table(name = "password_reset_tokens", schema = "public")
 public class PasswordResetToken {

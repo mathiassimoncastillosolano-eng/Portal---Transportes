@@ -17,11 +17,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Implementación de ClienteDni con el servicio externo ApiPeru. El token (DNI_API_TOKEN) vive solo en el servidor,
- * va en la cabecera Authorization y nunca se registra ni llega al navegador. Sin token o ante cualquier error
- * devuelve vacío y el formulario pide los datos a mano.
- */
+/** Busca los datos de un DNI en el servicio externo ApiPeru. */
 @Component
 public class ApiPeruClienteDni implements ClienteDni {
 

@@ -16,10 +16,7 @@ import com.transportes.compras.dto.ResumenPerfilDto;
 import com.transportes.compras.reglas.ConstructorCompras;
 import com.transportes.compras.repositorios.CompraRepositorio;
 
-/**
- * Casos de uso de "Mis pasajes", historial y resumen del perfil. Recibe el id del usuario del token, pide las
- * filas al repositorio y deja el armado a ConstructorCompras.
- */
+/** Lógica de "Mis pasajes", historial y resumen del perfil. */
 @Service
 public class CompraServicio {
 
@@ -52,11 +49,7 @@ public class CompraServicio {
                 ConstructorCompras.agrupar(repositorio.filasDelUsuario(idUsuario), ahora()));
     }
 
-    /**
-     * Detalle de una compra del usuario.
-     * @throws ResponseStatusException 404 si no existe o es de otra cuenta (misma respuesta en ambos casos para no
-     * revelar qué ventas existen)
-     */
+    /** Devuelve una compra del usuario. Si no existe o es de otra cuenta, responde 404. */
     @Transactional(readOnly = true)
     public CompraDto detalle(int idUsuario, int idVenta) {
         List<FilaCompra> filas = repositorio.filasDeCompra(idUsuario, idVenta);

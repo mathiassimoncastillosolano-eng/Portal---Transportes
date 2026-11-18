@@ -19,10 +19,7 @@ import com.transportes.security.servicios.UsuarioAutenticado;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 
-/**
- * Controlador REST de pagos con Mercado Pago (/api/pagos). Exige sesión: la compra queda a nombre del usuario del
- * token.
- */
+/** Recibe las peticiones de pago con Mercado Pago. */
 @RestController
 @RequestMapping("/api/pagos")
 public class PagoControlador {
@@ -35,29 +32,20 @@ public class PagoControlador {
         this.autorizador = autorizador;
     }
 
-    /**
-     * GET /configuracion: entornos de pago que puede usar el usuario y su Public Key. Un comprador normal solo
-     * recibe PRODUCTION.
-     */
+    /** Devuelve los entornos de pago que puede usar el usuario. */
     @GetMapping("/configuracion")
     public ResponseEntity<ConfiguracionPagoResponse> configuracion(@AuthenticationPrincipal UsuarioAutenticado usuario) {
         return ResponseEntity.ok(autorizador.configuracionPara(usuario.idUsuario()));
     }
 
-    /**
-     * POST: inicia el pago (crea la operación y la order en Mercado Pago). Responde 200 si la solicitud es válida;
-     * el resultado (APROBADO, RECHAZADO, EN_PROCESO...) va en el cuerpo. Repetir la misma claveIdempotencia
-     * devuelve la misma operación (sin cobrar dos veces).
-     */
+    /** Inicia el pago con Mercado Pago y devuelve su estado. */
     @PostMapping
     public ResponseEntity<EstadoPagoResponse> iniciar(@AuthenticationPrincipal UsuarioAutenticado usuario,
             @RequestBody @Valid IniciarPagoRequest request) {
         return ResponseEntity.ok(pagoServicio.iniciar(usuario.idUsuario(), request));
     }
 
-    /**
-     * GET /{referencia}: estado del pago verificado por el backend. Si sigue pendiente, consulta a Mercado Pago.
-     */
+    /** Devuelve el estado actual de un pago. */
     @GetMapping("/{referencia}")
     public ResponseEntity<EstadoPagoResponse> consultar(@AuthenticationPrincipal UsuarioAutenticado usuario,
             @PathVariable @Pattern(regexp = "^RL-[0-9a-f-]{36}$") String referencia) {

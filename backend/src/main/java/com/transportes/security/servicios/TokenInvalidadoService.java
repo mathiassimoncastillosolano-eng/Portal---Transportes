@@ -7,15 +7,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Logout con JWT. Un JWT sigue siendo válido hasta que vence, aunque el navegador lo borre. Para poder cerrarlo
- * antes se usa una lista negra en memoria con el jti de cada token cerrado:
- * al hacer logout, su jti entra a la lista hasta su vencimiento;
- * el filtro rechaza cualquier token que esté en la lista;
- * una tarea programada borra los que ya vencieron.
- * Limitación: si el servidor se reinicia la lista se pierde. Se acepta porque los tokens duran poco; el siguiente
- * paso sería guardarla en una tabla o en Redis.
- */
+/** Guarda en memoria los tokens cerrados con logout para que no se puedan volver a usar. */
 @Service
 public class TokenInvalidadoService {
 

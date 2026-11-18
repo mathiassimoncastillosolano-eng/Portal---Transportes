@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/** Controlador REST de la sección Servicios del Portal: devuelve los tipos de bus. */
+/** Recibe las peticiones de la sección Servicios (tipos de bus). */
 @RestController
 @RequestMapping("/api/servicios")
 @CrossOrigin(origins = "http://localhost:5173")

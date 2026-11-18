@@ -10,10 +10,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * Crea y revisa el token para ver una constancia: HMAC-SHA256 del código con una clave secreta. Sin la clave nadie
- * puede fabricarlo.
- */
+/** Crea y revisa el token que permite ver una constancia. */
 @Component
 public class TokenConsultaReclamo {
 

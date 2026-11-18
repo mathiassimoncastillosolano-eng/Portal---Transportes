@@ -18,10 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Controlador REST del perfil del usuario con sesión (/api/usuarios/perfil). El id del usuario nunca llega del
- * frontend: se toma del token ya validado (@AuthenticationPrincipal).
- */
+/** Recibe las peticiones del perfil del usuario. */
 @RestController
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
@@ -36,7 +33,7 @@ public class UsuarioController {
         this.compraServicio = compraServicio;
     }
 
-    /** GET /perfil: datos del usuario del token. */
+    /** Devuelve los datos del perfil. */
     @GetMapping("/perfil")
     public ResponseEntity<PerfilUsuarioResponse> obtenerPerfil(
             @AuthenticationPrincipal UsuarioAutenticado usuarioAutenticado) {
@@ -44,7 +41,7 @@ public class UsuarioController {
         return ResponseEntity.ok(perfil.conEstadisticas(estadisticasDe(usuarioAutenticado.idUsuario())));
     }
 
-    /** PUT /perfil: actualiza nombres, apellidos y teléfono (el correo no se cambia aquí). */
+    /** Actualiza nombres, apellidos y teléfono. */
     @PutMapping("/perfil")
     public ResponseEntity<PerfilUsuarioResponse> actualizarPerfil(
             @AuthenticationPrincipal UsuarioAutenticado usuarioAutenticado,
@@ -53,10 +50,7 @@ public class UsuarioController {
         return ResponseEntity.ok(perfil.conEstadisticas(estadisticasDe(usuarioAutenticado.idUsuario())));
     }
 
-    /**
-     * Calcula los contadores después de leer el perfil y fuera de su transacción, así un error al contar compras
-     * no rompe el perfil. Si falla devuelve null (no ceros inventados).
-     */
+    /** Calcula los contadores del perfil. Si falla, devuelve null. */
     private EstadisticasUsuarioResponse estadisticasDe(Integer idUsuario) {
         try {
             return EstadisticasUsuarioResponse.de(compraServicio.resumen(idUsuario));

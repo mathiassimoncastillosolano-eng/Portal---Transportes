@@ -4,7 +4,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.Set;
 
-/** Regla pura: cuenta días hábiles (sin sábados, domingos ni feriados) para la fecha límite de respuesta. */
+/** Cuenta días hábiles (sin fines de semana ni feriados) para la fecha límite de respuesta. */
 public final class CalculadoraPlazoHabil {
 
     public static final int DIAS_HABILES_RESPUESTA = 15;

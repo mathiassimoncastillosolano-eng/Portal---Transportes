@@ -11,14 +11,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.OptionalLong;
 
-/**
- * Herramientas criptográficas de la recuperación (solo usa el JDK):
- * - genera el código de 6 dígitos con SecureRandom;
- * - guarda el código como HMAC-SHA256 con una clave secreta del servidor (si se filtra la tabla, no se pueden
- * adivinar los códigos);
- * - firma la "prueba" que se entrega al verificar el código. La prueba solo identifica el desafío; si está usado o
- * vencido lo dice la BD.
- */
+/** Genera el código de recuperación, lo cifra para guardarlo y firma la prueba que se entrega al verificarlo. */
 public final class CriptoRecuperacion {
 
     private static final String HMAC = "HmacSHA256";

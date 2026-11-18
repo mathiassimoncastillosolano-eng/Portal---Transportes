@@ -13,10 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Entidad JPA de la tabla pasaje (un asiento vendido). La restricción uq_pasaje_viaje_asiento impide vender dos
- * veces el mismo asiento de un viaje.
- */
+/** Pasaje vendido: un asiento de un viaje (tabla pasaje). */
 @Entity
 @Table(name = "pasaje")
 @Getter

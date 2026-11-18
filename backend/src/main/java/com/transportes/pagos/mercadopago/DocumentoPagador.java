@@ -4,13 +4,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Valida el documento del pagador antes de enviarlo a Mercado Pago. Reglas de Perú: DNI = 8 dígitos; C.E = 8 a 12
- * dígitos; RUC = 11 a 12 caracteres; Otro = 5 a 20 dígitos.
- * Nunca se inventan dígitos ni se cambia el tipo por otro parecido (solo con un mapeo configurado a mano). Si el
- * documento no se puede enviar con seguridad, se omite (la compra sigue) y se anota el motivo en el log, sin datos
- * personales.
- */
+/** Revisa el documento del pagador antes de enviarlo a Mercado Pago. Si no es válido, no se envía. */
 public final class DocumentoPagador {
 
     public enum Motivo {
@@ -33,13 +27,7 @@ public final class DocumentoPagador {
     private DocumentoPagador() {
     }
 
-    /**
-     * Decide si el documento se envía y con qué tipo.
-     * @param tipo tipo elegido por el usuario
-     * @param numero número tal como lo escribió
-     * @param habilitados tipos que se permite enviar
-     * @param mapeo traducciones de tipo configuradas (puede estar vacío)
-     */
+    /** Decide si el documento se envía y con qué tipo. */
     public static Resultado evaluar(String tipo, String numero, Set<String> habilitados, Map<String, String> mapeo) {
         String t = tipo == null ? "" : tipo.strip();
         String n = numero == null ? "" : numero.strip();

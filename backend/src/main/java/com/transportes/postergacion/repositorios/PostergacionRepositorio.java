@@ -9,10 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.transportes.postergacion.entidades.Postergacion;
 
-/**
- * Repositorio de la tabla postergacion. Además tiene dos UPDATE con condición que mueven el pasaje: cada uno
- * devuelve cuántas filas cambió y el servicio rechaza (y deshace todo) si no cambió exactamente una.
- */
+/** Consultas a la tabla postergacion y cambios de asiento del pasaje. */
 public interface PostergacionRepositorio extends JpaRepository<Postergacion, Integer> {
 
     List<Postergacion> findByIdPasajeOrderByIdPostergacion(Integer idPasaje);

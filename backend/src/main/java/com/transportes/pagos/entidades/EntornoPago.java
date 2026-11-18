@@ -1,10 +1,6 @@
 package com.transportes.pagos.entidades;
 
-/**
- * Entorno de un pago: SANDBOX (pruebas, sin dinero real, solo usuarios autorizados) o PRODUCTION (dinero real). Se
- * fija al crear la operación y nunca cambia: consultas, Webhook, cancelación y reembolso usan siempre las
- * credenciales de ese entorno.
- */
+/** Entorno del pago: SANDBOX (prueba) o PRODUCTION (dinero real). */
 public enum EntornoPago {
     SANDBOX,
     PRODUCTION;

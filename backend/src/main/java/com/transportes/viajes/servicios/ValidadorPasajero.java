@@ -9,11 +9,7 @@ import java.util.regex.Pattern;
 
 import com.transportes.viajes.dto.PasajeroAsientoRequest;
 
-/**
- * Reglas para validar los datos de un pasajero. Regla pura (sin Spring ni base). El frontend
- * (frontend-Portal/src/utilidades/validarPasajero.js) tiene las mismas reglas con los mismos mensajes. La edad de
- * un menor no se valida aquí; el frontend solo muestra un aviso.
- */
+/** Reglas para validar los datos de un pasajero. */
 public final class ValidadorPasajero {
 
     public static final String CAMPO_TIPO_DOCUMENTO = "tipoDocumento";
@@ -25,10 +21,7 @@ public final class ValidadorPasajero {
 
     public static final int EDAD_MAXIMA_ANIOS = 120;
     public static final int LONGITUD_MAXIMA_NOMBRE = 100;
-    /**
-     * Un DNI puede repetirse en una compra (la misma persona con varios asientos), pero entonces los nombres y
-     * apellidos deben ser iguales. Así un DNI no queda ligado a dos personas distintas.
-     */
+    /** Mensaje cuando un DNI repetido trae nombres distintos. */
     public static final String MENSAJE_DNI_DATOS_DISTINTOS =
             "Este DNI ya está en otro asiento de esta compra con nombres distintos.";
 
@@ -88,10 +81,7 @@ public final class ValidadorPasajero {
         return errores;
     }
 
-    /**
-     * Valida todos los pasajeros de la compra y que los DNI repetidos tengan los mismos nombres. Si no coinciden,
-     * el error se marca en el segundo (o siguiente) asiento con ese DNI.
-     */
+    /** Valida todos los pasajeros y que un DNI repetido tenga los mismos nombres. */
     public static List<ErrorCampo> validarLote(List<PasajeroAsientoRequest> lista, LocalDate hoy) {
         List<ErrorCampo> errores = new ArrayList<>();
         Map<String, String> identidadPorDocumento = new HashMap<>();

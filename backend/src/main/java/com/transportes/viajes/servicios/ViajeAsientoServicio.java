@@ -42,10 +42,7 @@ import com.transportes.viajes.repositorios.ViajeAsientoRepositorio;
 import com.transportes.viajes.repositorios.ViajeRepositorio;
 import com.transportes.viajes.servicios.TokenSesionServicio.SesionReserva;
 
-/**
- * Lógica de los asientos de un viaje. Un asiento pasa por DISPONIBLE -> BLOQUEADO_TEMPORAL -> OCUPADO. Cada cambio
- * usa un UPDATE con condición (evita que dos clientes tomen el mismo) y se avisa en vivo por SSE.
- */
+/** Lógica de los asientos de un viaje: mostrar el mapa, bloquear, liberar y ocupar asientos. */
 @Service
 public class ViajeAsientoServicio {
 
@@ -195,14 +192,7 @@ public class ViajeAsientoServicio {
                                  BigDecimal precio, String numero, short piso) {
     }
 
-    /**
-     * Ocupa los asientos de una compra pagada. Solo lo llama RegistroCompraServicio cuando el pago ya fue
-     * verificado. No usa el token de la sesión (pudo vencer durante el pago) sino el id de sesión guardado en la
-     * operación. Debe correr dentro de esa transacción: crea o actualiza los pasajeros y pasa a OCUPADO cada
-     * asiento que SIGUE bloqueado por esa sesión. Si alguno ya no lo está, lanza error y se deshace todo.
-     * @param pasajeros uno por cada asiento bloqueado de la sesión
-     * @throws AsientoNoDisponibleException si no hay asientos, faltan pasajeros o alguno ya no es de la sesión
-     */
+    /** Ocupa los asientos de una compra pagada y guarda los pasajeros. */
     @Transactional(propagation = Propagation.MANDATORY)
     public List<AsientoOcupado> ocuparAsientosDeSesion(Long idViaje, String idSesion, List<PasajeroAsientoRequest> pasajeros) {
         Integer idViajeInt = Math.toIntExact(idViaje);
@@ -245,11 +235,7 @@ public class ViajeAsientoServicio {
         return ocupados;
     }
 
-    /**
-     * Mantiene bloqueados los asientos de la sesión mientras Mercado Pago procesa el pago, para que el job no los
-     * suelte a mitad del cobro.
-     * @return cantidad de asientos extendidos
-     */
+    /** Alarga el bloqueo de los asientos mientras se procesa el pago. */
     @Transactional(propagation = Propagation.MANDATORY)
     public int extenderBloqueoSesion(Long idViaje, String idSesion, LocalDateTime nuevaExpiracion) {
         return viajeAsientoRepositorio.extenderBloqueoSesion(
@@ -280,11 +266,7 @@ public class ViajeAsientoServicio {
         return filas;
     }
 
-    /**
-     * Si el pasajero ya existe, solo se actualizan celular y (si faltaba) fecha de nacimiento; nombres y apellidos
-     * nunca se sobrescriben. Si no existe, se crea. Un candado por documento evita crear el mismo pasajero dos
-     * veces a la vez.
-     */
+    /** Busca el pasajero por su documento; si no existe, lo crea. */
     private Integer buscarOCrearPasajero(PasajeroAsientoRequest p) {
         viajeAsientoRepositorio.bloquearSesion("pasajero:" + p.tipoDocumento() + ":" + p.numeroDocumento());
         return pasajeroRepositorio.findByTipoDocumentoAndNumeroDocumento(p.tipoDocumento(), p.numeroDocumento())

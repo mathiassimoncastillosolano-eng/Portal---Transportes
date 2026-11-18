@@ -14,14 +14,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
 
-/**
- * Crea y valida los JWT del login. El token lleva solo lo necesario:
- * sub: id del usuario.
- * correo: correo del usuario.
- * jti: id único del token (para poder cerrarlo con logout).
- * iat / exp: cuándo se creó y cuándo vence.
- * El token no se guarda en ninguna tabla.
- */
+/** Crea y valida los tokens (JWT) del inicio de sesión. */
 @Service
 public class JwtService {
 
@@ -51,10 +44,7 @@ public class JwtService {
                 .compact();
     }
 
-    /**
-     * Valida la firma y el vencimiento y devuelve los datos del token. Si no es válido lanza JwtException (por
-     * ejemplo ExpiredJwtException).
-     */
+    /** Valida el token y devuelve sus datos. Lanza error si no es válido o venció. */
     public Claims validarYObtenerClaims(String token) {
         return Jwts.parser()
                 .verifyWith(claveFirma)

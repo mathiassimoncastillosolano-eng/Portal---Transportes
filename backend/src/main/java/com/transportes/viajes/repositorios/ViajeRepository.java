@@ -18,11 +18,7 @@ import java.util.Map;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-/**
- * Consulta SQL (JdbcTemplate) de la búsqueda de viajes: viajes PROGRAMADOS de la ruta y fecha, con asientos
- * libres, precio mínimo y capacidad. Luego cada viaje pasa por PoliticaReservaViaje para saber si se puede
- * reservar.
- */
+/** Consulta a la base para buscar viajes. */
 @Repository
 public class ViajeRepository {
     private final NamedParameterJdbcTemplate jdbc;
@@ -30,10 +26,7 @@ public class ViajeRepository {
 
     public ViajeRepository(NamedParameterJdbcTemplate jdbc) { this.jdbc = jdbc; }
 
-    // Se listan TODOS los viajes PROGRAMADOS del día, también los que ya salieron, los que cerraron reserva y los
-    // llenos: si se puede reservar o no lo decide PoliticaReservaViaje, no el WHERE. Los cancelados no aparecen.
-    // Asientos y servicios se cuentan por separado: si se unieran antes del COUNT, cada asiento se contaría una
-    // vez por cada servicio del bus.
+    // Trae los viajes programados del día con sus asientos libres, precio y capacidad.
     private static final String BUSQUEDA = """
         SELECT v.id_viaje, uo.nombre AS origen, ud.nombre AS destino,
                v.fecha_salida, v.hora_salida, r.duracion_estimada_min,

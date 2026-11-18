@@ -15,10 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Entidad JPA de la tabla viaje: una salida concreta en una fecha y hora. No confundir con programacion_viaje, que
- * es la plantilla que se repite.
- */
+/** Viaje en una fecha y hora concretas (tabla viaje). */
 @Entity
 @Table(name = "viaje")
 @Getter

@@ -4,21 +4,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-/**
- * Reglas de "Mis pasajes", historial y resumen. Patrón Regla pura: solo funciones estáticas sin base de datos ni
- * Spring, para tener el criterio en un solo lugar y probarlo fácil.
- * Se separan tres ideas distintas:
- * Estado de la compra: sale de venta, pago y operacion_pago.
- * Estado del viaje: viaje.estado_viaje (PROGRAMADO o, por ejemplo, CANCELADO).
- * Fase del viaje: si ya salió o no, según la fecha y hora de salida (hora de Perú).
- */
+/** Reglas para saber el estado de una compra y si su viaje ya pasó o no. */
 public final class ReglasCompra {
 
     /** Valor de venta.estado_venta cuando la venta se pagó. */
     public static final String VENTA_PAGADA = "PAGADA";
     /** Valor de pago.estado_pago cuando el pago se aprobó. */
     public static final String PAGO_APROBADO = "APROBADO";
-    /** Único estado de viaje que lleva pasajeros (el mismo criterio que PoliticaReservaViaje). */
+    /** Único estado de viaje que lleva pasajeros. */
     public static final String VIAJE_PROGRAMADO = "PROGRAMADO";
     /** Estado de la operación de pago cuando el dinero se devolvió. */
     public static final String OPERACION_REEMBOLSADO = "REEMBOLSADO";
@@ -63,10 +56,7 @@ public final class ReglasCompra {
         return EstadoCompra.SIN_CONFIRMAR;
     }
 
-    /**
-     * Calcula la fase del viaje comparando su salida con la hora actual.
-     * @param ahora hora actual de Perú (la misma zona en que se guardan fecha y hora de salida)
-     */
+    /** Calcula si el viaje es próximo, ya se realizó o no se realizó. */
     public static FaseViaje faseViaje(String estadoViaje, LocalDate fechaSalida, LocalTime horaSalida,
                                       LocalDateTime ahora) {
         if (estadoViaje == null || fechaSalida == null || horaSalida == null) {

@@ -13,12 +13,7 @@ import com.transportes.viajes.repositorios.ViajeRepositorio;
 import com.transportes.viajes.reglas.PoliticaReservaViaje;
 import com.transportes.viajes.reglas.PoliticaReservaViaje.EstadoReserva;
 
-/**
- * Único lugar donde el backend revisa que un viaje todavía acepte reservas (PROGRAMADO, no salió y faltan 20
- * minutos o más). Lo llaman: abrir sesión, bloquear cada asiento, "Continuar al pago" e iniciar el pago. Usa la
- * hora del servidor, nunca la del navegador. No se llama al registrar una compra ya cobrada: si el pago empezó a
- * tiempo, una demora de Mercado Pago no debe dejar sin pasaje a quien ya pagó.
- */
+/** Revisa que un viaje todavía se pueda reservar. */
 @Service
 public class ValidadorReservaViaje {
 
@@ -30,11 +25,7 @@ public class ValidadorReservaViaje {
         this.reloj = relojNegocio;
     }
 
-    /**
-     * Lanza error si el viaje no se puede reservar.
-     * @throws ViajeNoEncontradoException si no existe
-     * @throws ReservaNoPermitidaException si no se puede reservar
-     */
+    /** Lanza error si el viaje no existe o ya no se puede reservar. */
     @Transactional(readOnly = true)
     public void exigirReservable(Long idViaje) {
         Viaje viaje = viajes.findById(idViaje).orElseThrow(() -> new ViajeNoEncontradoException(idViaje));

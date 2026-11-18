@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.transportes.viajes.dto.ConsultaDniResponseDTO;
 import com.transportes.viajes.servicios.ConsultaDniServicio;
 
-/** Controlador REST para autocompletar los datos de un pasajero con su DNI (/api/pasajeros). */
+/** Recibe las peticiones para buscar un pasajero por DNI. */
 @RestController
 @RequestMapping("/api/pasajeros")
 public class ConsultaDniControlador {
@@ -20,7 +20,7 @@ public class ConsultaDniControlador {
         this.consultaDniServicio = consultaDniServicio;
     }
 
-    /** GET /dni/{dni}: pide sesión (JWT) porque devuelve datos personales. */
+    /** Busca los datos de un pasajero por su DNI. */
     @GetMapping("/dni/{dni}")
     public ResponseEntity<ConsultaDniResponseDTO> consultarDni(@PathVariable String dni) {
         return ResponseEntity.ok(consultaDniServicio.consultar(dni));

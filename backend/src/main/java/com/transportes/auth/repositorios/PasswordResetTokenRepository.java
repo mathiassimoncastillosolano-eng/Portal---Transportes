@@ -11,16 +11,10 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Acceso a los códigos de recuperación. Consumir y anular son UPDATE condicionados: si dos peticiones llegan a la
- * vez, la base de datos deja ganar solo a una.
- */
+/** Consultas a la tabla de códigos de recuperación. */
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
 
-    /**
-     * Códigos que todavía se pueden verificar (sin usar, sin verificar, sin vencer), del más nuevo al más viejo.
-     * Bloquea las filas (SELECT ... FOR UPDATE) para contar bien los intentos simultáneos.
-     */
+    /** Devuelve los códigos que todavía se pueden verificar, del más nuevo al más viejo. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select t from PasswordResetToken t "
             + "where t.idUsuario = :idUsuario and t.fechaUso is null and t.fechaVerificacion is null "
@@ -35,15 +29,12 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
             + "where t.idUsuario = :idUsuario and t.fechaUso is null")
     int invalidarPendientes(@Param("idUsuario") Integer idUsuario, @Param("ahora") LocalDateTime ahora);
 
-    /** Anula un código concreto (por ejemplo, si el correo no se pudo enviar). */
+    /** Anula un código. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update PasswordResetToken t set t.fechaUso = :ahora where t.id = :id and t.fechaUso is null")
     int invalidar(@Param("id") Long id, @Param("ahora") LocalDateTime ahora);
 
-    /**
-     * Usa el código una sola vez: solo funciona si está verificado, sin usar y dentro del tiempo para cambiar la
-     * contraseña. Devuelve 1 si lo usó y 0 si no.
-     */
+    /** Marca el código como usado. Devuelve 1 si lo marcó y 0 si no se pudo. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update PasswordResetToken t set t.fechaUso = :ahora "
             + "where t.id = :id and t.fechaUso is null and t.fechaVerificacion is not null "

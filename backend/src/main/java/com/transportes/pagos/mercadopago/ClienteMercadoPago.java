@@ -3,10 +3,7 @@ package com.transportes.pagos.mercadopago;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
-/**
- * Operaciones de la API de Orders de Mercado Pago que usa el sistema. Es una interfaz para poder usar un simulador
- * (mock) en las pruebas.
- */
+/** Interfaz con las operaciones que se hacen en Mercado Pago. */
 public interface ClienteMercadoPago {
 
     boolean configurado();

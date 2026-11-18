@@ -14,12 +14,7 @@ import org.springframework.stereotype.Service;
 import java.security.Key;
 import java.util.Set;
 
-/**
- * Valida el ID token que Google entrega al frontend y saca los datos del usuario.
- * Revisa: firma RS256 con las claves públicas de Google, emisor de Google, audiencia = nuestro Client ID, que no
- * esté vencido (con 60 s de tolerancia) y que el correo esté verificado. No hace falta el Client Secret: se
- * verifica con clave pública.
- */
+/** Revisa que el token de Google sea válido y saca de él los datos del usuario. */
 @Service
 public class VerificadorTokenGoogle {
 

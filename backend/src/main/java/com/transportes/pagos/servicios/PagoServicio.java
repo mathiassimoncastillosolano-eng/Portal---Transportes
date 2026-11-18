@@ -62,13 +62,7 @@ import com.transportes.viajes.servicios.ValidadorReservaViaje;
 import com.transportes.viajes.servicios.ViajeAsientoServicio;
 
 /**
- * Flujo de pago con Mercado Pago (Checkout API con Orders). Tres partes:
- * 1) iniciar: valida la sesión de reserva, calcula el monto en el servidor, guarda la operación (sin venta),
- * extiende el bloqueo de asientos y crea la order.
- * 2) aplicarOrden: único lugar que interpreta el estado de una order. Lo usan la creación, el Webhook, la consulta
- * del frontend y el job. Bloquea la fila, así un aviso repetido nunca duplica la compra.
- * 3) Solo con processed/accredited se registra la compra (RegistroCompraServicio).
- * Cada operación guarda su entorno y todas las llamadas posteriores usan ese mismo entorno.
+ * Lógica del pago con Mercado Pago: iniciar el pago, revisar su estado y registrar la compra cuando se aprueba.
  */
 @Service
 public class PagoServicio {
@@ -131,15 +125,11 @@ public class PagoServicio {
         this.tx = new TransactionTemplate(transactionManager);
     }
 
-    // ===== Paso 1: iniciar el pago =====
 
     private record Preparacion(OperacionPago operacion, boolean nueva, List<PasajeroAsientoRequest> pasajeros) {
     }
 
-    /**
-     * Botón "Pagar". Pasos: decidir entorno y medio, revisar si es un reintento, validar la sesión, preparar la
-     * operación (monto calculado aquí), extender la sesión y crear la order.
-     */
+    /** Inicia el pago: valida la sesión, calcula el monto y crea el pago en Mercado Pago. */
     public EstadoPagoResponse iniciar(Integer idUsuario, IniciarPagoRequest req) {
         // El entorno lo decide el backend según el usuario (Sandbox solo autorizados) y las credenciales
         // configuradas.
@@ -322,8 +312,7 @@ public class PagoServicio {
     }
 
     private void crearOrdenEnMercadoPago(OperacionPago op, SolicitudOrden solicitud) {
-        // La clave de idempotencia es la referencia de la operación: si se repite el POST, Mercado Pago devuelve
-        // la misma order en vez de cobrar dos veces.
+        // Se usa la referencia como clave para que Mercado Pago no cobre dos veces.
         String clave = op.getReferenciaExterna();
         EntornoPago entorno = op.getEntorno();
         ClienteMercadoPago cliente = clientes.de(entorno);
@@ -368,14 +357,8 @@ public class PagoServicio {
         }
     }
 
-    // ===== Paso 2: interpretar una order (creación, Webhook, consulta y job) =====
 
-    /**
-     * Aplica a la operación el estado REAL de una order consultada en Mercado Pago. Se puede llamar varias veces
-     * sin efectos dobles.
-     * @param origen entorno con que se consultó la order; si no es el de la operación, se descarta (una order de
-     * prueba nunca confirma una compra real)
-     */
+    /** Actualiza el pago con el estado que devolvió Mercado Pago. Si se aprobó, registra la compra. */
     public void aplicarOrden(Integer idOperacion, OrdenMercadoPago orden, EntornoPago origen) {
         boolean reembolsar;
         try {
@@ -514,7 +497,6 @@ public class PagoServicio {
         }
     }
 
-    // ===== Paso 3: sincronizar (consulta del frontend y job) =====
 
     /**
      * Consulta a Mercado Pago el estado de una operación pendiente y lo aplica. Nunca lanza errores del proveedor.
@@ -581,12 +563,7 @@ public class PagoServicio {
         }));
     }
 
-    /**
-     * Procesa un Webhook con firma ya verificada: consulta la order en la API (no se confía en el cuerpo del
-     * aviso) y aplica su estado. Si la operación ya se conoce manda su entorno; si no, se prueba con cada entorno
-     * candidato.
-     * @throws ErrorMercadoPagoException si la consulta falló por algo temporal (el controlador responde 503)
-     */
+    /** Procesa un aviso de Mercado Pago: consulta el pago y actualiza su estado. */
     public void procesarNotificacionOrden(String idOrden, Collection<EntornoPago> candidatos) {
         Optional<OperacionPago> conocida = operaciones.findByMpOrderId(idOrden);
         if (conocida.isPresent()) {
@@ -643,10 +620,7 @@ public class PagoServicio {
         log.warn("Webhook de una order inexistente: {}", idOrden);
     }
 
-    /**
-     * La pantalla pregunta "¿ya se aprobó?". Solo el dueño puede consultar (si no, 404); si sigue pendiente, se
-     * consulta a Mercado Pago.
-     */
+    /** Devuelve el estado de un pago del usuario. Si sigue pendiente, consulta a Mercado Pago. */
     public EstadoPagoResponse consultar(Integer idUsuario, String referencia) {
         OperacionPago op = operaciones.findByReferenciaExterna(referencia)
                 .filter(o -> o.getIdUsuario().equals(idUsuario))
@@ -660,7 +634,6 @@ public class PagoServicio {
         return respuesta(op.getIdOperacionPago(), null);
     }
 
-    // ===== Paso 4: armar las respuestas =====
 
     private EstadoPagoResponse respuestaDeExistente(OperacionPago op, Integer idUsuario, EntornoPago entorno) {
         if (!op.getIdUsuario().equals(idUsuario)) {

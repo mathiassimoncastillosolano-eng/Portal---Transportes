@@ -23,10 +23,7 @@ import com.transportes.viajes.servicios.ViajeAsientoServicio;
 
 import jakarta.validation.Valid;
 
-/**
- * Controlador REST del mapa de asientos de un viaje: abrir sesión de reserva, ver asientos, bloquear y liberar, y
- * recibir cambios en vivo (SSE).
- */
+/** Recibe las peticiones del mapa de asientos y de la reserva de asientos. */
 @RestController
 @RequestMapping("/api/viajes")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -41,14 +38,14 @@ public class ViajeAsientoControlador {
         this.sseServicio = sseServicio;
     }
 
-    /** POST /{idViaje}/sesiones: abre una sesión de reserva (201 con el token y su vencimiento). */
+    /** Abre una sesión de reserva y devuelve su token. */
     @PostMapping("/{idViaje}/sesiones")
     public ResponseEntity<SesionReservaResponseDTO> crearSesion(@PathVariable Long idViaje,
             @RequestParam(required = false) Integer minutos) {
         return ResponseEntity.status(HttpStatus.CREATED).body(viajeAsientoServicio.crearSesion(idViaje, minutos));
     }
 
-    /** POST /{idViaje}/sesiones/liberar: el cliente sale y se liberan todos sus asientos. */
+    /** Libera todos los asientos de la sesión. */
     @PostMapping("/{idViaje}/sesiones/liberar")
     public ResponseEntity<Void> liberarSesion(@PathVariable Long idViaje,
             @RequestBody @Valid LiberarAsientoRequest request) {
@@ -56,7 +53,7 @@ public class ViajeAsientoControlador {
         return ResponseEntity.noContent().build();
     }
 
-    /** GET /{idViaje}/asientos: mapa del bus por piso con el estado de cada asiento. */
+    /** Devuelve el mapa de asientos del viaje. */
     @GetMapping("/{idViaje}/asientos")
     public ResponseEntity<MapaAsientosViajeDTO> obtenerMapaAsientos(
             @PathVariable Long idViaje,
@@ -64,13 +61,13 @@ public class ViajeAsientoControlador {
         return ResponseEntity.ok(viajeAsientoServicio.obtenerMapaAsientos(idViaje, tokenSesion));
     }
 
-    /** GET /{idViaje}/asientos/eventos: conexión abierta (SSE) para recibir los cambios de asientos en vivo. */
+    /** Abre una conexión para recibir en vivo los cambios de asientos. */
     @GetMapping(value = "/{idViaje}/asientos/eventos", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter suscribirEventos(@PathVariable Long idViaje) {
         return sseServicio.suscribir(idViaje);
     }
 
-    /** POST .../bloquear: reserva un asiento para la sesión (409 si otro lo tomó antes). */
+    /** Bloquea un asiento para la sesión. */
     @PostMapping("/{idViaje}/asientos/{idAsiento}/bloquear")
     public ResponseEntity<BloqueoAsientoResponseDTO> bloquearAsiento(
             @PathVariable Long idViaje, @PathVariable Integer idAsiento,
@@ -78,7 +75,7 @@ public class ViajeAsientoControlador {
         return ResponseEntity.ok(viajeAsientoServicio.bloquearAsiento(idViaje, idAsiento, request));
     }
 
-    /** POST .../liberar: suelta un asiento propio. */
+    /** Libera un asiento de la sesión. */
     @PostMapping("/{idViaje}/asientos/{idAsiento}/liberar")
     public ResponseEntity<Void> liberarAsiento(
             @PathVariable Long idViaje, @PathVariable Integer idAsiento,

@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Tarea programada: devuelve a DISPONIBLE los asientos cuyo bloqueo venció sin pagar. */
+/** Tarea automática que libera los asientos cuyo bloqueo venció. */
 @Component
 public class LiberadorBloqueosJob {
 

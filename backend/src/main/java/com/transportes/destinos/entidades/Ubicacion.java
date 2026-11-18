@@ -13,10 +13,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidad JPA de la tabla ubicacion: una ciudad del sistema. Las ubicaciones activas son los destinos que se
- * muestran en la sección Destinos.
- */
+/** Ciudad del sistema (tabla ubicacion). */
 @Entity
 @Table(name = "ubicacion")
 @Getter

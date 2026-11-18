@@ -26,11 +26,7 @@ import com.transportes.viajes.excepciones.AsientoNoDisponibleException;
 import com.transportes.viajes.servicios.ViajeAsientoServicio;
 import com.transportes.viajes.servicios.ViajeAsientoServicio.AsientoOcupado;
 
-/**
- * Guarda la compra definitiva. Solo se llama con una order aprobada (processed/accredited) que el backend consultó
- * en Mercado Pago. Todo va en una sola transacción: pasajeros, asientos OCUPADO, venta, pago y pasajes se guardan
- * juntos o no se guarda nada.
- */
+/** Guarda la compra cuando el pago fue aprobado: pasajeros, asientos ocupados, venta, pago y pasajes. */
 @Service
 public class RegistroCompraServicio {
 
@@ -57,13 +53,7 @@ public class RegistroCompraServicio {
         this.propiedades = propiedades;
     }
 
-    /**
-     * Registra la compra de la operación.
-     * @param op operación con su fila bloqueada
-     * @param orden order consultada en Mercado Pago
-     * @throws AsientoNoDisponibleException si los asientos o el monto ya no coinciden (se deshace todo)
-     * @throws IllegalStateException si la order no es de esta operación o no está aprobada
-     */
+    /** Registra la compra de un pago aprobado. Si algo falla, no se guarda nada. */
     @Transactional(propagation = Propagation.MANDATORY)
     public Venta registrar(OperacionPago op, OrdenMercadoPago orden) {
         if (op.getIdVenta() != null) {

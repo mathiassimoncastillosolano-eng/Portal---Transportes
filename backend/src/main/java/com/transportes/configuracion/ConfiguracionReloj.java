@@ -7,11 +7,7 @@ import org.springframework.context.annotation.Configuration;
 
 import com.transportes.viajes.reglas.PoliticaReservaViaje;
 
-/**
- * Define el reloj del negocio: hora de Perú, que es la zona en que se guardan fecha_salida y hora_salida. Las
- * clases reciben este Clock en vez de llamar a LocalDateTime.now(), así no dependen de la zona del servidor y en
- * las pruebas se puede fijar una hora.
- */
+/** Crea el reloj con la hora de Perú que usa todo el backend. */
 @Configuration
 public class ConfiguracionReloj {
 

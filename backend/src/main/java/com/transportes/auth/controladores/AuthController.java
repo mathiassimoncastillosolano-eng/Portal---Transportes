@@ -18,12 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-/**
- * Controlador de sesión: login del Portal, login del Sistema Empresarial, login con Google, vincular Google y
- * logout.
- * Solo recibe la petición y llama a AuthService o GoogleAuthService. El registro de cuentas está en
- * RegistroUsuarioController.
- */
+/** Recibe las peticiones de inicio y cierre de sesión y se las pasa a AuthService o GoogleAuthService. */
 @RestController
 public class AuthController {
 
@@ -35,37 +30,25 @@ public class AuthController {
         this.googleAuthService = googleAuthService;
     }
 
-    /**
-     * POST /api/auth/login (público). Correo y contraseña correctos -> 200 con el JWT y los datos básicos del
-     * usuario.
-     */
+    /** Inicia sesión en el Portal con correo y contraseña. Devuelve el token (JWT) y los datos del usuario. */
     @PostMapping("/api/auth/login")
     public ResponseEntity<LoginResponse> iniciarSesion(@Valid @RequestBody LoginRequest datos) {
         return ResponseEntity.ok(authService.iniciarSesion(datos));
     }
 
-    /**
-     * POST /api/auth/login-empresarial (público). Igual que el login del Portal, pero solo entrega token a quien
-     * está en la tabla empleado (AGENCIA o GERENTE). Un cliente recibe 403.
-     */
+    /** Inicia sesión en el Sistema Empresarial. Solo deja entrar a empleados; a un cliente le responde 403. */
     @PostMapping("/api/auth/login-empresarial")
     public ResponseEntity<LoginEmpresarialResponse> iniciarSesionEmpresarial(@Valid @RequestBody LoginRequest datos) {
         return ResponseEntity.ok(authService.iniciarSesionEmpresarial(datos));
     }
 
-    /**
-     * POST /api/auth/google (público). Recibe el ID token de Google, lo valida y devuelve nuestro JWT. Si la
-     * cuenta no existe, la crea.
-     */
+    /** Inicia sesión con Google. Si la cuenta no existe, la crea. */
     @PostMapping("/api/auth/google")
     public ResponseEntity<LoginResponse> iniciarSesionConGoogle(@Valid @RequestBody GoogleLoginRequest datos) {
         return ResponseEntity.ok(googleAuthService.iniciarSesion(datos.getCredential()));
     }
 
-    /**
-     * POST /api/auth/google/vincular (requiere JWT). Une una cuenta de Google con el mismo correo al usuario que
-     * ya inició sesión.
-     */
+    /** Une una cuenta de Google al usuario que ya inició sesión. */
     @PostMapping("/api/auth/google/vincular")
     public ResponseEntity<Map<String, String>> vincularGoogle(@AuthenticationPrincipal UsuarioAutenticado usuario,
                                                               @Valid @RequestBody GoogleLoginRequest datos) {
@@ -73,10 +56,7 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("mensaje", "Cuenta de Google vinculada correctamente."));
     }
 
-    /**
-     * POST /api/auth/logout (requiere JWT). Pone el token actual en la lista negra para que no se pueda volver a
-     * usar.
-     */
+    /** Cierra la sesión: el token actual deja de servir. */
     @PostMapping("/api/auth/logout")
     public ResponseEntity<Map<String, String>> cerrarSesion(Authentication authentication) {
         if (authentication.getDetails() instanceof DetalleTokenJwt detalle) {
