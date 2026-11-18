@@ -29,8 +29,10 @@ import jakarta.validation.Valid;
 @CrossOrigin(origins = "http://localhost:5173")
 public class ViajeAsientoControlador {
 
+    /* 2 Dependencias  */
     private final ViajeAsientoServicio viajeAsientoServicio;
     private final AsientoSseServicio sseServicio;
+
 
     public ViajeAsientoControlador(ViajeAsientoServicio viajeAsientoServicio,
                                    AsientoSseServicio sseServicio) {
@@ -61,12 +63,6 @@ public class ViajeAsientoControlador {
         return ResponseEntity.ok(viajeAsientoServicio.obtenerMapaAsientos(idViaje, tokenSesion));
     }
 
-    /** Abre una conexión para recibir en vivo los cambios de asientos. */
-    @GetMapping(value = "/{idViaje}/asientos/eventos", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter suscribirEventos(@PathVariable Long idViaje) {
-        return sseServicio.suscribir(idViaje);
-    }
-
     /** Bloquea un asiento para la sesión. */
     @PostMapping("/{idViaje}/asientos/{idAsiento}/bloquear")
     public ResponseEntity<BloqueoAsientoResponseDTO> bloquearAsiento(
@@ -82,5 +78,11 @@ public class ViajeAsientoControlador {
             @RequestBody @Valid LiberarAsientoRequest request) {
         viajeAsientoServicio.liberarAsiento(idViaje, idAsiento, request);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Abre una conexión para recibir en vivo los cambios de asientos. */
+    @GetMapping(value = "/{idViaje}/asientos/eventos", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter suscribirEventos(@PathVariable Long idViaje) {
+        return sseServicio.suscribir(idViaje);
     }
 }

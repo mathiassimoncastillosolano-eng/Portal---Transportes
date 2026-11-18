@@ -16,7 +16,7 @@ import com.transportes.compras.dto.ResumenPerfilDto;
 import com.transportes.compras.servicios.CompraServicio;
 import com.transportes.security.servicios.UsuarioAutenticado;
 
-/**
+/** CONSULTAR LA COMPRA REGISTRADA
  * Recibe las peticiones de "Mis pasajes", historial y resumen del perfil. Usa siempre el id del usuario que viene
  * en el token.
  */
@@ -50,7 +50,7 @@ public class CompraControlador {
 
     /** Devuelve las compras que ya no están vigentes. */
     @GetMapping("/historial")
-    public List<CompraDto> historial(@AuthenticationPrincipal UsuarioAutenticado usuario) {
+    public List<CompraDto> historial(@AuthenticationPrincipal UsuarioAutenticado usuario) {   // Devuelve las compras del historial.
         return compras.historial(idDe(usuario));
     }
 

@@ -55,12 +55,14 @@ public class RegistroCompraServicio {
 
     /** Registra la compra de un pago aprobado. Si algo falla, no se guarda nada. */
     @Transactional(propagation = Propagation.MANDATORY)
-    public Venta registrar(OperacionPago op, OrdenMercadoPago orden) {
+
+    public Venta registrar(OperacionPago op, OrdenMercadoPago orden) {   // verifica orden de Mercado Pago corresponda a la operación
         if (op.getIdVenta() != null) {
             throw new IllegalStateException("La operación ya tiene una venta registrada");
         }
         verificarCorrespondencia(op, orden);
 
+        // Lee los pasajeros de la operación para registrar sus pasajes.
         List<PasajeroAsientoRequest> pasajeros = datosPasajerosJson.leer(op.getDatosPasajeros());
         if (pasajeros.isEmpty()) {
             throw new AsientoNoDisponibleException("La operación no conserva los datos de los pasajeros.");
@@ -76,7 +78,7 @@ public class RegistroCompraServicio {
         }
 
         LocalDateTime ahora = LocalDateTime.now();
-        Venta venta = new Venta();
+        Venta venta = new Venta();   // crear la venta
         venta.setIdUsuario(op.getIdUsuario());
         venta.setFechaVenta(ahora);
         venta.setMontoTotal(op.getMonto());
@@ -85,7 +87,7 @@ public class RegistroCompraServicio {
         venta.setEntorno(op.getEntorno()); // la venta guarda el entorno del pago
         venta = ventaRepositorio.saveAndFlush(venta);
 
-        Pago pago = new Pago();
+        Pago pago = new Pago();     // Crear el pago
         pago.setIdVenta(venta.getIdVenta());
         pago.setIdMetodoPago(idMetodo);
         pago.setMonto(op.getMonto());
@@ -94,7 +96,7 @@ public class RegistroCompraServicio {
         pago.setEstadoPago(Pago.ESTADO_APROBADO);
         pagoRepositorio.saveAndFlush(pago);
 
-        for (AsientoOcupado o : ocupados) {
+        for (AsientoOcupado o : ocupados) {    // Crear los pasajes
             Pasaje pasaje = new Pasaje();
             pasaje.setIdVenta(venta.getIdVenta());
             pasaje.setIdPasajero(o.idPasajero());

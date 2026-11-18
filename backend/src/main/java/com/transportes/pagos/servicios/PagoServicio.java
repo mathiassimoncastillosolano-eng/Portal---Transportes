@@ -130,20 +130,20 @@ public class PagoServicio {
     }
 
     /** Inicia el pago: valida la sesión, calcula el monto y crea el pago en Mercado Pago. */
+
     public EstadoPagoResponse iniciar(Integer idUsuario, IniciarPagoRequest req) {
-        // El entorno lo decide el backend según el usuario (Sandbox solo autorizados) y las credenciales
-        // configuradas.
+        // El entorno lo decide el backend según el usuario (Sandbox solo autorizados) y las credenciales configuradas.
         EntornoPago entorno = autorizador.resolver(req.entorno(), idUsuario);
         validarDatosDelMedio(req);
 
-        // Si es el mismo intento repetido (doble clic, timeout del navegador), se devuelve la operación que ya
-        // existe.
+        // Si es el mismo intento repetido (doble clic, timeout del navegador), se devuelve la operación que ya existe.
         Optional<OperacionPago> repetida = operaciones.findByClaveIdempotencia(req.claveIdempotencia());
         if (repetida.isPresent()) {
             return respuestaDeExistente(repetida.get(), idUsuario, entorno);
         }
 
         SesionReserva sesion = tokenSesionServicio.validar(req.tokenSesion(), req.idViaje());
+
         // Antes de cobrar, el viaje debe seguir reservable (no salió y faltan 20 minutos o más).
         validadorReserva.exigirReservable(req.idViaje());
         try {
@@ -169,8 +169,7 @@ public class PagoServicio {
             return respuestaDeExistente(op, idUsuario, entorno);
         }
 
-        // Los pasajeros y el token de sesión se guardan con la nueva vigencia de los asientos (permite
-        // reintentar).
+        // Los pasajeros y el token de sesión se guardan con la nueva vigencia de los asientos (permite reintentar).
         pasajerosCache.guardar(op.getIdSesionReserva(), op.getFechaExpiracion(), prep.pasajeros());
         SesionReserva renovada = tokenSesionServicio.reemitir(op.getIdSesionReserva(), op.getIdViaje(),
                 op.getFechaExpiracion());
@@ -213,7 +212,8 @@ public class PagoServicio {
                     "Tus asientos cambiaron. Vuelve a confirmar los datos de los pasajeros.");
         }
 
-        BigDecimal monto = asientos.stream().map(ViajeAsiento::getPrecio)
+        // Calcular monto
+        BigDecimal monto = asientos.stream().map(ViajeAsiento::getPrecio)   //procesar los asientos seleccionados
                 .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
         if (monto.signum() <= 0) {
             throw new PagoException(HttpStatus.CONFLICT, "El importe de la reserva no es válido.");

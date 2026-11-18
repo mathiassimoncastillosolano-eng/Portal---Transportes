@@ -22,10 +22,12 @@ import jakarta.validation.constraints.Pattern;
 /** Recibe las peticiones de pago con Mercado Pago. */
 @RestController
 @RequestMapping("/api/pagos")
+
+
 public class PagoControlador {
 
-    private final PagoServicio pagoServicio;
-    private final AutorizadorEntornoPago autorizador;
+    private final PagoServicio pagoServicio;   /* Logica de las operaciones de pago */
+    private final AutorizadorEntornoPago autorizador;    /* acceso */
 
     public PagoControlador(PagoServicio pagoServicio, AutorizadorEntornoPago autorizador) {
         this.pagoServicio = pagoServicio;

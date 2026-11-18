@@ -36,9 +36,10 @@ public class CompraServicio {
 
     /** Compras para "Mis pasajes": vigentes primero y luego el resto. */
     @Transactional(readOnly = true)
-    public ListaComprasDto listar(int idUsuario) {
+    public ListaComprasDto listar(int idUsuario) {  // Consulta las compras del usuario
         List<CompraDto> compras = ConstructorCompras.agrupar(repositorio.filasDelUsuario(idUsuario), ahora());
         return new ListaComprasDto(
+            // Cuenta las compras vigentes y ordena la lista.
                 ConstructorCompras.contarVigentes(compras), ConstructorCompras.ordenarParaPasajes(compras));
     }
 

@@ -7,7 +7,7 @@ import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
-/** Recibe las peticiones de búsqueda de viajes. */
+/** Recibe las peticiones http de búsqueda de viajes. */
 @RestController
 @RequestMapping("/api/viajes")
 public class ViajeController {

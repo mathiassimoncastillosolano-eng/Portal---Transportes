@@ -76,16 +76,16 @@ public class ViajeAsientoServicio {
     }
 
     public SesionReservaResponseDTO crearSesion(Long idViaje) {
-        return crearSesion(idViaje, null);
+        return crearSesion(idViaje, null);   /* recibe identificador del viaje */
     }
 
     /** Abre una sesión de reserva, solo si el viaje sigue reservable. */
     public SesionReservaResponseDTO crearSesion(Long idViaje, Integer minutos) {
-        if (!viajeRepositorio.existsById(idViaje)) {
+        if (!viajeRepositorio.existsById(idViaje)) {      /* viaje exista */
             throw new ViajeNoEncontradoException(idViaje);
         }
         validadorReserva.exigirReservable(idViaje); // no salió y faltan 20 minutos o más (si no, 409)
-        SesionReserva s = tokenSesionServicio.crear(idViaje, minutos);
+        SesionReserva s = tokenSesionServicio.crear(idViaje, minutos);   // crear sesion  y uso token
         return new SesionReservaResponseDTO(s.tokenSesion(), s.fechaExpiracion(), s.segundosRestantes());
     }
 
@@ -95,19 +95,19 @@ public class ViajeAsientoServicio {
      */
     @Transactional
     public MapaAsientosViajeDTO obtenerMapaAsientos(Long idViaje, String tokenSesion) {
-        Viaje viaje = viajeRepositorio.findById(idViaje)
+        Viaje viaje = viajeRepositorio.findById(idViaje)   // busca viaje
                 .orElseThrow(() -> new ViajeNoEncontradoException(idViaje));
 
         Integer idViajeInt = Math.toIntExact(idViaje);
-        Integer idBus = Math.toIntExact(viaje.getIdBus());
+        Integer idBus = Math.toIntExact(viaje.getIdBus());         // obtener bus
 
         liberarVencidos(idViajeInt);
 
-        String idSesion = resolverIdSesion(tokenSesion, idViaje);
+        String idSesion = resolverIdSesion(tokenSesion, idViaje);    // obtener sesion
 
         List<ViajeAsiento> viajeAsientos = viajeAsientoRepositorio.findByIdViaje(idViajeInt);
         Map<Integer, AsientoFisicoDTO> asientosFisicosPorId = asientoServicio.mapaAsientosFisicosPorId(idBus);
-
+        // Consulta los asientos del viaje.
         List<AsientoDisponibilidadDTO> asientosCompletos = viajeAsientos.stream()
                 .map(va -> combinar(va, asientosFisicosPorId.get(va.getIdAsiento()), idSesion))
                 .filter(Objects::nonNull)
@@ -129,16 +129,17 @@ public class ViajeAsientoServicio {
         validadorReserva.exigirReservable(idViaje); // se revalida en cada asiento porque la sesión pudo abrirse hace minutos
         Integer idViajeInt = Math.toIntExact(idViaje);
 
-        viajeAsientoRepositorio.bloquearSesion(sesion.idSesion());
+        viajeAsientoRepositorio.bloquearSesion(sesion.idSesion());   // solicitudes concurrentes
 
         liberarVencidos(idViajeInt);
 
-        long actuales = viajeAsientoRepositorio.contarBloqueadosPorSesion(idViajeInt, sesion.idSesion());
+        long actuales = viajeAsientoRepositorio.contarBloqueadosPorSesion(idViajeInt, sesion.idSesion());    // Cuenta los asientos bloqueados por esta sesión.
         if (actuales >= maxAsientos) {
             throw new AsientoNoDisponibleException(
-                    "Solo puedes seleccionar hasta " + maxAsientos + " asientos por reserva.");
+                    "Solo puedes seleccionar hasta " + maxAsientos + " asientos por reserva."); // Rechaza el bloqueo al llegar al límite.
         }
 
+        // Bloquear el asiento únicamente si está disponible
         int filas = viajeAsientoRepositorio.bloquearAsientoSiDisponible(
                 idViajeInt, idAsiento, sesion.fechaExpiracion(), sesion.idSesion());
 
@@ -153,10 +154,10 @@ public class ViajeAsientoServicio {
         return new BloqueoAsientoResponseDTO(fisico.numero(), "bloqueado", sesion.fechaExpiracion());
     }
 
-    /** Libera un asiento, solo si es de esta sesión. */
+    /** Libera un asiento bloqueado por la sesión correspondiente */
     @Transactional
     public void liberarAsiento(Long idViaje, Integer idAsiento, LiberarAsientoRequest request) {
-        SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);
+        SesionReserva sesion = tokenSesionServicio.validar(request.tokenSesion(), idViaje);         // valida el token y obtiene los asientos propios
         int filas = viajeAsientoRepositorio.liberarAsientoSiPropio(
                 Math.toIntExact(idViaje), idAsiento, sesion.idSesion());
 
@@ -318,8 +319,10 @@ public class ViajeAsientoServicio {
     }
 
     private String mapearEstado(String estadoBd) {
-        if ("DISPONIBLE".equals(estadoBd)) return "disponible";
-        if ("BLOQUEADO_TEMPORAL".equals(estadoBd)) return "bloqueado";
+        if ("DISPONIBLE".equals(estadoBd))
+            return "disponible";
+        if ("BLOQUEADO_TEMPORAL".equals(estadoBd))
+            return "bloqueado";
         return "ocupado";
     }
 
