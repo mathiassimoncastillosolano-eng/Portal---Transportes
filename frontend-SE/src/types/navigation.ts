@@ -19,6 +19,8 @@ export interface NavItem {
   badge?: string | number
   /** Módulo aún no implementado: se muestra en el menú con la etiqueta "Pronto" y abre un placeholder. */
   soon?: boolean
+  /** Oculta el item del Sidebar sin tocar la sección ni sus permisos (la sección sigue registrada). */
+  hidden?: boolean
 }
 
 /** Una sección con título que agrupa varios NavItem (ej. "OPERACIONES"). */

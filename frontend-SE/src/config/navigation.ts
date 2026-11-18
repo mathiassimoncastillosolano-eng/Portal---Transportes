@@ -7,6 +7,13 @@ export const SECCION_INICIAL = 'registrar-pasaje'
 
 const PERMISO_AGENCIA = 'pasajes:registrar'
 
+/**
+ * Interruptor del módulo Clientes en la interfaz.
+ * `false` = oculto (Sidebar y paleta de comandos); el código y el backend siguen intactos.
+ * Para volver a mostrarlo, cambiar a `true`.
+ */
+export const MOSTRAR_CLIENTES = false
+
 export const navigationConfig: NavEntry[] = [
   {
     kind: 'section',
@@ -25,7 +32,7 @@ export const navigationConfig: NavEntry[] = [
       label: 'Comercial',
       items: [
         { id: 'pasajes', title: 'Pasajes', sectionId: 'pasajes', icon: Receipt, requiredPermission: PERMISO_AGENCIA, soon: true },
-        { id: 'clientes', title: 'Clientes', sectionId: 'clientes', icon: Users, requiredPermission: PERMISO_AGENCIA },
+        { id: 'clientes', title: 'Clientes', sectionId: 'clientes', icon: Users, requiredPermission: PERMISO_AGENCIA, hidden: !MOSTRAR_CLIENTES },
       ],
     },
   },
@@ -57,8 +64,8 @@ export function flattenNavItems(entries: NavEntry[] = navigationConfig): NavItem
 
 export function filterNavByPermission(entries: NavEntry[], user: AuthUser | null): NavEntry[] {
   return entries.flatMap((entry): NavEntry[] => {
-    if (entry.kind === 'item') return hasPermission(user, entry.item.requiredPermission) ? [entry] : []
-    const items = entry.section.items.filter((i) => hasPermission(user, i.requiredPermission))
+    if (entry.kind === 'item') return !entry.item.hidden && hasPermission(user, entry.item.requiredPermission) ? [entry] : []
+    const items = entry.section.items.filter((i) => !i.hidden && hasPermission(user, i.requiredPermission))
     return items.length ? [{ kind: 'section', section: { ...entry.section, items } }] : []
   })
 }
