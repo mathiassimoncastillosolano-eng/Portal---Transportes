@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.transportes.reclamos.entidades.Reclamo;
 
+/** Acceso a la tabla reclamo. */
 public interface ReclamoRepositorio extends JpaRepository<Reclamo, Integer> {
 
     Optional<Reclamo> findByCodigo(String codigo);

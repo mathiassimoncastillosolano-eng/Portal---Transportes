@@ -17,6 +17,7 @@ public class RespuestaError {
     private final String ruta;
     private final List<String> detalles;
 
+    /** Arma el error con la fecha actual. */
     public RespuestaError(int status, String error, String mensaje, String ruta, List<String> detalles) {
         this.fecha = LocalDateTime.now();
         this.status = status;

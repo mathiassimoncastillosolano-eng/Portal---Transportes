@@ -56,11 +56,13 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
     }
 
+    /** ¿Hay Access Token para este entorno? */
     @Override
     public boolean configurado() {
         return !accessToken.isEmpty();
     }
 
+    /** POST /v1/orders con la clave de idempotencia (Mercado Pago no cobra dos veces). */
     @Override
     public OrdenMercadoPago crearOrden(SolicitudOrden s, String claveIdempotencia) {
         try {
@@ -79,11 +81,13 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         }
     }
 
+    /** GET /v1/orders/{id}: estado real de la order. */
     @Override
     public OrdenMercadoPago consultarOrden(String idOrden) {
         return leerOrden(enviar("GET", "/v1/orders/" + codificar(idOrden), null, null));
     }
 
+    /** Busca una order por nuestra referencia (cuando nunca supimos su id). */
     @Override
     public Optional<OrdenMercadoPago> buscarPorReferencia(String referencia, OffsetDateTime desde,
             OffsetDateTime hasta) {
@@ -102,11 +106,13 @@ public class ClienteMercadoPagoHttp implements ClienteMercadoPago {
         return Optional.empty();
     }
 
+    /** Cancela una order que venció sin pagarse. */
     @Override
     public OrdenMercadoPago cancelarOrden(String idOrden, String claveIdempotencia) {
         return leerOrden(enviar("POST", "/v1/orders/" + codificar(idOrden) + "/cancel", null, claveIdempotencia));
     }
 
+    /** Devuelve el dinero (pago aprobado sin asientos). */
     @Override
     public OrdenMercadoPago reembolsarOrden(String idOrden, String claveIdempotencia) {
         return leerOrden(enviar("POST", "/v1/orders/" + codificar(idOrden) + "/refund", null, claveIdempotencia));

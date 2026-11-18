@@ -15,12 +15,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+/** Valida la búsqueda de viajes y la pasa al repositorio con la hora de Perú. */
 @Service
 public class ViajeService {
     private final ViajeRepository viajes;
     private final Clock reloj;
     public ViajeService(ViajeRepository viajes, Clock relojNegocio) { this.viajes = viajes; this.reloj = relojNegocio; }
 
+    /** Valida datos y traduce el horario (madrugada, mañana, tarde, noche) a un rango de horas. */
     @Transactional(readOnly = true)
     public List<ViajeResumenDto> buscar(String origen, String destino, LocalDate fecha, String horario) {
         if (origen == null || origen.isBlank() || destino == null || destino.isBlank() || fecha == null) {
@@ -41,6 +43,7 @@ public class ViajeService {
         return viajes.buscar(origen, destino, fecha, horas[0], horas[1], LocalDateTime.now(reloj));
     }
 
+    /** Igual que buscar, pero con varias franjas a la vez separadas por coma. */
     @Transactional(readOnly = true)
     public List<ViajeResumenDto> buscarPorFranjas(String origen, String destino, LocalDate fecha, String franjas) {
         if (origen == null || origen.isBlank() || destino == null || destino.isBlank() || fecha == null) {

@@ -39,11 +39,16 @@ public class VerificadorTokenGoogle {
         this.clientId = clientId;
     }
 
+    /**
+     * Valida firma, emisor, audiencia y correo verificado del ID token de Google. Si algo falla lanza
+     * GoogleTokenInvalidoException.
+     */
     public IdentidadGoogle verificar(String credencial) {
         Claims datos;
         try {
             datos = Jwts.parser()
                     .keyLocator(new LocatorAdapter<Key>() {
+                        /** Elige la clave pública de Google según el "kid" de la cabecera del token. */
                         @Override
                         protected Key locate(ProtectedHeader cabecera) {
                             if (!"RS256".equals(cabecera.getAlgorithm())) {

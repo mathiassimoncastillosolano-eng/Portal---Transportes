@@ -2,6 +2,7 @@ package com.transportes.viajes.dto;
 
 import java.math.BigDecimal;
 
+/** Un asiento del mapa: posición, estado (disponible, bloqueado u ocupado), precio y si es de mi sesión. */
 public record AsientoDisponibilidadDTO(
         Integer idAsiento,
         String numero,

@@ -36,6 +36,7 @@ public record IniciarPagoRequest(
         @Size(max = 1000) @Pattern(regexp = "^[\\x21-\\x7E]*$", message = "Identificador de dispositivo no válido")
         String deviceId) {
 
+    /** Versión segura para logs: solo viaje, medio, método y entorno (nunca token ni datos personales). */
     @Override
     public String toString() {
         return "IniciarPagoRequest[idViaje=" + idViaje + ", medio=" + medioPago + ", metodo=" + metodoPagoId

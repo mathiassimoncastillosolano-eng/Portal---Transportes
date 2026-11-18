@@ -7,12 +7,14 @@ import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+/** Buscador de viajes (Portal, cambio de pasaje y Sistema Empresarial). */
 @RestController
 @RequestMapping("/api/viajes")
 public class ViajeController {
     private final ViajeService viajes;
     public ViajeController(ViajeService viajes) { this.viajes = viajes; }
 
+    /** Origen, destino y fecha obligatorios. Con "franjas" usa la búsqueda por franjas horarias. */
     @GetMapping("/buscar")
     public List<ViajeResumenDto> buscar(@RequestParam String origen, @RequestParam String destino,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,

@@ -23,6 +23,10 @@ import com.transportes.viajes.servicios.ViajeAsientoServicio;
 
 import jakarta.validation.Valid;
 
+/**
+ * Mapa de asientos y sesión de reserva de un viaje: abrir sesión, ver asientos, bloquear/liberar y recibir
+ * cambios en vivo (SSE).
+ */
 @RestController
 @RequestMapping("/api/viajes")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -37,12 +41,14 @@ public class ViajeAsientoControlador {
         this.sseServicio = sseServicio;
     }
 
+    /** Abre una sesión de reserva (201 con el token y su vencimiento). */
     @PostMapping("/{idViaje}/sesiones")
     public ResponseEntity<SesionReservaResponseDTO> crearSesion(@PathVariable Long idViaje,
             @RequestParam(required = false) Integer minutos) {
         return ResponseEntity.status(HttpStatus.CREATED).body(viajeAsientoServicio.crearSesion(idViaje, minutos));
     }
 
+    /** El cliente sale: libera todos sus asientos bloqueados. */
     @PostMapping("/{idViaje}/sesiones/liberar")
     public ResponseEntity<Void> liberarSesion(@PathVariable Long idViaje,
             @RequestBody @Valid LiberarAsientoRequest request) {
@@ -50,6 +56,7 @@ public class ViajeAsientoControlador {
         return ResponseEntity.noContent().build();
     }
 
+    /** Mapa del bus por piso con el estado de cada asiento. */
     @GetMapping("/{idViaje}/asientos")
     public ResponseEntity<MapaAsientosViajeDTO> obtenerMapaAsientos(
             @PathVariable Long idViaje,
@@ -57,11 +64,13 @@ public class ViajeAsientoControlador {
         return ResponseEntity.ok(viajeAsientoServicio.obtenerMapaAsientos(idViaje, tokenSesion));
     }
 
+    /** Conexión abierta (SSE) para recibir los cambios de asientos en vivo. */
     @GetMapping(value = "/{idViaje}/asientos/eventos", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter suscribirEventos(@PathVariable Long idViaje) {
         return sseServicio.suscribir(idViaje);
     }
 
+    /** Bloquea un asiento para la sesión (409 si otro lo ganó). */
     @PostMapping("/{idViaje}/asientos/{idAsiento}/bloquear")
     public ResponseEntity<BloqueoAsientoResponseDTO> bloquearAsiento(
             @PathVariable Long idViaje, @PathVariable Integer idAsiento,
@@ -69,6 +78,7 @@ public class ViajeAsientoControlador {
         return ResponseEntity.ok(viajeAsientoServicio.bloquearAsiento(idViaje, idAsiento, request));
     }
 
+    /** Libera un asiento propio. */
     @PostMapping("/{idViaje}/asientos/{idAsiento}/liberar")
     public ResponseEntity<Void> liberarAsiento(
             @PathVariable Long idViaje, @PathVariable Integer idAsiento,

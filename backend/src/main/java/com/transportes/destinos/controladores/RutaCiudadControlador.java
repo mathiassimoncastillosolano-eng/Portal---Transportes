@@ -7,6 +7,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * GET /api/rutas-ciudad: pares origen-destino activos (tabla ruta_ciudad). El buscador solo ofrece destinos
+ * válidos con esto.
+ */
 @RestController
 @RequestMapping("/api/rutas-ciudad")
 public class RutaCiudadControlador {
@@ -17,8 +21,10 @@ public class RutaCiudadControlador {
         this.jdbc = jdbc;
     }
 
+    /** Un par de ciudades (origen y destino). */
     public record RutaCiudad(String origen, String destino) {}
 
+    /** Consulta SQL directa (JdbcTemplate), sin repetir pares. */
     @GetMapping
     public List<RutaCiudad> listar() {
         return jdbc.query("""

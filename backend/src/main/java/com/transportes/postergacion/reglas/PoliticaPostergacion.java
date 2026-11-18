@@ -36,10 +36,12 @@ public final class PoliticaPostergacion {
             this.mensaje = mensaje;
         }
 
+        /** Texto para el cliente. */
         public String mensaje() {
             return mensaje;
         }
 
+        /** true solo si se cumple la regla de 6 h. */
         public boolean aceptado() {
             return this == ACEPTADO;
         }

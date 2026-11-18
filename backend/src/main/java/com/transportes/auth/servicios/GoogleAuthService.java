@@ -52,6 +52,10 @@ public class GoogleAuthService {
         this.jwtService = jwtService;
     }
 
+    /**
+     * Login con Google: verifica el ID token, busca la cuenta por su id de Google o la crea si no existe, y
+     * devuelve nuestro propio JWT.
+     */
     public LoginResponse iniciarSesion(String credencial) {
         IdentidadGoogle identidad = verificador.verificar(credencial);
 

@@ -47,6 +47,7 @@ public final class PoliticaReservaViaje {
     private PoliticaReservaViaje() {
     }
 
+    /** Fecha y hora de salida juntas. */
     public static LocalDateTime salida(LocalDate fechaSalida, LocalTime horaSalida) {
         return LocalDateTime.of(fechaSalida, horaSalida);
     }

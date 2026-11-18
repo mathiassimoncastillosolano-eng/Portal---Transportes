@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.transportes.pagos.entidades.Pasaje;
 
+/** Acceso a la tabla pasaje (un pasaje por asiento vendido). */
 public interface PasajeRepositorio extends JpaRepository<Pasaje, Integer> {
 
     List<Pasaje> findByIdVentaOrderByIdPasaje(Integer idVenta);

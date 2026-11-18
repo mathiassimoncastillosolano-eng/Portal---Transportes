@@ -76,6 +76,7 @@ public class JwtService {
                 .getPayload();
     }
 
+    /** El "sub" del token es el id del usuario. */
     public Integer obtenerIdUsuario(Claims claims) {
         return Integer.valueOf(claims.getSubject());
     }

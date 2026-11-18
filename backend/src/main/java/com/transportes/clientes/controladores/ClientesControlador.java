@@ -10,6 +10,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Panel de clientes del Sistema Empresarial (/api/clientes). Solo para roles AGENCIA o GERENTE (ver
+ * ConfiguracionSeguridad).
+ */
 @RestController
 @RequestMapping("/api/clientes")
 public class ClientesControlador {
@@ -20,6 +24,7 @@ public class ClientesControlador {
         this.servicio = servicio;
     }
 
+    /** Lista paginada de pasajeros con búsqueda, filtro de actividad y orden. */
     @GetMapping
     public PaginaClientesDto listar(
             @RequestParam(required = false) String q,
@@ -32,11 +37,13 @@ public class ClientesControlador {
         return servicio.listar(q, tipoDocumento, actividad, orden, direccion, pagina, tamano);
     }
 
+    /** Tarjetas de resumen del panel (totales). */
     @GetMapping("/indicadores")
     public IndicadoresClientesDto indicadores() {
         return servicio.indicadores();
     }
 
+    /** Ficha de un pasajero con su historial de viajes. */
     @GetMapping("/{idPasajero}")
     public ClienteDetalleDto detalle(@PathVariable int idPasajero) {
         return servicio.detalle(idPasajero);

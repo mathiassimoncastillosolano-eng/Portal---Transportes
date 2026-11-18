@@ -27,6 +27,7 @@ public class PostergacionRechazadaException extends ResponseStatusException {
         this.codigo = codigo;
     }
 
+    /** Código estable para el frontend (ej. ASIENTO_NO_DISPONIBLE). */
     public String getCodigo() {
         return codigo;
     }

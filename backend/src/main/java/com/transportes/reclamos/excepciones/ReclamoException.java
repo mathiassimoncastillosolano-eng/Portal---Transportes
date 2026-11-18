@@ -4,6 +4,10 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 
+/**
+ * Error del Libro de Reclamaciones con su código HTTP. Se crea con métodos de fábrica: invalido (400),
+ * noEncontrado (404), conflicto (409)...
+ */
 public class ReclamoException extends RuntimeException {
 
     private final HttpStatus status;

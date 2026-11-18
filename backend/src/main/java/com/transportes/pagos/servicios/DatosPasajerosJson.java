@@ -22,10 +22,12 @@ public class DatosPasajerosJson {
         this.json = json;
     }
 
+    /** Lista de pasajeros a texto JSON (se guarda en la operación). */
     public String escribir(List<PasajeroAsientoRequest> pasajeros) {
         return json.writeValueAsString(pasajeros);
     }
 
+    /** Texto JSON a lista de pasajeros. */
     public List<PasajeroAsientoRequest> leer(String texto) {
         if (texto == null || texto.isBlank()) {
             return List.of();

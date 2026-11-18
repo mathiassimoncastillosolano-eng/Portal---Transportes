@@ -55,6 +55,7 @@ public final class ReglasCompra {
     private ReglasCompra() {
     }
 
+    /** Traduce los estados de venta, pago y operación de pago a un solo estado de compra para la pantalla. */
     public static EstadoCompra estadoCompra(String estadoVenta, String estadoPago, String estadoOperacion) {
         if (OPERACION_REEMBOLSADO.equalsIgnoreCase(recortar(estadoOperacion))) {
             return EstadoCompra.REEMBOLSADA;

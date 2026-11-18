@@ -22,6 +22,10 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
+/**
+ * Crea y valida el token de la sesión de reserva (un JWT propio, distinto al de login). Su id es el que marca
+ * los asientos bloqueados.
+ */
 @Service
 public class TokenSesionServicio {
 
@@ -52,6 +56,7 @@ public class TokenSesionServicio {
         return crear(idViaje, null);
     }
 
+    /** Nueva sesión con su id (UUID) y vencimiento (máx. los minutos configurados). */
     public SesionReserva crear(Long idViaje, Integer minutosSolicitados) {
         long minutos = minutosSolicitados == null ? minutosSesion : Math.max(1, Math.min(minutosSolicitados, minutosSesion));
         Instant ahora = Instant.now();

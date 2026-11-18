@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+/** Job: devuelve a DISPONIBLE los asientos cuyo bloqueo venció sin pagar. */
 @Component
 public class LiberadorBloqueosJob {
 
@@ -16,6 +17,7 @@ public class LiberadorBloqueosJob {
         this.viajeAsientoServicio = viajeAsientoServicio;
     }
 
+    /** Corre cada 5 s. */
     @Scheduled(fixedDelayString = "${reserva.job-liberacion-ms:5000}")
     public void liberarBloqueosVencidos() {
         try {

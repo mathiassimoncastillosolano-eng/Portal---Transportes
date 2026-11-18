@@ -224,6 +224,7 @@ public final class ConstructorCompras {
         return historial;
     }
 
+    /** Cuántos pasajes vigentes (confirmados y por viajar) hay en total. */
     public static int contarVigentes(List<CompraDto> compras) {
         int vigentes = 0;
         for (CompraDto compra : compras) {

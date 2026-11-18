@@ -38,6 +38,7 @@ public record SolicitudOrden(
                 celularPagador, metodoPagoId, metodoPagoTipo, token, cuotas, validacion3ds, deviceId, null, null, null);
     }
 
+    /** ¿Lleva datos del pagador además de los obligatorios? */
     public boolean tieneDatosAdicionales() {
         return !vacio(nombrePagador) || !vacio(apellidoPagador) || !vacio(tituloItem);
     }

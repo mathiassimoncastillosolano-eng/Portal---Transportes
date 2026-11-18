@@ -17,6 +17,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.transportes.viajes.dto.AsientoEventoDTO;
 import com.transportes.viajes.eventos.AsientoCambiadoEvento;
 
+/**
+ * Cambios de asientos en tiempo real (Server-Sent Events). Guarda las conexiones abiertas por viaje (patrón
+ * Observador).
+ */
 @Service
 public class AsientoSseServicio {
 
@@ -24,6 +28,7 @@ public class AsientoSseServicio {
 
     private final Map<Long, List<SseEmitter>> emisoresPorViaje = new ConcurrentHashMap<>();
 
+    /** Registra una conexión nueva y la quita cuando se cierra. */
     public SseEmitter suscribir(Long idViaje) {
         SseEmitter emisor = new SseEmitter(0L); // sin timeout; el heartbeat detecta conexiones muertas
         List<SseEmitter> lista = emisoresPorViaje.computeIfAbsent(idViaje, k -> new CopyOnWriteArrayList<>());
@@ -51,6 +56,7 @@ public class AsientoSseServicio {
         }
     }
 
+    /** Cada 25 s: mensaje vacío para mantener viva la conexión y detectar las caídas. */
     @Scheduled(fixedRate = 25_000)
     public void latido() {
         emisoresPorViaje.forEach((idViaje, lista) -> {

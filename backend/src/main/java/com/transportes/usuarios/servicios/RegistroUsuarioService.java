@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+/** Lógica del registro de cuentas. */
 @Service
 public class RegistroUsuarioService {
 
@@ -27,6 +28,10 @@ public class RegistroUsuarioService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Correo en minúsculas, ¿ya existe? (409), contraseña de máximo 72 bytes (límite de BCrypt), guarda con
+     * hash y responde sin la contraseña.
+     */
     public RegistroUsuarioResponse registrar(
             RegistroUsuarioRequest solicitud) {
 

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 
 import com.transportes.reclamos.dto.ProveedorDto;
 
+/** Datos legales de la empresa, leídos de application.properties. */
 @Component
 public class DatosProveedor {
 
@@ -20,6 +21,7 @@ public class DatosProveedor {
                 vacioANulo(telefono), vacioANulo(correo));
     }
 
+    /** Los datos listos para el formulario y la constancia. */
     public ProveedorDto obtener() {
         return datos;
     }

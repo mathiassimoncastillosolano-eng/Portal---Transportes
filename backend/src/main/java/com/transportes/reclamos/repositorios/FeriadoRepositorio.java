@@ -9,6 +9,7 @@ import java.util.Set;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+/** Lee la tabla feriado para calcular días hábiles. */
 @Repository
 public class FeriadoRepositorio {
 
@@ -18,6 +19,7 @@ public class FeriadoRepositorio {
         this.jdbc = jdbc;
     }
 
+    /** Feriados entre dos fechas. */
     public Set<LocalDate> entre(LocalDate desde, LocalDate hasta) {
         return new HashSet<>(jdbc.query(
                 "SELECT fecha FROM public.feriado WHERE fecha BETWEEN :desde AND :hasta",
@@ -25,6 +27,7 @@ public class FeriadoRepositorio {
                 (rs, fila) -> rs.getDate("fecha").toLocalDate()));
     }
 
+    /** ¿Se cargaron los feriados de ese año? (si no, el plazo no sería confiable) */
     public boolean hayFeriadosEnAnio(int anio) {
         Integer total = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM public.feriado WHERE fecha BETWEEN :desde AND :hasta",

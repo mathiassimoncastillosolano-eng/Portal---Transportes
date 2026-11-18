@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.transportes.viajes.dto.ConsultaDniResponseDTO;
 import com.transportes.viajes.servicios.ConsultaDniServicio;
 
+/** Autocompletar datos de un pasajero a partir de su DNI. */
 @RestController
 @RequestMapping("/api/pasajeros")
 public class ConsultaDniControlador {

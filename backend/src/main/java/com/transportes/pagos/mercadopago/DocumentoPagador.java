@@ -64,6 +64,7 @@ public final class DocumentoPagador {
         return new Resultado(Motivo.ENVIADO, enviado, n);
     }
 
+    /** Valida el número según el tipo (DNI 8 dígitos, etc.). */
     public static boolean numeroValido(String tipo, String n) {
         return switch (tipo) {
             case "DNI" -> n.matches("\\d{8}");

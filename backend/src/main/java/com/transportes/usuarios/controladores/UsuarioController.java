@@ -40,6 +40,7 @@ public class UsuarioController {
         this.compraServicio = compraServicio;
     }
 
+    /** Datos del perfil del usuario del token. */
     @GetMapping("/perfil")
     public ResponseEntity<PerfilUsuarioResponse> obtenerPerfil(
             @AuthenticationPrincipal UsuarioAutenticado usuarioAutenticado) {
@@ -47,6 +48,7 @@ public class UsuarioController {
         return ResponseEntity.ok(perfil.conEstadisticas(estadisticasDe(usuarioAutenticado.idUsuario())));
     }
 
+    /** Actualiza nombres, apellidos y teléfono (el correo no se cambia aquí). */
     @PutMapping("/perfil")
     public ResponseEntity<PerfilUsuarioResponse> actualizarPerfil(
             @AuthenticationPrincipal UsuarioAutenticado usuarioAutenticado,

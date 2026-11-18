@@ -32,6 +32,7 @@ public class ValidadoresWebhook {
         }
     }
 
+    /** Validador de firma del entorno indicado. */
     public ValidadorFirmaWebhook de(EntornoPago entorno) {
         return validadores.get(entorno);
     }

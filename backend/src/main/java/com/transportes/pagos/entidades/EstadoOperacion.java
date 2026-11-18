@@ -24,10 +24,12 @@ public enum EstadoOperacion {
     /** Cobro devuelto al comprador. */
     REEMBOLSADO;
 
+    /** Activos: CREANDO, EN_PROCESO y ACCION_REQUERIDA (todavía pueden cambiar). */
     public boolean esActivo() {
         return this == CREANDO || this == EN_PROCESO || this == ACCION_REQUERIDA;
     }
 
+    /** Final: ya no cambia aunque llegue otra notificación. */
     public boolean esFinal() {
         return !esActivo();
     }

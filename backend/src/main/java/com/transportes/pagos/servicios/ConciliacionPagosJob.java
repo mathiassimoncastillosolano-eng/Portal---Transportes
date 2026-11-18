@@ -38,6 +38,7 @@ public class ConciliacionPagosJob {
         this.segundosSinConsulta = segundosSinConsulta;
     }
 
+    /** Cada 30 s: vuelve a consultar los pagos pendientes por si el webhook no llegó. */
     @Scheduled(fixedDelayString = "${mercadopago.conciliacion-ms:30000}", initialDelayString = "${mercadopago.conciliacion-inicial-ms:30000}")
     public void conciliar() {
         List<Integer> ids;
@@ -56,6 +57,7 @@ public class ConciliacionPagosJob {
         }
     }
 
+    /** Cada 15 min: borra copias de pasajeros que ya no hacen falta. */
     @Scheduled(fixedDelayString = "${mercadopago.limpieza-ms:900000}", initialDelayString = "${mercadopago.limpieza-ms:900000}")
     @Transactional
     public void borrarDatosTemporales() {

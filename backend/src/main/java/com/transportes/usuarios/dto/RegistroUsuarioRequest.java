@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import java.util.Locale;
 
+/** Lo que envía el formulario de registro, con sus validaciones. */
 @Getter
 @Setter
 public class RegistroUsuarioRequest {
