@@ -102,3 +102,36 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+.pasarela-pago__culqi:empty {
+  display: none;
+}
+
+.pasarela-pago__culqi {
+  width: 100%;
+  height: 640px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  scroll-margin-top: 96px;
+}
+
+.pasarela-pago__culqi iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+@media (max-width: 900px) {
+  .pasarela-pago__culqi {
+    height: 700px;
+  }
+}
+
+@media (max-width: 520px) {
+  .pasarela-pago__culqi {
+    height: 760px;
+    border-radius: 10px;
+  }
+}

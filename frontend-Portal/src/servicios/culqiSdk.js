@@ -29,41 +29,93 @@ export function enCentimos(monto) {
   return Math.round(Number(monto) * 100)
 }
 
-export async function abrirCheckout({ publicKey, monto, titulo }) {
-  if (!publicKey) throw new Error('Los pagos no están disponibles en este momento. Inténtalo más tarde.')
-  const CulqiCheckout = await cargarScript(URL_CHECKOUT, 'CulqiCheckout')
-  return new Promise((resolver, rechazar) => {
-    let resuelto = false
-    const checkout = new CulqiCheckout(publicKey, {
-      settings: { title: titulo, currency: 'PEN', amount: enCentimos(monto) },
-      options: {
-        lang: 'es',
-        modal: true,
-        installments: false,
-        paymentMethods: { tarjeta: true, yape: true, bancaMovil: false, agente: false, billetera: false, cuotealo: false },
-      },
-    })
-    checkout.culqi = function () {
-      if (resuelto) return
-      if (checkout.token) {
-        resuelto = true
-        const token = { id: checkout.token.id, email: checkout.token.email ?? '' }
-        checkout.close()
-        resolver(token)
-      } else if (checkout.error) {
-        resuelto = true
-        const mensaje = checkout.error.user_message || checkout.error.merchant_message
-        checkout.close()
-        rechazar(new Error(mensaje || 'No se pudo validar el medio de pago. Inténtalo de nuevo.'))
-      }
-    }
-    checkout.closeCheckout = function () {
-      if (resuelto) return
-      resuelto = true
-      rechazar(new Error('Cerraste la ventana de pago antes de completarlo.'))
-    }
-    checkout.open()
+const ESTILOS = {
+  dark: {
+    theme: 'dark',
+    defaultStyle: {
+      bannerColor: '#0B3540',
+      buttonBackground: '#3CCDA3',
+      buttonTextColor: '#04211A',
+      menuColor: '#3CCDA3',
+      linksColor: '#6FE0BF',
+      priceColor: '#6FE0BF',
+    },
+  },
+  light: {
+    theme: 'default',
+    defaultStyle: {
+      bannerColor: '#0F4C5C',
+      buttonBackground: '#147F91',
+      buttonTextColor: '#FFFFFF',
+      menuColor: '#147F91',
+      linksColor: '#0B6878',
+      priceColor: '#0F4C5C',
+    },
+  },
+}
+
+let actual = null
+
+export function cerrarCheckout() {
+  actual?.cerrar()
+}
+
+export function abrirCheckout({ publicKey, monto, titulo, contenedor, tema }) {
+  if (!publicKey) return Promise.reject(new Error('Los pagos no están disponibles en este momento. Inténtalo más tarde.'))
+  if (actual) return actual.promesa
+  const entrada = {}
+  entrada.promesa = cargarScript(URL_CHECKOUT, 'CulqiCheckout').then(
+    (CulqiCheckout) =>
+      new Promise((resolver, rechazar) => {
+        let resuelto = false
+        const checkout = new CulqiCheckout(publicKey, {
+          settings: { title: titulo, currency: 'PEN', amount: enCentimos(monto) },
+          appearance: ESTILOS[tema === 'dark' ? 'dark' : 'light'],
+          options: {
+            lang: 'es',
+            modal: !contenedor,
+            ...(contenedor ? { container: contenedor } : {}),
+            installments: false,
+            paymentMethods: { tarjeta: true, yape: true, bancaMovil: false, agente: false, billetera: false, cuotealo: false },
+          },
+        })
+        const terminar = () => {
+          resuelto = true
+          if (actual === entrada) actual = null
+        }
+        entrada.cerrar = () => {
+          if (resuelto) return
+          terminar()
+          checkout.close()
+          rechazar(Object.assign(new Error('Formulario de pago cerrado.'), { cancelado: true }))
+        }
+        checkout.culqi = function () {
+          if (resuelto) return
+          if (checkout.token) {
+            terminar()
+            const token = { id: checkout.token.id, email: checkout.token.email ?? '' }
+            checkout.close()
+            resolver(token)
+          } else if (checkout.error) {
+            terminar()
+            const mensaje = checkout.error.user_message || checkout.error.merchant_message
+            checkout.close()
+            rechazar(new Error(mensaje || 'No se pudo validar el medio de pago. Inténtalo de nuevo.'))
+          }
+        }
+        checkout.closeCheckout = function () {
+          if (resuelto) return
+          terminar()
+          rechazar(Object.assign(new Error('Cerraste la ventana de pago antes de completarlo.'), { cancelado: true }))
+        }
+        checkout.open()
+      }),
+  )
+  entrada.promesa.catch(() => {
+    if (actual === entrada) actual = null
   })
+  actual = entrada
+  return entrada.promesa
 }
 
 export async function autenticar3ds({ publicKey, tokenId, monto, correo }) {

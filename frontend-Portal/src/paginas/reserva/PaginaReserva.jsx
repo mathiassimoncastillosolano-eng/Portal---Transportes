@@ -23,7 +23,8 @@ import {
   nuevaClaveIdempotencia,
   obtenerConfiguracionPago,
 } from '../../servicios/pagosServicio'
-import { abrirCheckout, autenticar3ds } from '../../servicios/culqiSdk'
+import { abrirCheckout, autenticar3ds, cerrarCheckout } from '../../servicios/culqiSdk'
+import { useTema } from '../../hooks/useTema'
 import {
   dniConDatosDistintos,
   construirPasajerosApi,
@@ -101,6 +102,7 @@ export function PaginaReserva() {
   const navegar = useNavigate()
   const { usuario } = useAutenticacion()
   const { criterios } = useBusqueda()
+  const { tema } = useTema()
     const contexto = useMemo(() => {
     const guardado = leerContextoGuardado()
     if (state?.resultado && state?.fecha) {
@@ -137,6 +139,7 @@ export function PaginaReserva() {
   const [compraConfirmada, setCompraConfirmada] = useState(false)
   const [guardandoPasajeros, setGuardandoPasajeros] = useState(false)
   const pagandoRef = useRef(false)
+  const manejarPagoRef = useRef(null)
   const guardandoRef = useRef(false)
   const compraConfirmadaRef = useRef(false)
   const tokenPagoRef = useRef(null)
@@ -317,6 +320,18 @@ export function PaginaReserva() {
     const temporizador = setTimeout(manejarSesionVencida, restante)
     return () => clearTimeout(temporizador)
   }, [sesion, compraConfirmada, pagoActivo])
+
+  const formularioPagoListo = Boolean(configPago?.disponible && configPago?.publicKey)
+
+  useEffect(() => {
+    manejarPagoRef.current = manejarPago
+  })
+
+  useEffect(() => {
+    if (pasoActual !== 'pago' || !aceptaTerminos || !formularioPagoListo || pagoActivo || compraConfirmada) return undefined
+    manejarPagoRef.current?.()
+    return () => cerrarCheckout()
+  }, [pasoActual, aceptaTerminos, formularioPagoListo, pagoActivo, compraConfirmada, tema])
 
   // Si pierdo todos los asientos (p. ej. expiraron) estando en otro paso, vuelvo a elegir.
   useEffect(() => {
@@ -791,8 +806,11 @@ export function PaginaReserva() {
         publicKey: configPago.publicKey,
         monto: precioTotal,
         titulo: 'RutaLibre',
+        contenedor: '#culqi-contenedor',
+        tema,
       })
     } catch (error) {
+      if (error.cancelado) return
       setErrorPago(error.message)
       return
     }

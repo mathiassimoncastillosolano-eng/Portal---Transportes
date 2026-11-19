@@ -14,8 +14,8 @@ export function PasarelaPago({ total, esPrueba, aceptaTerminos, alCambiarTermino
         <div>
           <p className="pasarela-pago__resumen-titulo">Paga con tarjeta o Yape</p>
           <p className="pasarela-pago__nota">
-            Total a pagar: <strong>{formatearPrecio(total)}</strong>. Al pulsar el botón de pago se abrirá el formulario
-            seguro de Culqi.
+            Total a pagar: <strong>{formatearPrecio(total)}</strong>. Al aceptar los términos se mostrará aquí el
+            formulario seguro de Culqi.
           </p>
         </div>
       </div>
@@ -40,6 +40,7 @@ export function PasarelaPago({ total, esPrueba, aceptaTerminos, alCambiarTermino
           .
         </label>
       </div>
+      <div id="culqi-contenedor" className="pasarela-pago__culqi" />
       {esPrueba && (
         <details className="pasarela-pago__prueba" open>
           <summary>Datos de prueba (entorno Sandbox de Culqi)</summary>
