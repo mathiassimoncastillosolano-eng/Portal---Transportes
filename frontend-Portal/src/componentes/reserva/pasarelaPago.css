@@ -108,9 +108,10 @@
 }
 
 .pasarela-pago__culqi {
+  position: relative;
   width: 100%;
-  max-width: 750px;
-  height: 640px;
+  max-width: 600px;
+  height: 508px;
   margin-inline: auto;
   border-radius: 14px;
   overflow: hidden;
@@ -120,28 +121,27 @@
 
 .pasarela-pago__culqi iframe {
   display: block;
-  width: 125% !important;
-  max-width: none;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 938px !important;
+  max-width: none !important;
   height: 100% !important;
-  margin-left: -12.5% !important;
+  margin-left: 0 !important;
+  transform: translateX(-50%);
   border: 0;
   background: transparent;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 700px) {
   .pasarela-pago__culqi {
     height: 700px;
-  }
-}
-
-@media (max-width: 520px) {
-  .pasarela-pago__culqi {
-    height: 760px;
     border-radius: 10px;
   }
 
   .pasarela-pago__culqi iframe {
+    position: static;
     width: 100% !important;
-    margin-left: 0 !important;
+    transform: none;
   }
 }
