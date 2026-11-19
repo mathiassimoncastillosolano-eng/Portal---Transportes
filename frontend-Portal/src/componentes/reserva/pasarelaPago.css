@@ -109,18 +109,23 @@
 
 .pasarela-pago__culqi {
   width: 100%;
+  max-width: 750px;
   height: 640px;
+  margin-inline: auto;
   border-radius: 14px;
   overflow: hidden;
-  background: #fff;
+  background: transparent;
   scroll-margin-top: 96px;
 }
 
 .pasarela-pago__culqi iframe {
   display: block;
-  width: 100%;
+  width: 125%;
+  max-width: none;
   height: 100%;
+  margin-left: -12.5%;
   border: 0;
+  background: transparent;
 }
 
 @media (max-width: 900px) {
@@ -133,5 +138,10 @@
   .pasarela-pago__culqi {
     height: 760px;
     border-radius: 10px;
+  }
+
+  .pasarela-pago__culqi iframe {
+    width: 100%;
+    margin-left: 0;
   }
 }
