@@ -29,35 +29,40 @@ export function enCentimos(monto) {
   return Math.round(Number(monto) * 100)
 }
 
-export async function abrirCheckout({ publicKey, monto, titulo, descripcion }) {
+export async function abrirCheckout({ publicKey, monto, titulo }) {
   if (!publicKey) throw new Error('Los pagos no están disponibles en este momento. Inténtalo más tarde.')
-  const Culqi = await cargarScript(URL_CHECKOUT, 'Culqi')
+  const CulqiCheckout = await cargarScript(URL_CHECKOUT, 'CulqiCheckout')
   return new Promise((resolver, rechazar) => {
-    Culqi.publicKey = publicKey
-    Culqi.settings({
-      title: titulo,
-      currency: 'PEN',
-      description: descripcion,
-      amount: enCentimos(monto),
+    let resuelto = false
+    const checkout = new CulqiCheckout(publicKey, {
+      settings: { title: titulo, currency: 'PEN', amount: enCentimos(monto) },
+      options: {
+        lang: 'es',
+        modal: true,
+        installments: false,
+        paymentMethods: { tarjeta: true, yape: true, bancaMovil: false, agente: false, billetera: false, cuotealo: false },
+      },
     })
-    Culqi.options({
-      lang: 'es',
-      modal: true,
-      installments: false,
-      paymentMethods: { tarjeta: true, yape: true, bancaMovil: false, agente: false, billetera: false, cuotealo: false },
-    })
-    window.culqi = function () {
-      if (Culqi.token) {
-        const token = { id: Culqi.token.id, email: Culqi.token.email ?? '' }
-        Culqi.close()
+    checkout.culqi = function () {
+      if (resuelto) return
+      if (checkout.token) {
+        resuelto = true
+        const token = { id: checkout.token.id, email: checkout.token.email ?? '' }
+        checkout.close()
         resolver(token)
-      } else {
-        const mensaje = Culqi.error?.user_message || Culqi.error?.merchant_message
-        Culqi.close()
+      } else if (checkout.error) {
+        resuelto = true
+        const mensaje = checkout.error.user_message || checkout.error.merchant_message
+        checkout.close()
         rechazar(new Error(mensaje || 'No se pudo validar el medio de pago. Inténtalo de nuevo.'))
       }
     }
-    Culqi.open()
+    checkout.closeCheckout = function () {
+      if (resuelto) return
+      resuelto = true
+      rechazar(new Error('Cerraste la ventana de pago antes de completarlo.'))
+    }
+    checkout.open()
   })
 }
 

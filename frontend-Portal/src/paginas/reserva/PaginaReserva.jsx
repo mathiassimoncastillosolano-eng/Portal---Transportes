@@ -791,7 +791,6 @@ export function PaginaReserva() {
         publicKey: configPago.publicKey,
         monto: precioTotal,
         titulo: 'RutaLibre',
-        descripcion: `Pasajes ${resultado.origen} - ${resultado.destino}`,
       })
     } catch (error) {
       setErrorPago(error.message)
