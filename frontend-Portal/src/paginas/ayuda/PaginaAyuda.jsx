@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { CONTACTO } from '../../datos/contacto'
 import './paginaAyuda.css'
 
 function IconoBuscar() {
@@ -150,21 +151,21 @@ const PREGUNTAS_FRECUENTES = [
     categoria: 'reservas',
     pregunta: '¿Puedo cambiar la fecha de mi viaje?',
     respuesta:
-      'Sí. Desde la sección "Mis pasajes" de tu perfil podrás gestionar cambios de fecha según las políticas de cada empresa asociada.',
+      'Sí. Desde la sección "Mis pasajes" de tu perfil podrás gestionar cambios de fecha según nuestra Política de Cambios y Devoluciones.',
   },
   {
     id: 'pagos-1',
     categoria: 'pagos',
     pregunta: '¿Qué métodos de pago aceptan?',
     respuesta:
-      'Aceptamos tarjetas de crédito y débito Visa, Mastercard y American Express. El monto se calcula automáticamente según los asientos y pasajeros que elijas.',
+      'Aceptamos tarjetas de crédito y débito y Yape, procesados por Culqi. El monto se calcula automáticamente según los asientos y pasajeros que elijas.',
   },
   {
     id: 'pagos-2',
     categoria: 'pagos',
     pregunta: '¿Es seguro pagar en RutaLibre?',
     respuesta:
-      'Sí, la información de pago viaja cifrada y nunca se almacena en nuestros servidores. En este portal de demostración, además, ningún cobro es real.',
+      'Sí, la información de pago viaja cifrada y se ingresa en el formulario seguro de Culqi: nunca se almacena en nuestros servidores.',
   },
   {
     id: 'pasajeros-1',
@@ -185,7 +186,7 @@ const PREGUNTAS_FRECUENTES = [
     categoria: 'cambios',
     pregunta: '¿Puedo cancelar mi compra?',
     respuesta:
-      'Cada empresa asociada define su propia política de cancelación y reembolso. Puedes revisarla desde el detalle de tu pasaje en "Mis pasajes" antes de confirmar cualquier cambio.',
+      'Puedes cambiar la fecha de tu pasaje hasta 6 horas antes de la salida y pedir la devolución en los casos que indica nuestra Política de Cambios y Devoluciones, disponible al pie de esta página.',
   },
   {
     id: 'cambios-2',
@@ -389,17 +390,19 @@ export function PaginaAyuda() {
           <h2>¿No encontraste lo que buscabas?</h2>
           <p>Nuestro equipo está disponible para ayudarte con tu compra o tu viaje.</p>
           <div className="pagina-ayuda__contacto-lista">
-            <a className="pagina-ayuda__contacto-item" href="mailto:ayuda@rutalibre.pe">
+            <a className="pagina-ayuda__contacto-item" href={`mailto:${CONTACTO.correo}`}>
               <IconoCorreo />
-              ayuda@rutalibre.pe
+              {CONTACTO.correo}
             </a>
-            <a className="pagina-ayuda__contacto-item" href="tel:+015550192">
-              <IconoTelefono />
-              (01) 555 0192
-            </a>
+            {CONTACTO.telefono && (
+              <a className="pagina-ayuda__contacto-item" href={`tel:${CONTACTO.telefono.replace(/\s/g, '')}`}>
+                <IconoTelefono />
+                {CONTACTO.telefono}
+              </a>
+            )}
             <span className="pagina-ayuda__contacto-item pagina-ayuda__contacto-item--estatico">
               <IconoReloj />
-              Disponible las 24 horas
+              {CONTACTO.horarioAtencion}
             </span>
           </div>
         </div>

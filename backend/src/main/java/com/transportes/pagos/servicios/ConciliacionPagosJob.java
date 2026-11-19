@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.transportes.pagos.entidades.EstadoOperacion;
 import com.transportes.pagos.repositorios.OperacionPagoRepositorio;
 
-/** Tarea automática que revisa los pagos pendientes por si no llegó el aviso de Mercado Pago. */
+/** Tarea automática que revisa los pagos pendientes por si no llegó el aviso de Culqi. */
 @Component
 public class ConciliacionPagosJob {
 
@@ -28,14 +28,14 @@ public class ConciliacionPagosJob {
     private final long segundosSinConsulta;
 
     public ConciliacionPagosJob(OperacionPagoRepositorio operaciones, PagoServicio pagoServicio,
-                                @Value("${mercadopago.conciliacion-segundos-sin-consulta:20}") long segundosSinConsulta) {
+                                @Value("${culqi.conciliacion-segundos-sin-consulta:20}") long segundosSinConsulta) {
         this.operaciones = operaciones;
         this.pagoServicio = pagoServicio;
         this.segundosSinConsulta = segundosSinConsulta;
     }
 
     /** Cada 30 segundos: vuelve a consultar los pagos pendientes. */
-    @Scheduled(fixedDelayString = "${mercadopago.conciliacion-ms:30000}", initialDelayString = "${mercadopago.conciliacion-inicial-ms:30000}")
+    @Scheduled(fixedDelayString = "${culqi.conciliacion-ms:30000}", initialDelayString = "${culqi.conciliacion-inicial-ms:30000}")
     public void conciliar() {
         List<Integer> ids;
         try {
@@ -54,7 +54,7 @@ public class ConciliacionPagosJob {
     }
 
     /** Cada 15 minutos: borra copias de pasajeros que ya no hacen falta. */
-    @Scheduled(fixedDelayString = "${mercadopago.limpieza-ms:900000}", initialDelayString = "${mercadopago.limpieza-ms:900000}")
+    @Scheduled(fixedDelayString = "${culqi.limpieza-ms:900000}", initialDelayString = "${culqi.limpieza-ms:900000}")
     @Transactional
     public void borrarDatosTemporales() {
         int filas = operaciones.borrarDatosPasajerosVencidos(PagoServicio.ACTIVOS, LocalDateTime.now().minusHours(1));

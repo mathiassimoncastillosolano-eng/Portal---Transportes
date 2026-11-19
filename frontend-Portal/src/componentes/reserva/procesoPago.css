@@ -1,4 +1,4 @@
-/* Estados del pago con Mercado Pago: espera, desafío 3DS, avisos y confirmación.
+/* Estados del pago con Culqi: espera, avisos y confirmación.
    Solo usa tokens semánticos, así funciona en claro y oscuro sin reglas extra. */
 
 .proceso-pago__capa {
@@ -23,11 +23,6 @@
   padding: var(--espacio-6) var(--espacio-5);
   text-align: center;
   outline: none;
-}
-
-.proceso-pago__dialogo--3ds {
-  width: min(560px, 100%);
-  padding: var(--espacio-5);
 }
 
 .proceso-pago__anillo {
@@ -72,14 +67,6 @@
   border: 1px solid var(--color-aviso-borde);
   border-radius: var(--radio-sm);
   padding: var(--espacio-2) var(--espacio-3);
-}
-
-.proceso-pago__iframe {
-  width: 100%;
-  height: min(520px, 70vh);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-md);
-  background: #fff;
 }
 
 /* Avisos de resultado (rechazo, pendiente, reembolso) */

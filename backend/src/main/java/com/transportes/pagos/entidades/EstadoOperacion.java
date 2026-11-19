@@ -2,11 +2,11 @@ package com.transportes.pagos.entidades;
 
 /** Estados posibles de un pago. */
 public enum EstadoOperacion {
-    /** Guardada; todavía no se sabe si Mercado Pago creó el pago. */
+    /** Guardada; todavía no se sabe si Culqi creó el cargo. */
     CREANDO,
-    /** Order creada; Mercado Pago todavía no da un resultado final. */
+    /** Cargo creado; Culqi todavía no da un resultado final. */
     EN_PROCESO,
-    /** El comprador debe completar la verificación 3DS de su banco. */
+    /** El comprador debe completar la autenticación 3D Secure de su banco. */
     ACCION_REQUERIDA,
     /** Pago verificado y compra registrada (venta, pago y pasajes). */
     APROBADO,
@@ -14,7 +14,7 @@ public enum EstadoOperacion {
     RECHAZADO,
     /** Se acabó el tiempo para pagar sin aprobación. */
     EXPIRADO,
-    /** No se pudo crear la order (datos inválidos o error definitivo). */
+    /** No se pudo crear el cargo (datos inválidos o error definitivo). */
     ERROR,
     /** Se cobró, pero los asientos ya no estaban libres: hay que devolver el dinero. */
     APROBADO_SIN_ASIENTOS,

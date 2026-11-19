@@ -17,7 +17,7 @@ Plataforma web de venta de pasajes de bus: búsqueda de viajes, reserva, pago en
 
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
 ![Render](https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render&logoColor=black)
-![Mercado Pago](https://img.shields.io/badge/Mercado_Pago-009EE3?style=flat-square&logo=mercadopago&logoColor=white)
+![Culqi](https://img.shields.io/badge/Culqi-1C1C3B?style=flat-square&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
 
 [Características](#-características) · [Arquitectura](#-arquitectura) · [Inicio rápido](#-inicio-rápido) · [Libro de Reclamaciones](#-libro-de-reclamaciones) · [Configuración](#-configuración) · [Despliegue](#-despliegue)
@@ -34,7 +34,7 @@ Plataforma web de venta de pasajes de bus: búsqueda de viajes, reserva, pago en
 | --- | --- |
 | 🔎 **Búsqueda de viajes** | Origen, destino, fecha y horario en tiempo real |
 | 🎫 **Reserva y compra** | Selección de asientos y flujo de reserva con sesión firmada |
-| 💳 **Pagos en línea** | Integración con Mercado Pago (sandbox y producción) |
+| 💳 **Pagos en línea** | Culqi (tarjeta y Yape, 3D Secure), hoy en modo sandbox |
 | 🔐 **Acceso seguro** | Registro, JWT y acceso con Google |
 | 👤 **Perfil del cliente** | Historial de pasajes y datos personales |
 | 📖 **Libro de Reclamaciones** | Reclamos y quejas con código correlativo, plazo legal y constancia en PDF |
@@ -51,7 +51,7 @@ flowchart LR
     P -- HTTPS / JWT --> B[API REST<br/>Spring Boot 4 · Java 17<br/><i>Render</i>]
     S -.-> B
     B -- JDBC --> D[(PostgreSQL<br/><i>Supabase</i>)]
-    B --> MP[Mercado Pago]
+    B --> MP[Culqi]
     B --> G[Google Identity]
     B --> R[Resend]
 ```
@@ -170,7 +170,10 @@ Disponible en `/libro-reclamaciones` y enlazado desde el pie de página del port
 | `LIBRO_MAX_REGISTROS_HORA_IP` | Límite de registros por hora por IP (10 por defecto) |
 | `RECLAMOS_SECRETO` | Firma del token de consulta (opcional) |
 
-Las credenciales de Mercado Pago se definen en `application.properties`.
+| `CULQI_PUBLIC_KEY` `CULQI_SECRET_KEY` | Llaves de Culqi (`pk_test_…`/`sk_test_…` en sandbox, `pk_live_…`/`sk_live_…` en producción) |
+| `LEGAL_VERSION_TERMINOS` | Versión de los términos que acepta el cliente al pagar |
+
+El entorno (sandbox o producción) se deduce del prefijo de las llaves. Para pasar a producción solo se reemplazan las dos llaves. Antes de la primera ejecución aplica `backend/sql/005_culqi.sql`.
 </details>
 
 <details>
@@ -182,7 +185,6 @@ Las credenciales de Mercado Pago se definen en `application.properties`.
 | --- | --- |
 | `VITE_API_URL` | URL pública del backend |
 | `VITE_GOOGLE_CLIENT_ID` | Acceso con Google |
-| `VITE_MERCADOPAGO_PUBLIC_KEY` | Clave pública de Mercado Pago |
 
 > [!WARNING]
 > Las variables `VITE_*` viajan en el navegador. Nunca incluyas contraseñas ni claves privadas.

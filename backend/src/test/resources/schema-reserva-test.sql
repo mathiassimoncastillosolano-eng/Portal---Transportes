@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS pasajero (
 -- Funciones de PostgreSQL que usa ViajeAsientoRepositorio.bloquearSesion; H2 no las trae.
 CREATE ALIAS IF NOT EXISTS hashtext FOR "com.transportes.viajes.FuncionesPostgresH2.hashtext";
 CREATE ALIAS IF NOT EXISTS pg_advisory_xact_lock FOR "com.transportes.viajes.FuncionesPostgresH2.pgAdvisoryXactLock";
--- Tablas de compra (esquema real en Supabase) y operacion_pago (migración 003_pagos_mercadopago.sql).
+-- Tablas de compra (esquema real en Supabase) y operacion_pago (migración 005_culqi.sql).
 CREATE TABLE IF NOT EXISTS metodo_pago (
  id_metodo_pago integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
  nombre_metodo varchar(50) NOT NULL UNIQUE, activo boolean NOT NULL DEFAULT true,
@@ -69,14 +69,14 @@ CREATE TABLE IF NOT EXISTS operacion_pago (
  id_viaje bigint NOT NULL REFERENCES viaje(id_viaje), id_sesion_reserva varchar(100) NOT NULL,
  id_usuario integer NOT NULL REFERENCES usuario(id_usuario), medio_pago varchar(20) NOT NULL,
  monto numeric(10,2) NOT NULL, moneda varchar(3) NOT NULL DEFAULT 'PEN', estado varchar(30) NOT NULL,
- mp_order_id varchar(64), mp_estado varchar(40), mp_estado_detalle varchar(60), mp_payment_id varchar(64),
- url_desafio_3ds varchar(500), datos_pasajeros varchar(20000), id_venta integer REFERENCES venta(id_venta),
+ culqi_charge_id varchar(64), culqi_estado varchar(40), culqi_codigo varchar(60), culqi_refund_id varchar(64),
+ email_pagador varchar(150), terminos_aceptados_en timestamp, terminos_version varchar(20), datos_pasajeros varchar(20000), id_venta integer REFERENCES venta(id_venta),
  mensaje varchar(255), entorno varchar(12) NOT NULL DEFAULT 'PRODUCTION', fecha_expiracion timestamp NOT NULL, fecha_ultima_consulta timestamp,
  fecha_creacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
  fecha_actualizacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
  CONSTRAINT uq_operacion_pago_referencia UNIQUE (referencia_externa),
  CONSTRAINT uq_operacion_pago_idempotencia UNIQUE (clave_idempotencia),
- CONSTRAINT uq_operacion_pago_mp_order UNIQUE (mp_order_id),
+ CONSTRAINT uq_operacion_pago_culqi_charge UNIQUE (culqi_charge_id),
  CONSTRAINT uq_operacion_pago_venta UNIQUE (id_venta),
  CONSTRAINT ck_operacion_pago_monto CHECK (monto > 0)
 );

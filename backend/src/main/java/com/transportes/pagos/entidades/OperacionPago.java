@@ -47,7 +47,7 @@ public class OperacionPago {
     private String medioPago;
 
     /**
-     * Entorno con que se creó la order. No cambia: define qué credenciales se usan para consultar y reembolsar.
+     * Entorno con que se creó el cargo. No cambia: define qué credenciales se usan para consultar y reembolsar.
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "entorno", nullable = false, length = 12)
@@ -63,20 +63,26 @@ public class OperacionPago {
     @Column(name = "estado", nullable = false, length = 30)
     private EstadoOperacion estado;
 
-    @Column(name = "mp_order_id", length = 64)
-    private String mpOrderId;
+    @Column(name = "culqi_charge_id", length = 64)
+    private String culqiChargeId;
 
-    @Column(name = "mp_estado", length = 40)
-    private String mpEstado;
+    @Column(name = "culqi_estado", length = 40)
+    private String culqiEstado;
 
-    @Column(name = "mp_estado_detalle", length = 60)
-    private String mpEstadoDetalle;
+    @Column(name = "culqi_codigo", length = 60)
+    private String culqiCodigo;
 
-    @Column(name = "mp_payment_id", length = 64)
-    private String mpPaymentId;
+    @Column(name = "culqi_refund_id", length = 64)
+    private String culqiRefundId;
 
-    @Column(name = "url_desafio_3ds", length = 500)
-    private String urlDesafio3ds;
+    @Column(name = "email_pagador", length = 150)
+    private String emailPagador;
+
+    @Column(name = "terminos_aceptados_en")
+    private LocalDateTime terminosAceptadosEn;
+
+    @Column(name = "terminos_version", length = 20)
+    private String terminosVersion;
 
     /** Copia temporal en JSON de los pasajeros; se borra al cerrar la operación. */
     @Column(name = "datos_pasajeros")

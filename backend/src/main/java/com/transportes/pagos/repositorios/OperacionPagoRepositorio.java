@@ -24,7 +24,7 @@ public interface OperacionPagoRepositorio extends JpaRepository<OperacionPago, I
 
     Optional<OperacionPago> findByReferenciaExterna(String referenciaExterna);
 
-    Optional<OperacionPago> findByMpOrderId(String mpOrderId);
+    Optional<OperacionPago> findByCulqiChargeId(String culqiChargeId);
 
     /** Lee el pago bloqueándolo, para que no se procese dos veces a la vez. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

@@ -18,6 +18,8 @@ import { PaginaHistorial } from '../paginas/perfil/PaginaHistorial'
 import { PaginaDetalleCompra } from '../paginas/perfil/PaginaDetalleCompra'
 import { PaginaDetalleCompraMock } from '../paginas/perfil/PaginaDetalleCompraMock'
 import { PaginaPostergarPasaje } from '../paginas/perfil/PaginaPostergarPasaje'
+import { PaginaTerminos } from '../paginas/legal/PaginaTerminos'
+import { PaginaCambiosDevoluciones } from '../paginas/legal/PaginaCambiosDevoluciones'
 import { PaginaNoEncontrada } from '../paginas/PaginaNoEncontrada'
 
 export function RutasApp() {
@@ -46,6 +48,8 @@ export function RutasApp() {
         <Route path="/destinos/:id" element={<PaginaDetalleDestino />} />
         <Route path="/servicios" element={<PaginaServicios />} />
         <Route path="/ayuda" element={<PaginaAyuda />} />
+        <Route path="/terminos-y-condiciones" element={<PaginaTerminos />} />
+        <Route path="/politica-cambios-devoluciones" element={<PaginaCambiosDevoluciones />} />
         <Route path="/libro-reclamaciones" element={<PaginaLibroReclamaciones />} />
         <Route path="/iniciar-sesion" element={<PaginaIniciarSesion />} />
 

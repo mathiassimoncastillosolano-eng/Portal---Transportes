@@ -38,7 +38,7 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Flujo de reserva contra H2: bloqueo de asientos, consulta de DNI y "Continuar al pago" (datos en caché,
  * sin tocar la BD). La confirmación ya no existe como endpoint público: solo ocurre tras un pago verificado
- * de Mercado Pago (ver com.transportes.pagos.PagoMercadoPagoIntegracionTest).
+ * de Culqi (ver com.transportes.pagos.PagoCulqiIntegracionTest).
  */
 @ActiveProfiles("test")
 @Import(RelojPruebaConfiguracion.class)

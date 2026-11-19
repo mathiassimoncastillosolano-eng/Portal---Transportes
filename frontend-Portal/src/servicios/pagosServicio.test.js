@@ -42,7 +42,7 @@ test('iniciarPago no reintenta errores definitivos (400, 409)', async () => {
 
 test('iniciarPago rechaza solicitudes con importe (el total lo calcula el servidor)', async () => {
   await assert.rejects(iniciarPago({ ...solicitud, monto: 1 }, { enviar: async () => ({}) }))
-  await assert.rejects(iniciarPago({ ...solicitud, transaction_amount: 1 }, { enviar: async () => ({}) }))
+  await assert.rejects(iniciarPago({ ...solicitud, importe: 1 }, { enviar: async () => ({}) }))
 })
 
 test('esperarResultadoPago sigue consultando mientras el estado está activo y para en el final', async () => {

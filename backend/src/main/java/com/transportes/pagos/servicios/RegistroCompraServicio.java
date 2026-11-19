@@ -16,7 +16,7 @@ import com.transportes.pagos.entidades.OperacionPago;
 import com.transportes.pagos.entidades.Pago;
 import com.transportes.pagos.entidades.Pasaje;
 import com.transportes.pagos.entidades.Venta;
-import com.transportes.pagos.mercadopago.OrdenMercadoPago;
+import com.transportes.pagos.culqi.CargoCulqi;
 import com.transportes.pagos.repositorios.MetodoPagoRepositorio;
 import com.transportes.pagos.repositorios.PagoRepositorio;
 import com.transportes.pagos.repositorios.PasajeRepositorio;
@@ -56,11 +56,11 @@ public class RegistroCompraServicio {
     /** Registra la compra de un pago aprobado. Si algo falla, no se guarda nada. */
     @Transactional(propagation = Propagation.MANDATORY)
 
-    public Venta registrar(OperacionPago op, OrdenMercadoPago orden) {   // verifica orden de Mercado Pago corresponda a la operación
+    public Venta registrar(OperacionPago op, CargoCulqi cargo) {
         if (op.getIdVenta() != null) {
             throw new IllegalStateException("La operación ya tiene una venta registrada");
         }
-        verificarCorrespondencia(op, orden);
+        verificarCorrespondencia(op, cargo);
 
         // Lee los pasajeros de la operación para registrar sus pasajes.
         List<PasajeroAsientoRequest> pasajeros = datosPasajerosJson.leer(op.getDatosPasajeros());
@@ -110,12 +110,11 @@ public class RegistroCompraServicio {
         op.setIdVenta(venta.getIdVenta());
         op.setEstado(EstadoOperacion.APROBADO);
         op.setMensaje(null);
-        op.setUrlDesafio3ds(null);
-        op.setDatosPasajeros(null); // ya no hace falta la copia: los datos quedaron en pasajero y pasaje
+                op.setDatosPasajeros(null); // ya no hace falta la copia: los datos quedaron en pasajero y pasaje
         op.setFechaActualizacion(ahora);
 
-        log.info("Compra registrada: operacion={}, order={}, venta={}, pasajes={}",
-                op.getReferenciaExterna(), op.getMpOrderId(), venta.getIdVenta(), ocupados.size());
+        log.info("Compra registrada: operacion={}, cargo={}, venta={}, pasajes={}",
+                op.getReferenciaExterna(), op.getCulqiChargeId(), venta.getIdVenta(), ocupados.size());
         return venta;
     }
 
@@ -124,28 +123,25 @@ public class RegistroCompraServicio {
         String nombre = "YAPE".equals(medioPago) ? propiedades.getNombreMetodoYape() : propiedades.getNombreMetodoTarjeta();
         return metodoPagoRepositorio.findByNombreMetodoAndActivoTrue(nombre)
                 .orElseThrow(() -> new IllegalStateException("No existe el método de pago activo '" + nombre
-                        + "' en metodo_pago. Ejecuta la migración 003."))
+                        + "' en metodo_pago. Ejecuta la migración 005_culqi.sql."))
                 .getIdMetodoPago();
     }
 
-    static void verificarCorrespondencia(OperacionPago op, OrdenMercadoPago orden) {
-        if (orden == null || !orden.aprobada()) {
-            throw new IllegalStateException("La order no está aprobada");
+    static void verificarCorrespondencia(OperacionPago op, CargoCulqi cargo) {
+        if (cargo == null || !cargo.aprobada()) {
+            throw new IllegalStateException("El cargo no está aprobado");
         }
-        if (op.getMpOrderId() != null && !op.getMpOrderId().equals(orden.id())) {
-            throw new IllegalStateException("La order no corresponde a la operación");
+        if (op.getCulqiChargeId() != null && !op.getCulqiChargeId().equals(cargo.id())) {
+            throw new IllegalStateException("El cargo no corresponde a la operación");
         }
-        if (orden.referenciaExterna() != null && !op.getReferenciaExterna().equals(orden.referenciaExterna())) {
+        if (cargo.referenciaExterna() != null && !op.getReferenciaExterna().equals(cargo.referenciaExterna())) {
             throw new IllegalStateException("La referencia externa no coincide");
         }
-        if (orden.montoTotal() == null || orden.montoTotal().compareTo(op.getMonto()) != 0) {
-            throw new IllegalStateException("El importe de la order no coincide con la operación");
+        if (cargo.monto() == null || cargo.monto().compareTo(op.getMonto()) != 0) {
+            throw new IllegalStateException("El importe del cargo no coincide con la operación");
         }
-        if (orden.montoPagado() != null && orden.montoPagado().compareTo(op.getMonto()) < 0) {
-            throw new IllegalStateException("El importe pagado es menor al de la operación");
-        }
-        if (orden.moneda() != null && !orden.moneda().equalsIgnoreCase(op.getMoneda())) {
-            throw new IllegalStateException("La moneda de la order no coincide");
+        if (cargo.moneda() != null && !cargo.moneda().equalsIgnoreCase(op.getMoneda())) {
+            throw new IllegalStateException("La moneda del cargo no coincide");
         }
     }
 }

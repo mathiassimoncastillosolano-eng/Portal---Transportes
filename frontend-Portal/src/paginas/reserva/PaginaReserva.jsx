@@ -8,29 +8,14 @@ import { ResumenReserva } from '../../componentes/reserva/ResumenReserva'
 import { GestorPasajeros } from '../../componentes/reserva/GestorPasajeros'
 import { DATOS_PASAJERO_VACIOS, pasajeroEstaCompleto } from '../../componentes/reserva/FormularioPasajero'
 import { PasarelaPago } from '../../componentes/reserva/PasarelaPago'
-import { AvisoResultadoPago, CompraConfirmada, Desafio3ds, PagoProcesando } from '../../componentes/reserva/ProcesoPago'
-import {
-  TOPE_MAXIMO_YAPE,
-  VALORES_YAPE_INICIALES,
-  construirSolicitudPagoTarjeta,
-  construirSolicitudPagoYape,
-  describirEstadoPago,
-  soloDigitos,
-  validarPagoYape,
-} from '../../utilidades/pagoMercadoPago'
-import {
-  ENTORNO_PRODUCCION,
-  ENTORNO_SANDBOX,
-  entornoInicial,
-  entornoUtilizable,
-  normalizarConfiguracion,
-  publicKeyDe,
-} from '../../utilidades/entornoPago'
+import { AvisoResultadoPago, CompraConfirmada, PagoProcesando } from '../../componentes/reserva/ProcesoPago'
+import { construirSolicitudPago, describirEstadoPago } from '../../utilidades/pagoCulqi'
 import {
   ESTADOS_ACTIVOS,
   borrarPagoEnCurso,
   consultarPago,
   esFalloTransitorio,
+  confirmar3ds,
   esperarResultadoPago,
   guardarPagoEnCurso,
   iniciarPago,
@@ -38,8 +23,7 @@ import {
   nuevaClaveIdempotencia,
   obtenerConfiguracionPago,
 } from '../../servicios/pagosServicio'
-import { PUBLIC_KEY_SANDBOX_RESPALDO, asegurarDeviceId, crearTokenYape } from '../../servicios/mercadoPagoSdk'
-import { useTema } from '../../hooks/useTema'
+import { abrirCheckout, autenticar3ds } from '../../servicios/culqiSdk'
 import {
   dniConDatosDistintos,
   construirPasajerosApi,
@@ -64,12 +48,7 @@ import './paginaReserva.css'
 import { Contador } from '../../componentes/reserva/Contador'
 import { CargadorRutaLibre, EstadoRuta, useFaseCarga } from '../../componentes/carga'
 
-// En Sandbox se aceptan los celulares de prueba de Yape (11111111x); en Producción solo celulares reales.
-const validarYape = (valores, entorno) => validarPagoYape(valores, { sandbox: entorno === ENTORNO_SANDBOX })
-
-// Polling del estado: hasta 2 min en general y hasta 15 min durante el desafío 3DS del banco.
 const ESPERA_MAXIMA_MS = 120000
-const ESPERA_MAXIMA_3DS_MS = 15 * 60 * 1000
 const FASES_PAGO_ACTIVAS = new Set(['procesando', 'accion', 'pendiente'])
 
 const TITULOS_PASO = {
@@ -121,7 +100,6 @@ export function PaginaReserva() {
   const { state } = useLocation()
   const navegar = useNavigate()
   const { usuario } = useAutenticacion()
-  const { tema } = useTema()
   const { criterios } = useBusqueda()
     const contexto = useMemo(() => {
     const guardado = leerContextoGuardado()
@@ -148,30 +126,20 @@ export function PaginaReserva() {
   const [pasajeros, setPasajeros] = useState({})
   const [claveActivaPasajero, setClaveActivaPasajero] = useState(null)
 
-  const [metodoPago, setMetodoPago] = useState('tarjeta')
-  // Entornos que el BACKEND permite a este usuario (Producción siempre; Sandbox solo si está autorizado) y el elegido.
   const [configPago, setConfigPago] = useState(null)
   const [errorConfigPago, setErrorConfigPago] = useState(null)
-  const [entornoPago, setEntornoPago] = useState(ENTORNO_PRODUCCION)
-  const [datosYape, setDatosYape] = useState(() => ({ ...VALORES_YAPE_INICIALES }))
-  const [erroresPago, setErroresPago] = useState({})
-  const [camposTocadosPago, setCamposTocadosPago] = useState({})
-  // procesando: la capa "Estamos procesando tu pago" está visible (creación de la order o espera del resultado).
+  const [aceptaTerminos, setAceptaTerminos] = useState(false)
   const [procesando, setProcesando] = useState(false)
-  // Último estado VERIFICADO POR EL BACKEND: { fase, titulo, texto, respuesta }. Nunca se arma en el navegador.
   const [pago, setPago] = useState(null)
   const [errorPago, setErrorPago] = useState(null)
   const [consultandoPago, setConsultandoPago] = useState(false)
   const pagoActivo = procesando || FASES_PAGO_ACTIVAS.has(pago?.fase)
-  // Solo es true cuando el BACKEND verificó el pago aprobado y registró la compra.
   const [compraConfirmada, setCompraConfirmada] = useState(false)
   const [guardandoPasajeros, setGuardandoPasajeros] = useState(false)
-  // Espejos síncronos para cerrar la ventana entre dos clics antes del primer repintado.
   const pagandoRef = useRef(false)
   const guardandoRef = useRef(false)
   const compraConfirmadaRef = useRef(false)
-  const refControladorTarjeta = useRef(null)
-  // Última solicitud enviada: si se perdió la respuesta, se reenvía IGUAL (misma clave de idempotencia).
+  const tokenPagoRef = useRef(null)
   const solicitudPendienteRef = useRef(null)
   const desmontadoRef = useRef(false)
   useEffect(() => {
@@ -186,18 +154,6 @@ export function PaginaReserva() {
   }, [])
   // Errores devueltos por el servidor: { clave: { campo: mensaje } }
   const [erroresServidor, setErroresServidor] = useState({})
-
-  // La sesión puede cargar después del primer render: completa el correo y el
-  // celular con los del usuario solo si el comprador aún no los escribió.
-  useEffect(() => {
-    if (!usuario) return
-    const celularUsuario = soloDigitos(usuario.telefono).slice(-9)
-    setDatosYape((anterior) => ({
-      ...anterior,
-      correo: anterior.correo || usuario.correo || '',
-      celular: anterior.celular || (/^9\d{8}$/.test(celularUsuario) ? celularUsuario : ''),
-    }))
-  }, [usuario])
 
   const [mapaAsientos, setMapaAsientos] = useState(null)
   const [cargandoMapa, setCargandoMapa] = useState(true)
@@ -494,10 +450,8 @@ export function PaginaReserva() {
   const limiteAlcanzado = asientosSeleccionados.length >= MAXIMO_PASAJEROS_POR_COMPRA
   const precioTotal = asientosSeleccionados.reduce((total, asiento) => total + (asiento.precio ?? 0), 0)
 
-  const excedeTopeYape = metodoPago === 'yape' && precioTotal > TOPE_MAXIMO_YAPE
-  // Public Key del entorno elegido (la entrega el backend; Producción nunca usa la clave de respaldo de Sandbox).
-  const publicKeyPago = publicKeyDe(configPago, entornoPago, { respaldoSandbox: PUBLIC_KEY_SANDBOX_RESPALDO })
-  const entornoListo = entornoUtilizable(configPago, entornoPago, { respaldoSandbox: PUBLIC_KEY_SANDBOX_RESPALDO })
+  const entornoListo = Boolean(configPago?.disponible && configPago?.publicKey)
+  const esPrueba = configPago?.entorno === 'SANDBOX'
   const correoComprador = usuario?.correo ?? ''
 
 
@@ -662,32 +616,12 @@ export function PaginaReserva() {
     setPasoActual('asiento')
   }
 
-  function manejarCambiarMetodoPago(metodo) {
-    if (pagoActivo) return
-    setMetodoPago(metodo)
-    setErroresPago({})
-    setCamposTocadosPago({})
-    setErrorPago(null)
-  }
-
-  // Solo SOLICITA el entorno: el backend vuelve a validar la autorización al cobrar.
-  function manejarCambiarEntornoPago(entorno) {
-    if (pagoActivo || entorno === entornoPago) return
-    setEntornoPago(entorno)
-    setErroresPago({})
-    setCamposTocadosPago({})
-    setErrorPago(null)
-    setPago(null)
-  }
-
   function cargarConfiguracionPago() {
     setErrorConfigPago(null)
     obtenerConfiguracionPago()
       .then((respuesta) => {
         if (desmontadoRef.current) return
-        const config = normalizarConfiguracion(respuesta)
-        setConfigPago(config)
-        setEntornoPago(entornoInicial(config))
+        setConfigPago(respuesta)
       })
       .catch((error) => {
         if (desmontadoRef.current) return
@@ -703,7 +637,7 @@ export function PaginaReserva() {
 
   // "Continuar al pago": el backend valida los pasajeros y los deja en una caché TEMPORAL de su memoria
   // (se descarta al vencer la sesión). No se escribe en la base de datos todavía: eso ocurre cuando el
-  // backend verifica con Mercado Pago que el pago fue aprobado. Solo avanza al pago si el servidor responde valido: true.
+  // backend verifica con Culqi que el pago fue aprobado. Solo avanza al pago si el servidor responde valido: true.
   async function confirmarPasajerosYContinuar() {
     if (guardandoRef.current || !pasajerosCompletos || hayDniRepetido) return
     const token = sesionRef.current?.tokenSesion
@@ -750,21 +684,9 @@ export function PaginaReserva() {
     }
   }
 
-  function manejarCambiarCampoPago(campo, valor) {
-    const valores = { ...datosYape, [campo]: valor }
-    setDatosYape(valores)
-    setErroresPago(validarYape(valores, entornoPago))
+  function manejarCambiarTerminos(valor) {
+    setAceptaTerminos(valor)
   }
-
-  function manejarTocarCampoPago(campo) {
-    setCamposTocadosPago((anterior) => ({ ...anterior, [campo]: true }))
-    setErroresPago(validarYape(datosYape, entornoPago))
-  }
-
-  // ---------------------------------------------------------------------------------------------
-  // Pago con Mercado Pago. La compra SOLO se registra en el backend cuando él verifica la order
-  // aprobada; el navegador se limita a mostrar el estado que el backend devuelve.
-  // ---------------------------------------------------------------------------------------------
 
   function aplicarSesionRenovada(respuesta) {
     if (!respuesta?.sesion?.tokenSesion) return
@@ -787,7 +709,6 @@ export function PaginaReserva() {
     }
   }
 
-  /** Consulta el estado verificado hasta que sea final o se agote la espera. */
   async function seguirPago(referencia) {
     setProcesando(true)
     try {
@@ -796,14 +717,11 @@ export function PaginaReserva() {
         alActualizar: (r) => {
           if (desmontadoRef.current) return
           setPago({ ...describirEstadoPago(r), respuesta: r })
-          // Durante el desafío 3DS se oculta la capa de espera para que el comprador vea el iframe.
-          setProcesando(r?.estado !== 'ACCION_REQUERIDA')
         },
-        limitePara: (r) => (r?.estado === 'ACCION_REQUERIDA' ? ESPERA_MAXIMA_3DS_MS : ESPERA_MAXIMA_MS),
+        maxEsperaMs: ESPERA_MAXIMA_MS,
       })
       if (!desmontadoRef.current && respuesta) finalizarPago(respuesta, agotado)
     } catch (error) {
-      // 401/404: la operación no es de este usuario o la sesión de la cuenta venció.
       borrarPagoEnCurso(idViaje)
       setPago(null)
       setErrorPago(error.message || 'No pudimos consultar el estado del pago.')
@@ -812,10 +730,42 @@ export function PaginaReserva() {
     }
   }
 
-  async function procesarRespuestaInicial(respuesta) {
+  async function completar3ds(respuesta) {
+    const token = tokenPagoRef.current
+    if (!token) {
+      borrarPagoEnCurso(idViaje)
+      setPago(null)
+      setErrorPago('La verificación de tu banco se interrumpió. Inténtalo de nuevo con tu medio de pago.')
+      return
+    }
+    guardarPagoEnCurso(idViaje, respuesta.referencia)
+    setPago({ ...describirEstadoPago(respuesta), respuesta })
+    setProcesando(false)
+    let parametros
+    try {
+      parametros = await autenticar3ds({
+        publicKey: configPago?.publicKey,
+        tokenId: token.id,
+        monto: precioTotal,
+        correo: token.email || correoComprador,
+      })
+    } catch (error) {
+      borrarPagoEnCurso(idViaje)
+      setPago(null)
+      setErrorPago(error.message)
+      return
+    }
+    setProcesando(true)
+    const confirmada = await confirmar3ds(respuesta.referencia, { token: token.id, parametros })
+    await procesarRespuestaInicial(confirmada, { permitir3ds: false })
+  }
+
+  async function procesarRespuestaInicial(respuesta, { permitir3ds = true } = {}) {
     solicitudPendienteRef.current = null
     aplicarSesionRenovada(respuesta)
-    if (ESTADOS_ACTIVOS.has(respuesta.estado)) {
+    if (permitir3ds && respuesta.estado === 'ACCION_REQUERIDA' && respuesta.requiere3ds) {
+      await completar3ds(respuesta)
+    } else if (ESTADOS_ACTIVOS.has(respuesta.estado)) {
       guardarPagoEnCurso(idViaje, respuesta.referencia)
       setPago({ ...describirEstadoPago(respuesta), respuesta })
       await seguirPago(respuesta.referencia)
@@ -824,55 +774,43 @@ export function PaginaReserva() {
     }
   }
 
-  async function obtenerSolicitudPago(tokenSesion) {
-    const claveIdempotencia = nuevaClaveIdempotencia()
-    if (!entornoUtilizable(configPago, entornoPago, { respaldoSandbox: PUBLIC_KEY_SANDBOX_RESPALDO })) {
-      throw new Error('El entorno de pago elegido no está disponible. Elige otro o inténtalo más tarde.')
-    }
-    if (metodoPago === 'yape') {
-      const errores = validarYape(datosYape, entornoPago)
-      setErroresPago(errores)
-      setCamposTocadosPago(Object.fromEntries(Object.keys(datosYape).map((campo) => [campo, true])))
-      if (Object.keys(errores).length > 0) return null
-      const token = await crearTokenYape({ ...datosYape, publicKey: publicKeyPago })
-      await asegurarDeviceId()
-      return construirSolicitudPagoYape({
-        idViaje, tokenSesion, claveIdempotencia, token, valores: datosYape, entorno: entornoPago,
-      })
-    }
-
-    const controlador = refControladorTarjeta.current
-    if (!controlador) throw new Error('El formulario de tarjeta todavía se está cargando. Espera un momento.')
-    let datosTarjeta
-    try {
-      datosTarjeta = await controlador.getFormData()
-    } catch {
-      datosTarjeta = null
-    }
-    if (!datosTarjeta?.token) {
-      throw new Error('Revisa los datos de la tarjeta marcados en el formulario.')
-    }
-    const datosAdicionales = await Promise.resolve(controlador.getAdditionalData?.()).catch(() => null)
-    await asegurarDeviceId()
-    return construirSolicitudPagoTarjeta({
-      idViaje, tokenSesion, claveIdempotencia, datosTarjeta, datosAdicionales, entorno: entornoPago,
-    })
-  }
-
   async function manejarPago() {
-    // Guardia síncrona: un doble clic no puede iniciar dos pagos.
     if (pagandoRef.current || compraConfirmadaRef.current || FASES_PAGO_ACTIVAS.has(pago?.fase)) return
-    if (excedeTopeYape) return
     const tokenSesion = sesionRef.current?.tokenSesion
     if (!tokenSesion) return
+    if (!aceptaTerminos) return
+    if (!entornoListo) {
+      setErrorPago('Los pagos no están disponibles en este momento. Inténtalo más tarde.')
+      return
+    }
+
+    setErrorPago(null)
+    let token
+    try {
+      token = await abrirCheckout({
+        publicKey: configPago.publicKey,
+        monto: precioTotal,
+        titulo: 'RutaLibre',
+        descripcion: `Pasajes ${resultado.origen} - ${resultado.destino}`,
+      })
+    } catch (error) {
+      setErrorPago(error.message)
+      return
+    }
+    if (pagandoRef.current) return
 
     pagandoRef.current = true
+    tokenPagoRef.current = token
     setProcesando(true)
-    setErrorPago(null)
     setPago(null)
     try {
-      const solicitud = await obtenerSolicitudPago(tokenSesion)
-      if (!solicitud) return
+      const solicitud = construirSolicitudPago({
+        idViaje,
+        tokenSesion,
+        claveIdempotencia: nuevaClaveIdempotencia(),
+        token,
+        correo: correoComprador,
+      })
       solicitudPendienteRef.current = solicitud
       const respuesta = await iniciarPago(solicitud)
       await procesarRespuestaInicial(respuesta)
@@ -886,7 +824,6 @@ export function PaginaReserva() {
 
   function manejarErrorPago(error) {
     if (esFalloTransitorio(error) && solicitudPendienteRef.current) {
-      // La solicitud pudo llegar al servidor: el resultado es DESCONOCIDO, no un rechazo.
       setPago({
         fase: 'pendiente',
         titulo: 'No pudimos confirmar el estado de tu pago',
@@ -905,7 +842,6 @@ export function PaginaReserva() {
     }
   }
 
-  /** "Consultar el estado ahora" de un pago pendiente o con resultado desconocido. */
   async function verificarPagoPendiente() {
     if (consultandoPago || procesando) return
     setConsultandoPago(true)
@@ -921,7 +857,6 @@ export function PaginaReserva() {
           finalizarPago(respuesta)
         }
       } else if (solicitudPendienteRef.current) {
-        // Reenvío idéntico (misma clave): devuelve la operación ya creada, nunca una nueva.
         const respuesta = await iniciarPago(solicitudPendienteRef.current)
         await procesarRespuestaInicial(respuesta)
       }
@@ -999,16 +934,17 @@ export function PaginaReserva() {
       { etiqueta: 'Servicio', valor: resultado.tipoBus },
       { etiqueta: 'Pasajeros', valor: resumenNombres || `${asientosSeleccionados.length}` },
     ]
-    filasDetalle.push({ etiqueta: 'Medio de pago', valor: metodoPago === 'yape' ? 'Yape' : 'Tarjeta' })
-    if (entornoPago === ENTORNO_SANDBOX) filasDetalle.push({ etiqueta: 'Entorno', valor: 'Prueba (sin cobro real)' })
+    filasDetalle.push({ etiqueta: 'Medio de pago', valor: 'Tarjeta o Yape (Culqi)' })
+    if (esPrueba) filasDetalle.push({ etiqueta: 'Entorno', valor: 'Prueba (sin cobro real)' })
     const reservaVencida = pago?.respuesta?.estado === 'EXPIRADO'
     if (compraConfirmada) textoBoton = 'Compra confirmada ✓'
     else if (pago?.fase === 'accion') textoBoton = 'Esperando a tu banco…'
     else if (pago?.fase === 'pendiente' || pago?.fase === 'procesando') textoBoton = 'Pago en revisión'
     else if (pago?.fase === 'rechazado' && !reservaVencida) textoBoton = `Reintentar pago de ${formatearPrecio(precioTotal)}`
     else textoBoton = `Pagar ${formatearPrecio(precioTotal)}`
+    mensajeAyuda = !aceptaTerminos ? 'Acepta los Términos y Condiciones y la Política de Cambios y Devoluciones para habilitar el pago.' : undefined
     deshabilitadoBoton =
-      compraConfirmada || pagoActivo || excedeTopeYape || !entornoListo || pago?.fase === 'reembolso' || reservaVencida
+      compraConfirmada || pagoActivo || !aceptaTerminos || !entornoListo || pago?.fase === 'reembolso' || reservaVencida
   }
 
   return (
@@ -1096,22 +1032,11 @@ export function PaginaReserva() {
               )}
               {configPago ? (
                 <PasarelaPago
-                  metodo={metodoPago}
-                  alCambiarMetodo={manejarCambiarMetodoPago}
-                  valoresYape={datosYape}
-                  errores={erroresPago}
-                  camposTocados={camposTocadosPago}
-                  alCambiarCampo={manejarCambiarCampoPago}
-                  alTocarCampo={manejarTocarCampoPago}
                   total={precioTotal}
-                  correoInicial={correoComprador}
-                  tema={tema}
+                  esPrueba={esPrueba}
+                  aceptaTerminos={aceptaTerminos}
+                  alCambiarTerminos={manejarCambiarTerminos}
                   bloqueado={pagoActivo}
-                  refControladorTarjeta={refControladorTarjeta}
-                  entorno={entornoPago}
-                  publicKey={publicKeyPago}
-                  entornos={configPago?.entornos}
-                  alCambiarEntorno={manejarCambiarEntornoPago}
                 />
               ) : (
                 <div className="pasarela-pago" aria-busy={!errorConfigPago}>
@@ -1123,10 +1048,7 @@ export function PaginaReserva() {
                       </button>
                     </div>
                   ) : (
-                    <div className="pasarela-pago__brick-cargando" role="status">
-                      <span className="pasarela-pago__spinner" aria-hidden="true" />
-                      Preparando el pago seguro…
-                    </div>
+                    <p className="pasarela-pago__nota" role="status">Preparando el pago seguro…</p>
                   )}
                 </div>
               )}
@@ -1176,9 +1098,6 @@ export function PaginaReserva() {
 
       {procesando && pago?.fase !== 'accion' && (
         <PagoProcesando detalle={pago?.respuesta?.estado === 'CREANDO' ? pago.texto : undefined} />
-      )}
-      {pago?.fase === 'accion' && pago.respuesta?.urlDesafio3ds && (
-        <Desafio3ds url={pago.respuesta.urlDesafio3ds} alTerminar={() => setProcesando(true)} />
       )}
     </section>
   )

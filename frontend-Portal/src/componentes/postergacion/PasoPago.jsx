@@ -1,7 +1,8 @@
 import { formatearPrecio } from '../../utilidades/formato'
 import '../reserva/pasarelaPago.css'
 import { CampoTexto } from '../comunes/CampoTexto'
-import { CELULARES_PRUEBA_YAPE, TARJETAS_PRUEBA } from '../../utilidades/pagoMercadoPago'
+import { CELULARES_PRUEBA_YAPE } from '../../utilidades/pagoSimulado'
+import { DATOS_PRUEBA, TARJETAS_PRUEBA } from '../../utilidades/pagoCulqi'
 
 const METODOS = [
   {
@@ -89,7 +90,7 @@ export function PasoPago({
               <CampoTexto etiqueta="Titular" valor={datosPago.tarjeta.titular} alCambiar={(v) => alEditarDato('tarjeta', 'titular', v)} error={erroresPago.titular} autoComplete="cc-name" marcador="APRO" deshabilitado={procesando} />
               <CampoTexto etiqueta="Vencimiento (MM/AA)" valor={datosPago.tarjeta.vencimiento} alCambiar={(v) => alEditarDato('tarjeta', 'vencimiento', v)} error={erroresPago.vencimiento} modoEntrada="numeric" autoComplete="cc-exp" marcador="11/30" deshabilitado={procesando} />
               <CampoTexto etiqueta="CVV" valor={datosPago.tarjeta.cvv} alCambiar={(v) => alEditarDato('tarjeta', 'cvv', v)} error={erroresPago.cvv} modoEntrada="numeric" autoComplete="cc-csc" marcador="123" deshabilitado={procesando} />
-              <p className="postergacion-pago__ayuda">Tarjetas de prueba: {TARJETAS_PRUEBA.map((t) => `${t.marca} ${t.numero}`).join(' · ')}. Vencimiento 11/30, titular APRO.</p>
+              <p className="postergacion-pago__ayuda">Tarjetas de prueba: {TARJETAS_PRUEBA.map((t) => `${t.marca} ${t.numero}`).join(' · ')}. Vencimiento {DATOS_PRUEBA.vencimiento}, CVV {DATOS_PRUEBA.cvv}.</p>
             </div>
           ) : (
             <div className="postergacion-pago__formulario">

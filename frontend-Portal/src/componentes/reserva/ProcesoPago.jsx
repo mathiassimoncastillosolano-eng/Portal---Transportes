@@ -2,10 +2,6 @@ import { useEffect, useRef } from 'react'
 import { formatearFechaLarga, formatearPrecio } from '../../utilidades/formato'
 import './procesoPago.css'
 
-/**
- * Capa de espera mientras el backend crea la order y verifica el pago. Bloquea la interacción con la
- * página (evita pagos repetidos) y avisa que no se cierre ni se recargue.
- */
 export function PagoProcesando({ titulo = 'Estamos procesando tu pago', detalle }) {
   const refDialogo = useRef(null)
   useEffect(() => {
@@ -32,7 +28,7 @@ export function PagoProcesando({ titulo = 'Estamos procesando tu pago', detalle 
         </div>
         <h2 id="proceso-pago-titulo" className="proceso-pago__titulo">{titulo}</h2>
         <p id="proceso-pago-detalle" className="proceso-pago__texto">
-          {detalle ?? 'Estamos confirmando la operación con Mercado Pago.'}
+          {detalle ?? 'Estamos confirmando la operación con Culqi.'}
         </p>
         <p className="proceso-pago__advertencia">
           No cierres ni recargues esta página y no vuelvas a pagar mientras se procesa. Puede tardar unos segundos.
@@ -42,32 +38,6 @@ export function PagoProcesando({ titulo = 'Estamos procesando tu pago', detalle 
   )
 }
 
-/**
- * Desafío 3DS del banco en un iframe (documentación de Orders: transaction_security.url). Al terminar,
- * el banco envía {status: 'COMPLETE'} por postMessage; eso NO significa aprobado: se vuelve a consultar
- * el estado en el backend.
- */
-export function Desafio3ds({ url, alTerminar }) {
-  useEffect(() => {
-    function alMensaje(evento) {
-      if (evento?.data?.status === 'COMPLETE') alTerminar()
-    }
-    window.addEventListener('message', alMensaje)
-    return () => window.removeEventListener('message', alMensaje)
-  }, [alTerminar])
-
-  return (
-    <div className="proceso-pago__capa" role="presentation">
-      <div className="proceso-pago__dialogo proceso-pago__dialogo--3ds" role="dialog" aria-modal="true" aria-labelledby="desafio-titulo">
-        <h2 id="desafio-titulo" className="proceso-pago__titulo">Verificación de tu banco</h2>
-        <p className="proceso-pago__texto">Completa la verificación para continuar. No cierres esta ventana.</p>
-        <iframe className="proceso-pago__iframe" src={url} title="Verificación 3D Secure del banco" />
-      </div>
-    </div>
-  )
-}
-
-/** Resultado no aprobado o desconocido. `fase`: rechazado | pendiente | reembolso. */
 export function AvisoResultadoPago({ fase, titulo, texto, alConsultar, consultando }) {
   return (
     <div className={`proceso-pago__aviso proceso-pago__aviso--${fase}`} role={fase === 'rechazado' ? 'alert' : 'status'}>
@@ -93,7 +63,6 @@ export function AvisoResultadoPago({ fase, titulo, texto, alConsultar, consultan
   )
 }
 
-/** Confirmación: solo se muestra con estado APROBADO devuelto por el backend (compra ya registrada). */
 export function CompraConfirmada({ respuesta, resultado, fecha, alVerPasajes, alIrInicio }) {
   const compra = respuesta.compra
   return (
@@ -120,7 +89,7 @@ export function CompraConfirmada({ respuesta, resultado, fecha, alVerPasajes, al
       <dl className="proceso-pago__datos">
         <div>
           <dt>N.º de operación</dt>
-          <dd>{compra?.idPagoProveedor ?? respuesta.ordenId}</dd>
+          <dd>{compra?.idPagoProveedor ?? respuesta.cargoId}</dd>
         </div>
         <div>
           <dt>Código de compra</dt>

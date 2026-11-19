@@ -2,7 +2,7 @@
 
 React + Vite → API Spring Boot → PostgreSQL en Supabase.
 
-La búsqueda por origen, destino, fecha y horario consulta la base real. También están integrados registro/login/perfil, destinos y tipos de bus. El mapa de asientos, la compra y el pago con Mercado Pago están integrados. Perfil, **Mis pasajes, detalle de compra, boletos, historial y resumen** leen la base real (ver sección «Perfil, Mis pasajes e historial»).
+La búsqueda por origen, destino, fecha y horario consulta la base real. También están integrados registro/login/perfil, destinos y tipos de bus. El mapa de asientos, la compra y el pago con Culqi están integrados. Perfil, **Mis pasajes, detalle de compra, boletos, historial y resumen** leen la base real (ver sección «Perfil, Mis pasajes e historial»).
 
 ## Ejecutar
 
@@ -117,7 +117,7 @@ Desde `backend/`:
 
 Las pruebas Java usan H2 y el perfil `test`, sin escribir en Supabase. Incluyen las pruebas previas de registro y seis pruebas de búsqueda: conteos con varios servicios por bus, extremos de horarios, validaciones, exclusión de inactivos/cancelados, ausencia de asientos/duración y CORS.
 
-Pruebas añadidas con esta versión: `PoliticaReservaViajeTest` y `ValidadorPasajeroTest` (unitarias, sin Spring), integración en `BusquedaIntegracionTest`, `PagoReservaIntegracionTest` y `PagoMercadoPagoIntegracionTest` (reloj controlable con `RelojPruebaConfiguracion`), y en JavaScript `estadoReserva`, `fechaNacimiento` y `validarPasajero`. Las de integración requieren `mvnw test` (Maven) en una máquina con acceso a Maven Central.
+Pruebas añadidas con esta versión: `PoliticaReservaViajeTest` y `ValidadorPasajeroTest` (unitarias, sin Spring), integración en `BusquedaIntegracionTest`, `PagoReservaIntegracionTest` y `PagoCulqiIntegracionTest` (reloj controlable con `RelojPruebaConfiguracion`), y en JavaScript `estadoReserva`, `fechaNacimiento` y `validarPasajero`. Las de integración requieren `mvnw test` (Maven) en una máquina con acceso a Maven Central.
 
 Validación del 22/09/2026: 15 pruebas Java y 8 JavaScript aprobadas, compilación de producción completada y comprobación de solo lectura contra Supabase. El esquema de pruebas refleja `ubicacion.id_ubicacion` como `bigint`, igual que la base real.
 
@@ -141,15 +141,16 @@ Los registros consultados llegan hasta el 23/09/2026. Para otra fecha sin viajes
 - Revisar los cambios en una rama y ejecutar las pruebas antes de publicar. Nunca agregar `.env.properties` o `.env` a Git.
 - Un despliegue público completo requiere integrar y probar reservas, asientos, pagos y boletos; esas tareas están fuera del alcance confirmado de esta entrega.
 
-## Pagos con Mercado Pago: entornos Sandbox y Producción
+## Pagos con Culqi
 
-El pago admite dos entornos independientes, elegidos en el paso de pago pero **decididos siempre por el backend**:
+El pago usa Culqi Checkout (tarjeta y Yape) y 3D Secure cuando el banco lo exige. El navegador solo obtiene un token de un solo uso; el cobro, la verificación y el registro de la compra los hace el backend, que calcula el importe con los asientos bloqueados.
 
-- **Sandbox (pruebas):** credenciales de prueba, sin dinero real. Solo pueden usarlo los `id_usuario` listados en `MERCADOPAGO_SANDBOX_USUARIOS_AUTORIZADOS` (vacío = nadie). Las compras quedan marcadas «COMPRA DE PRUEBA».
-- **Producción (dinero real):** tarjetas y Yape con credenciales productivas. Es el entorno por defecto; se deshabilita solo si sus credenciales faltan o son idénticas a las de Sandbox.
+- **Sandbox:** llaves `pk_test_…`/`sk_test_…`. Las compras quedan marcadas «COMPRA DE PRUEBA». Tarjetas: Visa 4111 1111 1111 1111 y Mastercard 5111 1111 1111 1118, CVV 123, cualquier vencimiento futuro.
+- **Producción:** al recibir las llaves `pk_live_…`/`sk_live_…` de Culqi basta reemplazar `CULQI_PUBLIC_KEY` y `CULQI_SECRET_KEY` en Render. No hay cambios de código.
+- **Términos:** el botón de pago permanece deshabilitado hasta marcar la aceptación de los Términos y Condiciones y la Política de Cambios y Devoluciones (`/terminos-y-condiciones`, `/politica-cambios-devoluciones`); el backend rechaza cualquier pago sin esa aceptación y guarda fecha y versión.
+- **Datos de contacto y RUC:** `frontend-Portal/src/datos/contacto.js` (teléfono y dirección pueden completarse ahí).
+- **Migración:** `backend/sql/005_culqi.sql` antes de desplegar el backend.
 
-Cada operación guarda su entorno (`operacion_pago.entorno`, `venta.entorno`) y nunca se mezclan clientes, webhooks ni confirmaciones. Webhooks: `POST /api/pagos/webhook/sandbox` y `/api/pagos/webhook/production` (cada uno con su clave secreta; la URL anterior `/api/pagos/webhook` sigue funcionando). La Public Key de cada entorno la entrega `GET /api/pagos/configuracion`; los Access Tokens nunca llegan al frontend.
+Variables del backend: ver `backend/.env.properties.example`.
 
-Variables del backend: ver `backend/.env.properties.example`. Migraciones: `database/migrations/004_entorno_pago.sql` → desplegar backend → `004b_quitar_default_entorno.sql` (reversión: `004_rollback_entorno_pago.sql`).
-
-Verificación: `cd backend && ./mvnw test` y `npm ci && npm test && npm run build`. Antes de cobrar dinero real hay que activar el ambiente de producción en Mercado Pago, cargar sus credenciales y webhooks, y hacer un cobro mínimo real con reembolso.
+Verificación: `cd backend && ./mvnw test` y `npm ci && npm test && npm run build`. Antes de cobrar dinero real hay que recibir las credenciales de producción de Culqi y hacer un cobro mínimo real con reembolso.

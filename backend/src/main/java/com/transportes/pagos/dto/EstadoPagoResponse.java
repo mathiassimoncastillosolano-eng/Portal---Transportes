@@ -4,16 +4,15 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** Estado de un pago que se envía al frontend. */
 public record EstadoPagoResponse(
         String referencia,
         String estado,
         boolean finalizado,
         boolean reintentable,
         String mensaje,
-        String ordenId,
+        String cargoId,
         BigDecimal montoTotal,
-        String urlDesafio3ds,
+        boolean requiere3ds,
         SesionRenovada sesion,
         CompraConfirmada compra,
         String entorno) {

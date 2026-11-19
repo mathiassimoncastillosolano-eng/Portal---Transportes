@@ -105,11 +105,6 @@ public class ConfiguracionSeguridad {
                                                 // Buscar pasajeros por DNI: pide sesión porque devuelve datos
                                                 // personales.
                                                 .requestMatchers("/api/pasajeros/**").authenticated()
-                                                // Webhook de Mercado Pago: público, pero el controlador exige la
-                                                // firma.
-                                                .requestMatchers(HttpMethod.POST, "/api/pagos/webhook",
-                                                                "/api/pagos/webhook/*")
-                                                .permitAll()
                                                 // Libro de Reclamaciones: público; ver una constancia pide el
                                                 // token de la constancia.
                                                 .requestMatchers(HttpMethod.POST, "/api/reclamos").permitAll()
@@ -117,6 +112,7 @@ public class ConfiguracionSeguridad {
                                                 // Panel de clientes del Sistema Empresarial: solo roles AGENCIA o
                                                 // GERENTE (datos personales).
                                                 .requestMatchers("/api/clientes/**").hasAnyRole("AGENCIA", "GERENTE")
+                                                .requestMatchers(HttpMethod.GET, "/api/pagos/configuracion").permitAll()
                                                 // Pagos: piden sesión (la compra queda a nombre del usuario).
                                                 .requestMatchers("/api/pagos/**").authenticated()
                                                 // Todo lo demás es público (búsqueda de viajes, destinos,

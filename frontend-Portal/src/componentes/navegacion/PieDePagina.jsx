@@ -1,9 +1,8 @@
 import { NavLink } from 'react-router-dom'
 import { ciudades } from '../../datos/ciudades'
+import { CONTACTO } from '../../datos/contacto'
 import './pieDePagina.css'
 
-// URLs de ejemplo: reemplazar por las cuentas reales de RutaLibre cuando
-// estén disponibles. El componente ya queda listo para ese cambio.
 const redesSociales = [
   {
     id: 'instagram',
@@ -73,6 +72,8 @@ export function PieDePagina() {
           <NavLink to="/servicios" className="pie-de-pagina__enlace">Servicios</NavLink>
           <NavLink to="/ayuda" className="pie-de-pagina__enlace">Ayuda</NavLink>
           <NavLink to="/libro-reclamaciones" className="pie-de-pagina__enlace">Libro de Reclamaciones</NavLink>
+          <NavLink to="/terminos-y-condiciones" className="pie-de-pagina__enlace">Términos y Condiciones</NavLink>
+          <NavLink to="/politica-cambios-devoluciones" className="pie-de-pagina__enlace">Cambios y Devoluciones</NavLink>
         </div>
 
         <div className="pie-de-pagina__columna">
@@ -86,14 +87,19 @@ export function PieDePagina() {
 
         <div className="pie-de-pagina__columna">
           <h3 className="pie-de-pagina__titulo">Contacto</h3>
-          <p className="pie-de-pagina__texto">Central: (01) 555 0192</p>
-          <p className="pie-de-pagina__texto">ayuda@rutalibre.pe</p>
-          <p className="pie-de-pagina__texto">Atención 24 horas, todos los días</p>
+          <p className="pie-de-pagina__texto">{CONTACTO.razonSocial}</p>
+          <p className="pie-de-pagina__texto">RUC {CONTACTO.ruc}</p>
+          <p className="pie-de-pagina__texto">
+            <a href={`mailto:${CONTACTO.correo}`}>{CONTACTO.correo}</a>
+          </p>
+          {CONTACTO.telefono && <p className="pie-de-pagina__texto">{CONTACTO.telefono}</p>}
+          {CONTACTO.direccion && <p className="pie-de-pagina__texto">{CONTACTO.direccion}</p>}
+          <p className="pie-de-pagina__texto">{CONTACTO.horarioAtencion}</p>
         </div>
       </div>
 
       <div className="contenedor pie-de-pagina__linea-inferior">
-        <p>© {anioActual} RutaLibre. Todos los derechos reservados.</p>
+        <p>© {anioActual} RutaLibre · {CONTACTO.razonSocial} · RUC {CONTACTO.ruc}. Todos los derechos reservados.</p>
         <p>Portal de clientes. Consultas, reservas y pagos.</p>
       </div>
     </footer>

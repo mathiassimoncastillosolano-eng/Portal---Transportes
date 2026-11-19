@@ -136,3 +136,11 @@
     flex-direction: column;
   }
 }
+
+.pie-de-pagina__texto a {
+  color: inherit;
+}
+
+.pie-de-pagina__texto a:hover {
+  color: #fff;
+}

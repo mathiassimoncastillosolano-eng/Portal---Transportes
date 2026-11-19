@@ -1,4 +1,4 @@
-import { soloDigitos, validarPagoYape } from './pagoMercadoPago.js'
+import { soloDigitos, validarPagoYape } from './pagoSimulado.js'
 
 function pasaLuhn(numero) {
   let suma = 0

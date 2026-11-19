@@ -86,13 +86,13 @@ public class ManejadorGlobalExcepciones {
         return construirRespuesta(excepcion.getStatus(), excepcion.getMessage(), request, null);
     }
 
-    /** Mercado Pago no respondió a tiempo: el resultado se revisa después (el pago NO se da por aprobado). */
-    @ExceptionHandler(com.transportes.pagos.mercadopago.ErrorMercadoPagoException.class)
+    /** Culqi no respondió a tiempo: el resultado se revisa después (el pago NO se da por aprobado). */
+    @ExceptionHandler(com.transportes.pagos.culqi.ErrorCulqiException.class)
     public ResponseEntity<RespuestaError> manejarProveedorPago(
-            com.transportes.pagos.mercadopago.ErrorMercadoPagoException excepcion, HttpServletRequest request) {
+            com.transportes.pagos.culqi.ErrorCulqiException excepcion, HttpServletRequest request) {
         log.warn("Error del proveedor de pagos en {}: {}", request.getRequestURI(), excepcion.getTipo());
         return construirRespuesta(HttpStatus.SERVICE_UNAVAILABLE,
-                "No pudimos comunicarnos con Mercado Pago. Inténtalo nuevamente en unos segundos.", request, null);
+                "No pudimos comunicarnos con Culqi. Inténtalo nuevamente en unos segundos.", request, null);
     }
 
     /** 400: parámetros de la URL no válidos. */

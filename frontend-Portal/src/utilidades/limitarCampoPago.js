@@ -1,4 +1,4 @@
-import { soloDigitos } from './pagoMercadoPago.js'
+import { soloDigitos } from './pagoSimulado.js'
 
 const MAX_TITULAR = 26
 

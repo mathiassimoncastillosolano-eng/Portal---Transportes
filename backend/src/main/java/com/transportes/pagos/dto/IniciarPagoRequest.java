@@ -1,14 +1,12 @@
 package com.transportes.pagos.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-/** Datos que envía el navegador para pagar. No trae el monto: el backend lo calcula. */
 public record IniciarPagoRequest(
         @NotNull(message = "El viaje es obligatorio") Long idViaje,
         @NotBlank(message = "El tokenSesion es obligatorio") @Size(max = 2000) String tokenSesion,
@@ -17,24 +15,16 @@ public record IniciarPagoRequest(
         String claveIdempotencia,
         @NotBlank(message = "El medio de pago es obligatorio")
         @Pattern(regexp = "^(TARJETA|YAPE)$", message = "Medio de pago no admitido") String medioPago,
-        @NotBlank(message = "Falta el token de pago") @Size(max = 300) String token,
-        @Size(max = 40) @Pattern(regexp = "^[a-z_]*$", message = "Método de pago no válido") String metodoPagoId,
-        @Size(max = 20) String tipoPago,
-        @Min(value = 1, message = "Cuotas no válidas") @Max(value = 36, message = "Cuotas no válidas") Integer cuotas,
+        @NotBlank(message = "Falta el token de pago")
+        @Pattern(regexp = "^(tkn|ype)_(test|live)_[A-Za-z0-9]{8,64}$", message = "Token de pago no válido")
+        String token,
         @NotBlank(message = "El correo del pagador es obligatorio") @Email(message = "Correo no válido")
         @Size(max = 150) String emailPagador,
-        @Size(max = 10) String tipoDocumento,
-        @Size(max = 20) @Pattern(regexp = "^[A-Za-z0-9]*$", message = "Documento no válido") String numeroDocumento,
-        @Size(max = 9) @Pattern(regexp = "^\\d*$", message = "Celular no válido") String celular,
-        @Size(max = 12) @Pattern(regexp = "^(SANDBOX|PRODUCTION)?$", message = "Entorno de pago no válido")
-        String entorno,
-        @Size(max = 1000) @Pattern(regexp = "^[\\x21-\\x7E]*$", message = "Identificador de dispositivo no válido")
-        String deviceId) {
+        @AssertTrue(message = "Debes aceptar los términos y condiciones y la política de cambios y devoluciones")
+        boolean aceptaTerminos) {
 
-    /** Versión segura para el log: solo viaje, medio, método y entorno (nunca el token ni datos personales). */
     @Override
     public String toString() {
-        return "IniciarPagoRequest[idViaje=" + idViaje + ", medio=" + medioPago + ", metodo=" + metodoPagoId
-                + ", entorno=" + entorno + "]";
+        return "IniciarPagoRequest[idViaje=" + idViaje + ", medio=" + medioPago + "]";
     }
 }

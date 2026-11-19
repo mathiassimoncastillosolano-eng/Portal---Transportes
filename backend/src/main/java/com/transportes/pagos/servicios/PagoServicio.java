@@ -5,7 +5,6 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -24,27 +23,26 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.transportes.buses.dto.AsientoFisicoDTO;
 import com.transportes.buses.servicios.AsientoServicio;
-import com.transportes.pagos.configuracion.AutorizadorEntornoPago;
+import com.transportes.pagos.configuracion.CredencialesCulqi;
 import com.transportes.pagos.configuracion.PropiedadesPago;
+import com.transportes.pagos.culqi.Autenticacion3ds;
+import com.transportes.pagos.culqi.CargoCulqi;
+import com.transportes.pagos.culqi.ClienteCulqi;
+import com.transportes.pagos.culqi.ErrorCulqiException;
+import com.transportes.pagos.culqi.SolicitudCargo;
+import com.transportes.pagos.dto.Confirmar3dsRequest;
+import com.transportes.pagos.dto.ConfiguracionPagoResponse;
 import com.transportes.pagos.dto.EstadoPagoResponse;
 import com.transportes.pagos.dto.EstadoPagoResponse.CompraConfirmada;
 import com.transportes.pagos.dto.EstadoPagoResponse.PasajeConfirmado;
 import com.transportes.pagos.dto.EstadoPagoResponse.SesionRenovada;
 import com.transportes.pagos.dto.IniciarPagoRequest;
-import com.transportes.pagos.entidades.EntornoPago;
 import com.transportes.pagos.entidades.EstadoOperacion;
 import com.transportes.pagos.entidades.OperacionPago;
 import com.transportes.pagos.entidades.Pasaje;
 import com.transportes.pagos.entidades.Venta;
 import com.transportes.pagos.excepciones.PagoException;
-import com.transportes.pagos.mercadopago.ClienteMercadoPago;
-import com.transportes.pagos.mercadopago.ClientesMercadoPago;
-import com.transportes.pagos.mercadopago.DocumentoPagador;
-import com.transportes.pagos.mercadopago.ErrorMercadoPagoException;
-import com.transportes.pagos.mercadopago.OrdenMercadoPago;
-import com.transportes.pagos.mercadopago.SolicitudOrden;
 import com.transportes.pagos.repositorios.OperacionPagoRepositorio;
-import com.transportes.pagos.repositorios.PagoRepositorio;
 import com.transportes.pagos.repositorios.PasajeRepositorio;
 import com.transportes.pagos.repositorios.VentaRepositorio;
 import com.transportes.usuarios.entidades.Usuario;
@@ -61,9 +59,6 @@ import com.transportes.viajes.servicios.TokenSesionServicio.SesionReserva;
 import com.transportes.viajes.servicios.ValidadorReservaViaje;
 import com.transportes.viajes.servicios.ViajeAsientoServicio;
 
-/**
- * Lógica del pago con Mercado Pago: iniciar el pago, revisar su estado y registrar la compra cuando se aprueba.
- */
 @Service
 public class PagoServicio {
 
@@ -71,9 +66,10 @@ public class PagoServicio {
 
     static final Set<EstadoOperacion> ACTIVOS =
             EnumSet.of(EstadoOperacion.CREANDO, EstadoOperacion.EN_PROCESO, EstadoOperacion.ACCION_REQUERIDA);
-    private static final Set<String> TIPOS_TARJETA = Set.of("credit_card", "debit_card", "prepaid_card");
     private static final String ESTADO_BLOQUEADO = "BLOQUEADO_TEMPORAL";
-    private static final String TITULO_ITEM = "Pasajes de bus RutaLibre";
+    private static final String DESCRIPCION = "RutaLibre - pasajes de bus";
+    private static final String MOTIVO_REEMBOLSO = "solicitud_comprador";
+    private static final String MONEDA = "PEN";
 
     private final OperacionPagoRepositorio operaciones;
     private final ViajeAsientoRepositorio viajeAsientoRepositorio;
@@ -82,12 +78,11 @@ public class PagoServicio {
     private final PasajerosSesionCache pasajerosCache;
     private final RegistroCompraServicio registroCompra;
     private final DatosPasajerosJson datosPasajerosJson;
-    private final ClientesMercadoPago clientes;
-    private final AutorizadorEntornoPago autorizador;
+    private final ClienteCulqi culqi;
+    private final CredencialesCulqi credenciales;
     private final PropiedadesPago propiedades;
     private final VentaRepositorio ventaRepositorio;
     private final PasajeRepositorio pasajeRepositorio;
-    private final PagoRepositorio pagoRepositorio;
     private final PasajeroRepositorio pasajeroRepositorio;
     private final UsuarioRepository usuarioRepositorio;
     private final AsientoServicio asientoServicio;
@@ -97,14 +92,11 @@ public class PagoServicio {
     public PagoServicio(OperacionPagoRepositorio operaciones, ViajeAsientoRepositorio viajeAsientoRepositorio,
                         ViajeAsientoServicio viajeAsientoServicio, TokenSesionServicio tokenSesionServicio,
                         PasajerosSesionCache pasajerosCache, RegistroCompraServicio registroCompra,
-                        DatosPasajerosJson datosPasajerosJson, ClientesMercadoPago clientes,
-                        AutorizadorEntornoPago autorizador,
+                        DatosPasajerosJson datosPasajerosJson, ClienteCulqi culqi, CredencialesCulqi credenciales,
                         PropiedadesPago propiedades, VentaRepositorio ventaRepositorio,
-                        PasajeRepositorio pasajeRepositorio, PagoRepositorio pagoRepositorio,
-                        PasajeroRepositorio pasajeroRepositorio, UsuarioRepository usuarioRepositorio,
-                        AsientoServicio asientoServicio,
-                        ValidadorReservaViaje validadorReserva,
-                        PlatformTransactionManager transactionManager) {
+                        PasajeRepositorio pasajeRepositorio, PasajeroRepositorio pasajeroRepositorio,
+                        UsuarioRepository usuarioRepositorio, AsientoServicio asientoServicio,
+                        ValidadorReservaViaje validadorReserva, PlatformTransactionManager transactionManager) {
         this.operaciones = operaciones;
         this.viajeAsientoRepositorio = viajeAsientoRepositorio;
         this.viajeAsientoServicio = viajeAsientoServicio;
@@ -112,12 +104,11 @@ public class PagoServicio {
         this.pasajerosCache = pasajerosCache;
         this.registroCompra = registroCompra;
         this.datosPasajerosJson = datosPasajerosJson;
-        this.clientes = clientes;
-        this.autorizador = autorizador;
+        this.culqi = culqi;
+        this.credenciales = credenciales;
         this.propiedades = propiedades;
         this.ventaRepositorio = ventaRepositorio;
         this.pasajeRepositorio = pasajeRepositorio;
-        this.pagoRepositorio = pagoRepositorio;
         this.pasajeroRepositorio = pasajeroRepositorio;
         this.usuarioRepositorio = usuarioRepositorio;
         this.asientoServicio = asientoServicio;
@@ -125,26 +116,24 @@ public class PagoServicio {
         this.tx = new TransactionTemplate(transactionManager);
     }
 
-
     private record Preparacion(OperacionPago operacion, boolean nueva, List<PasajeroAsientoRequest> pasajeros) {
     }
 
-    /** Inicia el pago: valida la sesión, calcula el monto y crea el pago en Mercado Pago. */
+    public ConfiguracionPagoResponse configuracion() {
+        boolean disponible = credenciales.disponible();
+        return new ConfiguracionPagoResponse(disponible, credenciales.entorno().name(),
+                disponible ? credenciales.llavePublica() : null, MONEDA, propiedades.getVersionTerminos());
+    }
 
     public EstadoPagoResponse iniciar(Integer idUsuario, IniciarPagoRequest req) {
-        // El entorno lo decide el backend según el usuario (Sandbox solo autorizados) y las credenciales configuradas.
-        EntornoPago entorno = autorizador.resolver(req.entorno(), idUsuario);
-        validarDatosDelMedio(req);
+        exigirDisponible();
 
-        // Si es el mismo intento repetido (doble clic, timeout del navegador), se devuelve la operación que ya existe.
         Optional<OperacionPago> repetida = operaciones.findByClaveIdempotencia(req.claveIdempotencia());
         if (repetida.isPresent()) {
-            return respuestaDeExistente(repetida.get(), idUsuario, entorno);
+            return respuestaDeExistente(repetida.get(), idUsuario);
         }
 
         SesionReserva sesion = tokenSesionServicio.validar(req.tokenSesion(), req.idViaje());
-
-        // Antes de cobrar, el viaje debe seguir reservable (no salió y faltan 20 minutos o más).
         validadorReserva.exigirReservable(req.idViaje());
         try {
             registroCompra.idMetodoPago(req.medioPago());
@@ -156,30 +145,62 @@ public class PagoServicio {
 
         Preparacion prep;
         try {
-            prep = tx.execute(estado -> preparar(idUsuario, req, sesion, entorno));
+            prep = tx.execute(estado -> preparar(idUsuario, req, sesion));
         } catch (DataIntegrityViolationException e) {
-            // Dos solicitudes iguales a la vez: la otra ya guardó la operación, se devuelve esa.
             return operaciones.findByClaveIdempotencia(req.claveIdempotencia())
-                    .map(op -> respuestaDeExistente(op, idUsuario, entorno))
+                    .map(op -> respuestaDeExistente(op, idUsuario))
                     .orElseThrow(() -> new PagoException(HttpStatus.CONFLICT,
                             "Ya hay un pago en curso para esta reserva."));
         }
         OperacionPago op = prep.operacion();
         if (!prep.nueva()) {
-            return respuestaDeExistente(op, idUsuario, entorno);
+            return respuestaDeExistente(op, idUsuario);
         }
 
-        // Los pasajeros y el token de sesión se guardan con la nueva vigencia de los asientos (permite reintentar).
         pasajerosCache.guardar(op.getIdSesionReserva(), op.getFechaExpiracion(), prep.pasajeros());
         SesionReserva renovada = tokenSesionServicio.reemitir(op.getIdSesionReserva(), op.getIdViaje(),
                 op.getFechaExpiracion());
 
-        crearOrdenEnMercadoPago(op, construirSolicitud(req, op));
+        cobrar(op.getIdOperacionPago(), construirSolicitud(op, req.token(), null));
         return respuesta(op.getIdOperacionPago(), renovada);
     }
 
-    private Preparacion preparar(Integer idUsuario, IniciarPagoRequest req, SesionReserva sesion,
-                                 EntornoPago entorno) {
+    public EstadoPagoResponse confirmar3ds(Integer idUsuario, String referencia, Confirmar3dsRequest req) {
+        OperacionPago op = operaciones.findByReferenciaExterna(referencia)
+                .filter(o -> o.getIdUsuario().equals(idUsuario))
+                .orElseThrow(() -> new PagoException(HttpStatus.NOT_FOUND, "No encontramos esa operación de pago."));
+        exigirDisponible();
+
+        Boolean tomada = tx.execute(estado -> operaciones.bloquearPorId(op.getIdOperacionPago()).map(actual -> {
+            if (actual.getEstado() != EstadoOperacion.ACCION_REQUERIDA
+                    || !actual.getFechaExpiracion().isAfter(LocalDateTime.now())) {
+                return false;
+            }
+            actual.setEstado(EstadoOperacion.CREANDO);
+            actual.setMensaje(MensajesPago.VERIFICANDO);
+            actual.setFechaActualizacion(LocalDateTime.now());
+            return true;
+        }).orElse(false));
+        if (!Boolean.TRUE.equals(tomada)) {
+            return respuesta(op.getIdOperacionPago(), null);
+        }
+
+        var p = req.parametros();
+        Autenticacion3ds autenticacion = new Autenticacion3ds(p.eci(), p.xid(), p.cavv(), p.protocolVersion(),
+                p.directoryServerTransactionId());
+        cobrar(op.getIdOperacionPago(), construirSolicitud(op, req.token(), autenticacion));
+        return respuesta(op.getIdOperacionPago(), null);
+    }
+
+    private void exigirDisponible() {
+        if (!credenciales.disponible()) {
+            log.error("Pago rechazado: las llaves de Culqi no están configuradas correctamente en el backend");
+            throw new PagoException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Los pagos no están disponibles en este momento. Inténtalo más tarde.");
+        }
+    }
+
+    private Preparacion preparar(Integer idUsuario, IniciarPagoRequest req, SesionReserva sesion) {
         String idSesion = sesion.idSesion();
         viajeAsientoRepositorio.bloquearSesion("pago:" + idSesion);
 
@@ -212,8 +233,7 @@ public class PagoServicio {
                     "Tus asientos cambiaron. Vuelve a confirmar los datos de los pasajeros.");
         }
 
-        // Calcular monto
-        BigDecimal monto = asientos.stream().map(ViajeAsiento::getPrecio)   //procesar los asientos seleccionados
+        BigDecimal monto = asientos.stream().map(ViajeAsiento::getPrecio)
                 .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
         if (monto.signum() <= 0) {
             throw new PagoException(HttpStatus.CONFLICT, "El importe de la reserva no es válido.");
@@ -221,6 +241,9 @@ public class PagoServicio {
         if ("YAPE".equals(req.medioPago()) && monto.compareTo(propiedades.getTopeYape()) > 0) {
             throw new PagoException(HttpStatus.BAD_REQUEST,
                     "El total supera el tope de Yape. Usa una tarjeta o reduce la cantidad de pasajes.");
+        }
+        if ("YAPE".equals(req.medioPago()) != req.token().startsWith("ype_")) {
+            throw new PagoException(HttpStatus.BAD_REQUEST, "El token de pago no corresponde al medio elegido.");
         }
 
         LocalDateTime expiracion = ahora.plusMinutes(propiedades.getMinutosPago());
@@ -233,67 +256,31 @@ public class PagoServicio {
         op.setIdSesionReserva(idSesion);
         op.setIdUsuario(idUsuario);
         op.setMedioPago(req.medioPago());
-        op.setEntorno(entorno);
+        op.setEntorno(credenciales.entorno());
         op.setMonto(monto);
-        op.setMoneda("PEN");
+        op.setMoneda(MONEDA);
         op.setEstado(EstadoOperacion.CREANDO);
+        op.setEmailPagador(req.emailPagador().trim());
+        op.setTerminosAceptadosEn(ahora);
+        op.setTerminosVersion(propiedades.getVersionTerminos());
         op.setDatosPasajeros(datosPasajerosJson.escribir(pasajeros));
         op.setFechaExpiracion(expiracion);
         op.setFechaCreacion(ahora);
         op.setFechaActualizacion(ahora);
         op = operaciones.saveAndFlush(op);
         log.info("Operación de pago creada: referencia={}, entorno={}, viaje={}, asientos={}, monto={}, medio={}",
-                op.getReferenciaExterna(), entorno, req.idViaje(), asientos.size(), monto, req.medioPago());
+                op.getReferenciaExterna(), op.getEntorno(), req.idViaje(), asientos.size(), monto, req.medioPago());
         return new Preparacion(op, true, pasajeros);
     }
 
-    private void validarDatosDelMedio(IniciarPagoRequest req) {
-        if ("TARJETA".equals(req.medioPago())) {
-            if (req.metodoPagoId() == null || req.metodoPagoId().isBlank()) {
-                throw new PagoException(HttpStatus.BAD_REQUEST, "No se pudo identificar la tarjeta.");
-            }
-            if (req.tipoPago() != null && !TIPOS_TARJETA.contains(req.tipoPago())) {
-                throw new PagoException(HttpStatus.BAD_REQUEST, "Tipo de tarjeta no admitido.");
-            }
-        } else if (req.celular() == null || !req.celular().matches("\\d{9}")) {
-            throw new PagoException(HttpStatus.BAD_REQUEST, "Ingresa el celular afiliado a Yape (9 dígitos).");
-        }
-    }
-
-    SolicitudOrden construirSolicitud(IniciarPagoRequest req, OperacionPago op) {
-        // El correo de pagador de prueba solo se usa en Sandbox. En Producción nunca se reemplaza el correo real
-        // del comprador.
-        boolean usarCorreoDePrueba = op.getEntorno() == EntornoPago.SANDBOX
-                && !propiedades.getEmailPagadorPrueba().isEmpty();
-        String email = usarCorreoDePrueba ? propiedades.getEmailPagadorPrueba() : req.emailPagador().trim();
-        DocumentoPagador.Resultado doc = DocumentoPagador.evaluar(req.tipoDocumento(), req.numeroDocumento(),
-                propiedades.getTiposIdentificacion(), propiedades.getMapeoTiposIdentificacion());
-        String tipoDoc = doc.enviar() ? doc.tipo() : null;
-        String numDoc = doc.enviar() ? doc.numero() : null;
-        if (!doc.enviar()) {
-            // En el log solo el motivo y el tipo de documento, sin datos personales.
-            log.info("Se omite payer.identification en {}: {} (tipo recibido: {})", op.getReferenciaExterna(),
-                    DocumentoPagador.descripcion(doc).orElse(""), tipoDocumentoParaLog(req.tipoDocumento()));
-        }
-        String descripcion = "RutaLibre - pasajes de bus";
+    SolicitudCargo construirSolicitud(OperacionPago op, String token, Autenticacion3ds autenticacion) {
         Usuario comprador = usuarioRepositorio.findById(op.getIdUsuario()).orElse(null);
         String nombre = comprador == null ? null : textoOpcional(comprador.getNombres());
         String apellido = comprador == null ? null : textoOpcional(comprador.getApellidos());
-        boolean conDeviceId = req.deviceId() != null && !req.deviceId().isBlank();
-        log.info("Datos antifraude de {}: deviceId={}, documento={}, nombre={}", op.getReferenciaExterna(),
-                conDeviceId ? "presente" : "AUSENTE", doc.enviar() ? "enviado" : "omitido",
-                nombre != null && apellido != null ? "enviado" : "omitido");
-
-        if ("YAPE".equals(req.medioPago())) {
-            return new SolicitudOrden(op.getReferenciaExterna(), op.getMonto(), descripcion, email,
-                    tipoDoc, numDoc, req.celular(), "yape", "debit_card", req.token(), 1, null, req.deviceId(),
-                    nombre, apellido, TITULO_ITEM);
-        }
-        String tipo = req.tipoPago() == null ? "credit_card" : req.tipoPago();
-        int cuotas = "credit_card".equals(tipo) && req.cuotas() != null ? req.cuotas() : 1;
-        return new SolicitudOrden(op.getReferenciaExterna(), op.getMonto(), descripcion, email, tipoDoc, numDoc,
-                null, req.metodoPagoId(), tipo, req.token(), cuotas, propiedades.getValidacion3ds(),
-                req.deviceId(), nombre, apellido, TITULO_ITEM);
+        String telefono = comprador == null || comprador.getNroTelefono() == null ? null
+                : comprador.getNroTelefono().replaceAll("\\D", "");
+        return new SolicitudCargo(op.getReferenciaExterna(), op.getMonto(), op.getMoneda(), DESCRIPCION,
+                op.getEmailPagador(), token, nombre, apellido, telefono, autenticacion);
     }
 
     private static String textoOpcional(String valor) {
@@ -301,110 +288,79 @@ public class PagoServicio {
             return null;
         }
         String limpio = valor.strip();
-        return limpio.length() <= 100 ? limpio : limpio.substring(0, 100);
+        return limpio.length() <= 50 ? limpio : limpio.substring(0, 50);
     }
 
-    private static String tipoDocumentoParaLog(String tipo) {
-        if (tipo == null || tipo.isBlank()) {
-            return "no enviado";
-        }
-        return DocumentoPagador.TIPOS_CATALOGO.contains(tipo) ? tipo : "fuera de catálogo";
-    }
-
-    private void crearOrdenEnMercadoPago(OperacionPago op, SolicitudOrden solicitud) {
-        // Se usa la referencia como clave para que Mercado Pago no cobre dos veces.
-        String clave = op.getReferenciaExterna();
-        EntornoPago entorno = op.getEntorno();
-        ClienteMercadoPago cliente = clientes.de(entorno);
-        ErrorMercadoPagoException ultimo = null;
-        for (int intento = 1; intento <= 2; intento++) {
-            try {
-                aplicarOrden(op.getIdOperacionPago(), cliente.crearOrden(solicitud, clave), entorno);
-                return;
-            } catch (ErrorMercadoPagoException e) {
-                ultimo = e;
-                if (e.getTipo() != ErrorMercadoPagoException.Tipo.RESULTADO_DESCONOCIDO) {
-                    break;
+    private void cobrar(Integer idOperacion, SolicitudCargo solicitud) {
+        try {
+            aplicarCargo(idOperacion, culqi.crearCargo(solicitud));
+        } catch (ErrorCulqiException e) {
+            switch (e.getTipo()) {
+                case PAGO_RECHAZADO -> cerrarSinCargo(idOperacion, EstadoOperacion.RECHAZADO,
+                        MensajesPago.rechazo(e.getCodigo(), e.getMensajeUsuario()), e.getIdCargo());
+                case SOLICITUD_INVALIDA, NO_CONFIGURADO, NO_ENCONTRADO -> {
+                    log.error("Cargo rechazado por Culqi: operacion={}, monto={} PEN, http={}, codigo={}, detalle={}",
+                            solicitud.referenciaExterna(), solicitud.monto(), e.getEstadoHttp(), e.getCodigo(),
+                            e.getDetalle());
+                    cerrarSinCargo(idOperacion, EstadoOperacion.ERROR, MensajesPago.ERROR_DATOS, null);
                 }
-            }
-        }
-
-        switch (ultimo.getTipo()) {
-            case PAGO_RECHAZADO -> {
-                if (ultimo.getOrdenAdjunta() != null) {
-                    aplicarOrden(op.getIdOperacionPago(), ultimo.getOrdenAdjunta(), entorno);
-                } else {
-                    cerrarSinOrden(op.getIdOperacionPago(), EstadoOperacion.RECHAZADO, MensajesPago.rechazo(ultimo.getCodigo()));
+                case RESULTADO_DESCONOCIDO -> {
+                    log.warn("Resultado desconocido al crear el cargo de {}; se verificará",
+                            solicitud.referenciaExterna());
+                    tx.executeWithoutResult(t -> operaciones.bloquearPorId(idOperacion).ifPresent(o -> {
+                        o.setMensaje(MensajesPago.VERIFICANDO);
+                        o.setFechaActualizacion(LocalDateTime.now());
+                    }));
                 }
-            }
-            case SOLICITUD_INVALIDA, NO_CONFIGURADO, NO_ENCONTRADO -> {
-                log.error("Order rechazada: operacion={}, entorno={}, medio={}/{}, monto={} PEN, http={}, codigo={}, detalle={}",
-                        op.getReferenciaExterna(), entorno, solicitud.metodoPagoId(), solicitud.metodoPagoTipo(),
-                        solicitud.monto(), ultimo.getEstadoHttp(), ultimo.getCodigo(), ultimo.getDetalle());
-                if (entorno == EntornoPago.SANDBOX && "invalid_email_for_sandbox".equals(ultimo.getCodigo())) {
-                    log.error("Mercado Pago Sandbox exige un correo de pagador de prueba: configura MERCADOPAGO_EMAIL_PAGADOR_PRUEBA");
-                }
-                cerrarSinOrden(op.getIdOperacionPago(), EstadoOperacion.ERROR, MensajesPago.ERROR_DATOS);
-            }
-            case RESULTADO_DESCONOCIDO -> {
-                // No se sabe si la order se creó: queda CREANDO y el job la buscará por la referencia.
-                log.warn("Resultado desconocido al crear la order de {}; se verificará", op.getReferenciaExterna());
-                tx.executeWithoutResult(e -> operaciones.bloquearPorId(op.getIdOperacionPago()).ifPresent(o -> {
-                    o.setMensaje(MensajesPago.VERIFICANDO);
-                    o.setFechaActualizacion(LocalDateTime.now());
-                }));
             }
         }
     }
 
-
-    /** Actualiza el pago con el estado que devolvió Mercado Pago. Si se aprobó, registra la compra. */
-    public void aplicarOrden(Integer idOperacion, OrdenMercadoPago orden, EntornoPago origen) {
+    public void aplicarCargo(Integer idOperacion, CargoCulqi cargo) {
         boolean reembolsar;
         try {
-            reembolsar = Boolean.TRUE.equals(tx.execute(estado -> aplicarEnTransaccion(idOperacion, orden, origen)));
+            reembolsar = Boolean.TRUE.equals(tx.execute(estado -> aplicarEnTransaccion(idOperacion, cargo)));
         } catch (AsientoNoDisponibleException | CompraNoRegistrableException e) {
-            // El registro se deshizo completo: no quedan venta, pago ni pasajes a medias.
             log.error("Pago aprobado sin poder registrar la compra (operación {}): {}", idOperacion, e.getMessage());
-            reembolsar = Boolean.TRUE.equals(tx.execute(estado -> marcarSinAsientos(idOperacion, orden)));
+            reembolsar = Boolean.TRUE.equals(tx.execute(estado -> marcarSinAsientos(idOperacion, cargo)));
         }
         if (reembolsar) {
             intentarReembolso(idOperacion);
         }
     }
 
-    private boolean aplicarEnTransaccion(Integer idOperacion, OrdenMercadoPago orden, EntornoPago origen) {
+    private boolean aplicarEnTransaccion(Integer idOperacion, CargoCulqi cargo) {
         OperacionPago op = operaciones.bloquearPorId(idOperacion)
                 .orElseThrow(() -> new IllegalStateException("Operación inexistente " + idOperacion));
-        if (op.getEntorno() != origen) {
-            log.error("Order {} obtenida con credenciales de {} pero la operación {} es de {}: se descarta",
-                    orden.id(), origen, op.getReferenciaExterna(), op.getEntorno());
-            return false;
-        }
-        if (orden.referenciaExterna() != null && !op.getReferenciaExterna().equals(orden.referenciaExterna())) {
-            log.error("La order {} no corresponde a la operación {}", orden.id(), op.getReferenciaExterna());
-            return false;
-        }
-        if (op.getMpOrderId() == null) {
-            op.setMpOrderId(orden.id());
-        } else if (!op.getMpOrderId().equals(orden.id())) {
-            log.error("La operación {} ya está asociada a otra order", op.getReferenciaExterna());
-            return false;
-        }
         LocalDateTime ahora = LocalDateTime.now();
-        op.setMpEstado(recortar(orden.estado(), 40));
-        op.setMpEstadoDetalle(recortar(orden.motivo(), 60));
-        if (orden.idPago() != null) {
-            op.setMpPaymentId(recortar(orden.idPago(), 64));
-        }
         op.setFechaUltimaConsulta(ahora);
         op.setFechaActualizacion(ahora);
 
+        if (cargo.requiere3ds()) {
+            if (op.getEstado().esActivo() && op.getCulqiChargeId() == null) {
+                op.setEstado(EstadoOperacion.ACCION_REQUERIDA);
+                op.setMensaje(MensajesPago.AUTENTICACION_3DS);
+            }
+            return false;
+        }
+        if (cargo.referenciaExterna() != null && !op.getReferenciaExterna().equals(cargo.referenciaExterna())) {
+            log.error("El cargo {} no corresponde a la operación {}", cargo.id(), op.getReferenciaExterna());
+            return false;
+        }
+        if (op.getCulqiChargeId() == null) {
+            op.setCulqiChargeId(cargo.id());
+        } else if (!op.getCulqiChargeId().equals(cargo.id())) {
+            log.error("La operación {} ya está asociada a otro cargo", op.getReferenciaExterna());
+            return false;
+        }
+        op.setCulqiEstado(recortar(cargo.tipoResultado(), 40));
+        op.setCulqiCodigo(recortar(cargo.codigo(), 60));
+
         switch (op.getEstado()) {
             case APROBADO -> {
-                if (orden.fallidaOCerrada()) {
-                    log.warn("La order {} de una compra ya registrada cambió a {}: revisar manualmente",
-                            orden.id(), orden.estado());
+                if (cargo.reembolsadaTotalmente()) {
+                    log.warn("El cargo {} de una compra ya registrada figura reembolsado: revisar manualmente",
+                            cargo.id());
                 }
                 return false;
             }
@@ -412,66 +368,60 @@ public class PagoServicio {
                 return false;
             }
             default -> {
-                // sigue
             }
         }
 
-        if (orden.aprobada()) {
+        if (cargo.aprobada()) {
             try {
-                RegistroCompraServicio.verificarCorrespondencia(op, orden);
+                RegistroCompraServicio.verificarCorrespondencia(op, cargo);
             } catch (IllegalStateException e) {
                 throw new CompraNoRegistrableException(e.getMessage());
             }
-            registroCompra.registrar(op, orden);
+            registroCompra.registrar(op, cargo);
             op.setMensaje(MensajesPago.APROBADO);
             pasajerosCache.eliminar(op.getIdSesionReserva());
             return false;
         }
         if (!op.getEstado().esActivo()) {
-            return false; // un estado final no cambia por avisos tardíos o desordenados
+            return false;
         }
-        if (orden.requiereDesafio3ds()) {
-            op.setEstado(EstadoOperacion.ACCION_REQUERIDA);
-            op.setUrlDesafio3ds(recortar(orden.urlDesafio3ds(), 500));
-            op.setMensaje(MensajesPago.DESAFIO_3DS);
-        } else if (orden.fallidaOCerrada()) {
-            boolean vencida = "expired".equals(orden.estado()) || op.getFechaExpiracion().isBefore(ahora);
-            op.setEstado(vencida ? EstadoOperacion.EXPIRADO : EstadoOperacion.RECHAZADO);
-            op.setUrlDesafio3ds(null);
-            op.setMensaje(vencida ? MensajesPago.EXPIRADO : MensajesPago.rechazo(orden.motivo()));
-            log.info("Pago no aprobado: operacion={}, order={}, estado={}, detalle={}", op.getReferenciaExterna(),
-                    orden.id(), orden.estado(), orden.motivo());
+        if (cargo.rechazada()) {
+            op.setEstado(EstadoOperacion.RECHAZADO);
+            op.setMensaje(MensajesPago.rechazo(cargo.codigo(), cargo.mensajeUsuario()));
+            log.info("Pago no aprobado: operacion={}, cargo={}, resultado={}, codigo={}", op.getReferenciaExterna(),
+                    cargo.id(), cargo.tipoResultado(), cargo.codigo());
         } else {
             op.setEstado(EstadoOperacion.EN_PROCESO);
-            op.setUrlDesafio3ds(null);
             op.setMensaje(MensajesPago.EN_PROCESO);
         }
         return false;
     }
 
-    private boolean marcarSinAsientos(Integer idOperacion, OrdenMercadoPago orden) {
+    private boolean marcarSinAsientos(Integer idOperacion, CargoCulqi cargo) {
         OperacionPago op = operaciones.bloquearPorId(idOperacion).orElseThrow();
         if (op.getEstado() == EstadoOperacion.APROBADO || op.getIdVenta() != null) {
             return false;
         }
-        if (op.getMpOrderId() == null) {
-            op.setMpOrderId(orden.id());
+        if (op.getCulqiChargeId() == null) {
+            op.setCulqiChargeId(cargo.id());
         }
-        op.setMpEstado(recortar(orden.estado(), 40));
-        op.setMpEstadoDetalle(recortar(orden.motivo(), 60));
+        op.setCulqiEstado(recortar(cargo.tipoResultado(), 40));
+        op.setCulqiCodigo(recortar(cargo.codigo(), 60));
         op.setEstado(EstadoOperacion.APROBADO_SIN_ASIENTOS);
         op.setMensaje(MensajesPago.SIN_ASIENTOS);
-        op.setUrlDesafio3ds(null);
         op.setDatosPasajeros(null);
         op.setFechaActualizacion(LocalDateTime.now());
         return true;
     }
 
-    private void cerrarSinOrden(Integer idOperacion, EstadoOperacion estado, String mensaje) {
-        tx.executeWithoutResult(e -> operaciones.bloquearPorId(idOperacion).ifPresent(op -> {
+    private void cerrarSinCargo(Integer idOperacion, EstadoOperacion estado, String mensaje, String idCargo) {
+        tx.executeWithoutResult(t -> operaciones.bloquearPorId(idOperacion).ifPresent(op -> {
             if (op.getEstado().esActivo()) {
                 op.setEstado(estado);
                 op.setMensaje(mensaje);
+                if (idCargo != null && op.getCulqiChargeId() == null) {
+                    op.setCulqiChargeId(recortar(idCargo, 64));
+                }
                 op.setFechaActualizacion(LocalDateTime.now());
             }
         }));
@@ -479,28 +429,25 @@ public class PagoServicio {
 
     void intentarReembolso(Integer idOperacion) {
         OperacionPago op = operaciones.findById(idOperacion).orElse(null);
-        if (op == null || op.getEstado() != EstadoOperacion.APROBADO_SIN_ASIENTOS || op.getMpOrderId() == null) {
+        if (op == null || op.getEstado() != EstadoOperacion.APROBADO_SIN_ASIENTOS || op.getCulqiChargeId() == null) {
             return;
         }
         try {
-            clientes.de(op.getEntorno()).reembolsarOrden(op.getMpOrderId(), "refund-" + op.getReferenciaExterna());
-            tx.executeWithoutResult(e -> operaciones.bloquearPorId(idOperacion).ifPresent(o -> {
+            String idReembolso = culqi.reembolsar(op.getCulqiChargeId(), op.getMonto(), MOTIVO_REEMBOLSO);
+            tx.executeWithoutResult(t -> operaciones.bloquearPorId(idOperacion).ifPresent(o -> {
                 if (o.getEstado() == EstadoOperacion.APROBADO_SIN_ASIENTOS) {
                     o.setEstado(EstadoOperacion.REEMBOLSADO);
+                    o.setCulqiRefundId(recortar(idReembolso, 64));
                     o.setMensaje(MensajesPago.REEMBOLSADO);
                     o.setFechaActualizacion(LocalDateTime.now());
                 }
             }));
-            log.info("Reembolso solicitado: operacion={}, order={}", op.getReferenciaExterna(), op.getMpOrderId());
-        } catch (ErrorMercadoPagoException e) {
-            log.error("No se pudo reembolsar la order {} ({}); se reintentará", op.getMpOrderId(), e.getTipo());
+            log.info("Devolución solicitada: operacion={}, cargo={}", op.getReferenciaExterna(), op.getCulqiChargeId());
+        } catch (ErrorCulqiException e) {
+            log.error("No se pudo devolver el cargo {} ({}); se reintentará", op.getCulqiChargeId(), e.getTipo());
         }
     }
 
-
-    /**
-     * Consulta a Mercado Pago el estado de una operación pendiente y lo aplica. Nunca lanza errores del proveedor.
-     */
     public void sincronizar(Integer idOperacion) {
         OperacionPago op = operaciones.findById(idOperacion).orElse(null);
         if (op == null) {
@@ -513,28 +460,30 @@ public class PagoServicio {
         if (!op.getEstado().esActivo()) {
             return;
         }
-        EntornoPago entorno = op.getEntorno();
-        ClienteMercadoPago cliente = clientes.de(entorno);
-        try {
-            if (op.getMpOrderId() != null) {
-                aplicarOrden(idOperacion, cliente.consultarOrden(op.getMpOrderId()), entorno);
-            } else {
-                OffsetDateTime creada = op.getFechaCreacion().atZone(ZoneId.systemDefault()).toOffsetDateTime();
-                Optional<OrdenMercadoPago> encontrada = cliente.buscarPorReferencia(
-                        op.getReferenciaExterna(), creada.minusHours(1), OffsetDateTime.now().plusHours(1));
-                if (encontrada.isPresent()) {
-                    aplicarOrden(idOperacion, encontrada.get(), entorno);
-                } else if (op.getFechaCreacion().isBefore(
-                        LocalDateTime.now().minusSeconds(propiedades.getSegundosResultadoDesconocido()))) {
-                    log.warn("La order de {} no existe en Mercado Pago: se cierra sin cobro", op.getReferenciaExterna());
-                    cerrarSinOrden(idOperacion, EstadoOperacion.ERROR, MensajesPago.ERROR_CREACION);
+        boolean esperaAutenticacion = op.getEstado() == EstadoOperacion.ACCION_REQUERIDA
+                && op.getCulqiChargeId() == null;
+        if (!esperaAutenticacion) {
+            try {
+                if (op.getCulqiChargeId() != null) {
+                    aplicarCargo(idOperacion, culqi.consultarCargo(op.getCulqiChargeId()));
                 } else {
-                    marcarConsultada(idOperacion);
+                    OffsetDateTime creada = op.getFechaCreacion().atZone(ZoneId.systemDefault()).toOffsetDateTime();
+                    Optional<CargoCulqi> encontrado = culqi.buscarPorReferencia(op.getReferenciaExterna(),
+                            op.getEmailPagador(), creada.minusMinutes(5), OffsetDateTime.now().plusMinutes(5));
+                    if (encontrado.isPresent()) {
+                        aplicarCargo(idOperacion, encontrado.get());
+                    } else if (op.getFechaCreacion().isBefore(
+                            LocalDateTime.now().minusSeconds(propiedades.getSegundosResultadoDesconocido()))) {
+                        log.warn("El cargo de {} no existe en Culqi: se cierra sin cobro", op.getReferenciaExterna());
+                        cerrarSinCargo(idOperacion, EstadoOperacion.ERROR, MensajesPago.ERROR_CREACION, null);
+                    } else {
+                        marcarConsultada(idOperacion);
+                    }
                 }
+            } catch (ErrorCulqiException e) {
+                log.warn("No se pudo consultar la operación {} en Culqi ({})", op.getReferenciaExterna(), e.getTipo());
+                marcarConsultada(idOperacion);
             }
-        } catch (ErrorMercadoPagoException e) {
-            log.warn("No se pudo consultar la operación {} en Mercado Pago ({})", op.getReferenciaExterna(), e.getTipo());
-            marcarConsultada(idOperacion);
         }
         expirarSiCorresponde(idOperacion);
     }
@@ -544,83 +493,16 @@ public class PagoServicio {
         if (op == null || !op.getEstado().esActivo() || !op.getFechaExpiracion().isBefore(LocalDateTime.now())) {
             return;
         }
-        if (op.getMpOrderId() != null) {
-            try {
-                // Se cancela la order para que no se apruebe cuando los asientos ya se liberaron.
-                aplicarOrden(idOperacion,
-                        clientes.de(op.getEntorno()).cancelarOrden(op.getMpOrderId(), "cancel-" + op.getReferenciaExterna()),
-                        op.getEntorno());
-            } catch (ErrorMercadoPagoException e) {
-                log.warn("No se pudo cancelar la order {} ({})", op.getMpOrderId(), e.getTipo());
-            }
+        if (op.getCulqiChargeId() == null) {
+            cerrarSinCargo(idOperacion, EstadoOperacion.EXPIRADO, MensajesPago.EXPIRADO, null);
         }
-        cerrarSinOrden(idOperacion, EstadoOperacion.EXPIRADO, MensajesPago.EXPIRADO);
     }
 
     private void marcarConsultada(Integer idOperacion) {
-        tx.executeWithoutResult(e -> operaciones.bloquearPorId(idOperacion).ifPresent(o -> {
-            o.setFechaUltimaConsulta(LocalDateTime.now());
-        }));
+        tx.executeWithoutResult(t -> operaciones.bloquearPorId(idOperacion)
+                .ifPresent(o -> o.setFechaUltimaConsulta(LocalDateTime.now())));
     }
 
-    /** Procesa un aviso de Mercado Pago: consulta el pago y actualiza su estado. */
-    public void procesarNotificacionOrden(String idOrden, Collection<EntornoPago> candidatos) {
-        Optional<OperacionPago> conocida = operaciones.findByMpOrderId(idOrden);
-        if (conocida.isPresent()) {
-            OperacionPago op = conocida.get();
-            EntornoPago entorno = op.getEntorno();
-            if (!candidatos.contains(entorno)) {
-                log.warn("Webhook de la order {} descartado: su firma no corresponde al entorno {} de la operación",
-                        idOrden, entorno);
-                return;
-            }
-            OrdenMercadoPago orden;
-            try {
-                orden = clientes.de(entorno).consultarOrden(idOrden);
-            } catch (ErrorMercadoPagoException e) {
-                if (e.getTipo() == ErrorMercadoPagoException.Tipo.NO_ENCONTRADO) {
-                    log.warn("Webhook de una order inexistente en {}: {}", entorno, idOrden);
-                    return;
-                }
-                throw e; // el controlador decide: fallo temporal -> 503 (reintento); rechazo definitivo -> 200
-            }
-            aplicarOrden(op.getIdOperacionPago(), orden, entorno);
-            return;
-        }
-
-        ErrorMercadoPagoException ultimoError = null;
-        for (EntornoPago entorno : candidatos) {
-            OrdenMercadoPago orden;
-            try {
-                orden = clientes.de(entorno).consultarOrden(idOrden);
-            } catch (ErrorMercadoPagoException e) {
-                if (e.getTipo() != ErrorMercadoPagoException.Tipo.NO_ENCONTRADO
-                        && e.getTipo() != ErrorMercadoPagoException.Tipo.NO_CONFIGURADO) {
-                    ultimoError = e;
-                }
-                continue; // la order puede ser del otro entorno
-            }
-            Optional<OperacionPago> op = orden.referenciaExterna() == null
-                    ? Optional.empty() : operaciones.findByReferenciaExterna(orden.referenciaExterna());
-            if (op.isEmpty()) {
-                log.info("Webhook de una order ajena a RutaLibre: {}", orden.id());
-                return;
-            }
-            if (op.get().getEntorno() != entorno) {
-                log.error("Webhook: la order {} existe en {} pero la operación {} es de {}: se descarta",
-                        orden.id(), entorno, op.get().getReferenciaExterna(), op.get().getEntorno());
-                return;
-            }
-            aplicarOrden(op.get().getIdOperacionPago(), orden, entorno);
-            return;
-        }
-        if (ultimoError != null) {
-            throw ultimoError;
-        }
-        log.warn("Webhook de una order inexistente: {}", idOrden);
-    }
-
-    /** Devuelve el estado de un pago del usuario. Si sigue pendiente, consulta a Mercado Pago. */
     public EstadoPagoResponse consultar(Integer idUsuario, String referencia) {
         OperacionPago op = operaciones.findByReferenciaExterna(referencia)
                 .filter(o -> o.getIdUsuario().equals(idUsuario))
@@ -634,15 +516,9 @@ public class PagoServicio {
         return respuesta(op.getIdOperacionPago(), null);
     }
 
-
-    private EstadoPagoResponse respuestaDeExistente(OperacionPago op, Integer idUsuario, EntornoPago entorno) {
+    private EstadoPagoResponse respuestaDeExistente(OperacionPago op, Integer idUsuario) {
         if (!op.getIdUsuario().equals(idUsuario)) {
             throw new PagoException(HttpStatus.CONFLICT, "La solicitud de pago no es válida.");
-        }
-        if (op.getEntorno() != entorno) {
-            // Misma reserva o misma clave pero otro entorno: nunca se reutiliza una operación entre entornos.
-            throw new PagoException(HttpStatus.CONFLICT,
-                    "Ya hay un pago en curso para esta reserva en otro entorno. Espera su resultado.");
         }
         return respuesta(op.getIdOperacionPago(), null);
     }
@@ -658,8 +534,7 @@ public class PagoServicio {
             SesionRenovada sesion = renovada == null ? null
                     : new SesionRenovada(renovada.tokenSesion(), renovada.segundosRestantes());
             return new EstadoPagoResponse(op.getReferenciaExterna(), e.name(), e.esFinal(), reintentable, mensaje,
-                    op.getMpOrderId(), op.getMonto(),
-                    e == EstadoOperacion.ACCION_REQUERIDA ? op.getUrlDesafio3ds() : null,
+                    op.getCulqiChargeId(), op.getMonto(), e == EstadoOperacion.ACCION_REQUERIDA,
                     sesion, e == EstadoOperacion.APROBADO ? compra(op) : null, op.getEntorno().name());
         });
     }
@@ -668,8 +543,8 @@ public class PagoServicio {
         Venta venta = ventaRepositorio.findById(op.getIdVenta()).orElseThrow();
         List<PasajeConfirmado> pasajes = pasajeRepositorio.findByIdVentaOrderByIdPasaje(venta.getIdVenta()).stream()
                 .map(this::detallePasaje).toList();
-        String idPago = op.getMpPaymentId() != null ? op.getMpPaymentId() : op.getMpOrderId();
-        return new CompraConfirmada(venta.getIdVenta(), venta.getFechaVenta(), venta.getMontoTotal(), idPago, pasajes);
+        return new CompraConfirmada(venta.getIdVenta(), venta.getFechaVenta(), venta.getMontoTotal(),
+                op.getCulqiChargeId(), pasajes);
     }
 
     private PasajeConfirmado detallePasaje(Pasaje p) {
