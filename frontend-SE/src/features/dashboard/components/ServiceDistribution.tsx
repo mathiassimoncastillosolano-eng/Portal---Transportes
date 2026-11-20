@@ -1,19 +1,18 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
-import type { ServicioId } from '@/types/servicio'
 import { formatearMoneda, formatearMonedaEntera, formatearPorcentaje } from '@/utils/formato'
 import type { FilaRanking } from '../utils/agregaciones'
 import { ChartCard } from './ChartCard'
 import { ChartTooltip } from './ChartTooltip'
 
-const COLOR_SERVICIO: Record<ServicioId, string> = {
-  economico: 'var(--color-chart-1)',
-  ejecutivo: 'var(--color-chart-2)',
-  directo: 'var(--color-chart-3)',
-  vip: 'var(--color-chart-4)',
+/** Colores de la paleta de gráficos; cada servicio toma uno según su posición (si hay más, se repiten). */
+const COLORES = ['var(--color-chart-1)', 'var(--color-chart-2)', 'var(--color-chart-3)', 'var(--color-chart-4)']
+
+function colorDe(posicion: number): string {
+  return COLORES[posicion % COLORES.length]
 }
 
 interface Props {
-  filas: (FilaRanking & { servicioId: ServicioId })[]
+  filas: FilaRanking[]
   cargando: boolean
   error: boolean
   onRetry: () => void
@@ -38,8 +37,8 @@ export function ServiceDistribution({ filas, cargando, error, onRetry, hayVentas
         <ResponsiveContainer width="100%" height={200}>
           <PieChart>
             <Pie data={filas} dataKey="ingresos" nameKey="etiqueta" innerRadius={62} outerRadius={90} paddingAngle={3} cornerRadius={4} animationDuration={900} stroke="var(--color-surface-card)" strokeWidth={2}>
-              {filas.map((f) => (
-                <Cell key={f.servicioId} fill={COLOR_SERVICIO[f.servicioId]} />
+              {filas.map((f, i) => (
+                <Cell key={f.clave} fill={colorDe(i)} />
               ))}
             </Pie>
             <Tooltip
@@ -66,11 +65,11 @@ export function ServiceDistribution({ filas, cargando, error, onRetry, hayVentas
         </div>
       </div>
       <ul className="mt-4 space-y-3" aria-label="Leyenda por servicio">
-        {filas.map((f) => (
-          <li key={f.servicioId} className="text-sm">
+        {filas.map((f, i) => (
+          <li key={f.clave} className="text-sm">
             <div className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2 font-medium text-text-900">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR_SERVICIO[f.servicioId] }} aria-hidden="true" />
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: colorDe(i) }} aria-hidden="true" />
                 {f.etiqueta}
               </span>
               <span className="tabular-nums text-text-500">
@@ -80,7 +79,7 @@ export function ServiceDistribution({ filas, cargando, error, onRetry, hayVentas
             <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-border" aria-hidden="true">
               <div
                 className="h-full origin-left rounded-full transition-transform duration-700 ease-[var(--ease-premium)]"
-                style={{ background: COLOR_SERVICIO[f.servicioId], transform: `scaleX(${Math.max(0, Math.min(1, f.participacion / 100))})` }}
+                style={{ background: colorDe(i), transform: `scaleX(${Math.max(0, Math.min(1, f.participacion / 100))})` }}
               />
             </div>
           </li>

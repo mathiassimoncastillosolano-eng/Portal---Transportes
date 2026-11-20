@@ -1,6 +1,4 @@
-import type { Agencia } from '@/types/agency'
-import type { PeriodoDatos, RangoFechas, VentaFact, ViajeOcupacionFact } from '@/types/dashboard'
-import type { Servicio, ServicioId } from '@/types/servicio'
+import type { OpcionFiltro, PeriodoDatos, RangoFechas, VentaFact, ViajeOcupacionFact } from '@/types/dashboard'
 import { listarDias } from '@/utils/fechas'
 
 /**
@@ -138,15 +136,19 @@ function agrupar(
     .sort((a, b) => b.ingresos - a.ingresos)
 }
 
-export function agruparPorAgencia(ventas: VentaFact[], agencias: Agencia[]): FilaRanking[] {
-  return agrupar(ventas, (v) => v.agenciaId, (id) => agencias.find((a) => a.id === id)?.name ?? id)
+/** Nombre de una opción por su id; si no se encuentra, se muestra el id. */
+function nombreDe(opciones: OpcionFiltro[], id: string): string {
+  return opciones.find((o) => o.id === id)?.nombre ?? id
 }
 
-export function agruparPorServicio(ventas: VentaFact[], servicios: Servicio[]): (FilaRanking & { servicioId: ServicioId })[] {
-  return agrupar(ventas, (v) => v.servicioId, (id) => servicios.find((s) => s.id === id)?.nombre ?? id).map((f) => ({
-    ...f,
-    servicioId: f.clave as ServicioId,
-  }))
+/** Ingresos por agencia de salida del viaje. */
+export function agruparPorAgencia(ventas: VentaFact[], agencias: OpcionFiltro[]): FilaRanking[] {
+  return agrupar(ventas, (v) => v.agenciaId, (id) => nombreDe(agencias, id))
+}
+
+/** Ingresos por tipo de servicio (tipo de bus). */
+export function agruparPorServicio(ventas: VentaFact[], servicios: OpcionFiltro[]): FilaRanking[] {
+  return agrupar(ventas, (v) => v.servicioId, (id) => nombreDe(servicios, id))
 }
 
 export function agruparPorRuta(ventas: VentaFact[]): FilaRanking[] {

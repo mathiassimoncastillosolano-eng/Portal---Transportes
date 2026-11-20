@@ -1,3 +1,5 @@
+import { FECHA_REFERENCIA } from '@/config/referencia'
+import { agenciasMock, rutasMock, serviciosMock } from '@/data/mock'
 import { useTicketingStore } from '@/stores/ticketingStore'
 import { diferenciaDias, sumarDias } from '@/utils/fechas'
 import type { PeriodoDatos, VentaFact } from '@/types/dashboard'
@@ -66,5 +68,17 @@ export const dashboardServiceMock: DashboardService = {
     anterior.viajes = ocupacion(viajesAnterior)
 
     return { actual, anterior }
+  },
+
+  /** Opciones de los filtros armadas con los mismos catálogos simulados. */
+  async obtenerOpciones() {
+    await simularLatencia(120, 250)
+    const destinos = [...new Set(rutasMock.map((r) => r.destino))].sort((a, b) => a.localeCompare(b, 'es'))
+    return {
+      agencias: agenciasMock.map((a) => ({ id: a.id, nombre: a.name, detalle: a.city })),
+      servicios: serviciosMock.map((s) => ({ id: s.id, nombre: s.nombre, detalle: s.unidad })),
+      destinos,
+      hoy: FECHA_REFERENCIA,
+    }
   },
 }

@@ -1,5 +1,4 @@
 import type { EstadoPasaje } from './pasaje'
-import type { ServicioId } from './servicio'
 
 export type PeriodoPreset = '7d' | '30d' | '90d' | 'custom'
 
@@ -16,7 +15,8 @@ export interface FiltrosDashboard {
   /** Solo se usa con `periodo === 'custom'`. */
   rango: RangoFechas
   agenciaId: string
-  servicioId: ServicioId | 'todos'
+  /** Id del tipo de servicio (tipo de bus) o `'todos'`. */
+  servicioId: string
   destino: string
 }
 
@@ -24,7 +24,7 @@ export interface FiltrosDashboard {
 export interface ConsultaDashboard {
   rango: RangoFechas
   agenciaId?: string
-  servicioId?: ServicioId
+  servicioId?: string
   destino?: string
 }
 
@@ -35,8 +35,10 @@ export interface VentaFact {
   fecha: string
   ingreso: number
   estado: EstadoPasaje
+  /** Agencia de salida del viaje. */
   agenciaId: string
-  servicioId: ServicioId
+  /** Tipo de servicio (tipo de bus). */
+  servicioId: string
   origen: string
   destino: string
 }
@@ -56,4 +58,21 @@ export interface PeriodoDatos {
 export interface DatosDashboard {
   actual: PeriodoDatos
   anterior: PeriodoDatos
+}
+
+/** Una opción de un filtro del Dashboard (agencia o servicio). */
+export interface OpcionFiltro {
+  id: string
+  nombre: string
+  /** Texto secundario opcional, ej. la ciudad de la agencia. */
+  detalle?: string | null
+}
+
+/** Opciones de los filtros y la fecha "hoy" desde la que se calculan los períodos. */
+export interface OpcionesDashboard {
+  agencias: OpcionFiltro[]
+  servicios: OpcionFiltro[]
+  destinos: string[]
+  /** YYYY-MM-DD */
+  hoy: string
 }
