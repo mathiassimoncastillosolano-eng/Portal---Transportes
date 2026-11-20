@@ -23,6 +23,19 @@ export function construirSolicitudPago({ idViaje, tokenSesion, claveIdempotencia
   }
 }
 
+export function construirSolicitudCambio({ idViajeNuevo, idAsiento, tokenSesion, claveIdempotencia, token, correo }) {
+  return {
+    idViajeNuevo,
+    idAsiento,
+    tokenSesion,
+    claveIdempotencia,
+    medioPago: tipoMedioPago(token.id),
+    token: token.id,
+    emailPagador: (token.email || correo || '').trim(),
+    aceptaTerminos: true,
+  }
+}
+
 export function describirEstadoPago(respuesta, { agotado = false } = {}) {
   switch (respuesta?.estado) {
     case 'APROBADO':

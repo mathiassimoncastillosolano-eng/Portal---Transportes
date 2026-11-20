@@ -7,8 +7,19 @@ import {
   consultarElegibilidad,
   procesarPagoSimulado,
 } from '../servicios/postergacionMock'
-import { borrarSesionAsientos } from '../servicios/viajesServicio'
+import { borrarSesionAsientos, guardarSesionAsientos } from '../servicios/viajesServicio'
 import { confirmarPostergacionEnServidor } from '../servicios/postergacionServicio'
+import { abrirCheckout, autenticar3ds } from '../servicios/culqiSdk'
+import {
+  ESTADOS_ACTIVOS,
+  confirmar3ds,
+  esperarResultadoPago,
+  iniciarPagoCambio,
+  nuevaClaveIdempotencia,
+  obtenerConfiguracionPago,
+} from '../servicios/pagosServicio'
+import { construirSolicitudCambio } from '../utilidades/pagoCulqi'
+import { adaptarRespuestaConfirmacion } from '../utilidades/confirmacionPostergacion'
 import { CODIGOS_RECHAZO, puedeContinuarDesdeTarifa } from '../utilidades/postergacion'
 import { evaluarCobro } from '../utilidades/cobroPostergacion'
 import { VALORES_YAPE_INICIALES } from '../utilidades/pagoSimulado'
@@ -45,6 +56,9 @@ function estadoInicial() {
       yape: { ...VALORES_YAPE_INICIALES },
     },
     erroresPago: {},
+    aceptaTerminosPago: false,
+    configPago: null,
+    pendiente: null,
     procesando: false,
     busqueda: null,
     intentos: [],
@@ -86,6 +100,12 @@ function reductor(estado, accion) {
       return { ...estado, fase: FASES.PAGO, avisoPago: null }
     case 'metodo':
       return { ...estado, metodo: accion.metodo, avisoPago: null, erroresPago: {} }
+    case 'terminos-pago':
+      return { ...estado, aceptaTerminosPago: accion.valor, avisoPago: null }
+    case 'config-pago':
+      return { ...estado, configPago: accion.config }
+    case 'pendiente':
+      return { ...estado, procesando: false, pendiente: accion.referencia, avisoPago: { tipo: 'pendiente', mensaje: accion.mensaje } }
     case 'editar-dato-pago':
       return {
         ...estado,
@@ -114,15 +134,19 @@ function reductor(estado, accion) {
     case 'reelegir-asiento':
       return { ...estado, fase: FASES.ASIENTO, asiento: null, comparacion: null, aceptaCondiciones: false, procesando: false, resultado: null, versionMapa: estado.versionMapa + 1 }
     case 'volver':
-      return { ...estado, fase: ORDEN_ATRAS[estado.fase] ?? estado.fase, avisoPago: null, aceptaCondiciones: false }
+      return { ...estado, fase: ORDEN_ATRAS[estado.fase] ?? estado.fase, avisoPago: null, aceptaCondiciones: false, aceptaTerminosPago: false }
     default:
       return estado
   }
 }
 
-export function usePostergacion({ pasaje, idCliente, escenario, alEscenarioConsumido }) {
+export function usePostergacion({ pasaje, idCliente, escenario, alEscenarioConsumido, tema, correo }) {
   const [estado, despachar] = useReducer(reductor, undefined, estadoInicial)
   const enVuelo = useRef(false)
+  const temaRef = useRef(tema)
+  temaRef.current = tema
+  const correoRef = useRef(correo)
+  correoRef.current = correo
   const escenarioRef = useRef(escenario)
   escenarioRef.current = escenario
   const estadoRef = useRef(estado)
@@ -230,7 +254,110 @@ export function usePostergacion({ pasaje, idCliente, escenario, alEscenarioConsu
     }
   }, [pasaje, idCliente, manejarFallo])
 
+  useEffect(() => {
+    if (estado.fase !== FASES.PAGO || !pasaje.deCompraReal || estado.configPago) return undefined
+    let cancelado = false
+    obtenerConfiguracionPago()
+      .then((config) => {
+        if (!cancelado) despachar({ tipo: 'config-pago', config })
+      })
+      .catch(() => {
+        if (!cancelado) {
+          despachar({ tipo: 'aviso-pago', aviso: { tipo: 'error', mensaje: 'No pudimos cargar la configuración de pagos.' } })
+        }
+      })
+    return () => { cancelado = true }
+  }, [estado.fase, estado.configPago, pasaje.deCompraReal])
+
+  const resolverPagoCambio = useCallback((respuesta, agotado) => {
+    const { viaje, asiento, comparacion } = estadoRef.current
+    if (respuesta?.estado === 'APROBADO' && respuesta.cambio) {
+      const confirmado = adaptarRespuestaConfirmacion(respuesta.cambio, {
+        pasaje, viaje, asiento, pago: { referencia: respuesta.referencia },
+      })
+      despachar({
+        tipo: 'exito',
+        datos: { pasaje: confirmado.pasaje, pago: confirmado.pago, montoAdicional: confirmado.montoAdicional, comparacion },
+      })
+    } else if (respuesta?.estado === 'APROBADO_SIN_ASIENTOS' || respuesta?.estado === 'REEMBOLSADO') {
+      despachar({
+        tipo: 'rechazar',
+        datos: { codigo: 'CAMBIO_NO_APLICADO', mensaje: respuesta.mensaje, puedeReelegirAsiento: true },
+      })
+    } else if (agotado || ESTADOS_ACTIVOS.has(respuesta?.estado)) {
+      despachar({
+        tipo: 'pendiente',
+        referencia: respuesta?.referencia ?? null,
+        mensaje: 'Todavía no tenemos la confirmación de Culqi. No vuelvas a pagar: si el pago se aprueba, tu cambio se aplicará solo y lo verás en "Mis pasajes".',
+      })
+    } else {
+      despachar({ tipo: 'aviso-pago', aviso: { tipo: 'rechazado', mensaje: respuesta?.mensaje ?? 'El pago no fue aprobado.' } })
+    }
+  }, [pasaje])
+
+  const pagarConCulqi = useCallback(async () => {
+    if (enVuelo.current) return
+    const { configPago, aceptaTerminosPago, comparacion, viaje, asiento, sesion, pendiente } = estadoRef.current
+    if (pendiente || !aceptaTerminosPago || !configPago?.disponible || !configPago?.publicKey || !sesion?.tokenSesion) return
+    enVuelo.current = true
+    let token
+    try {
+      token = await abrirCheckout({
+        publicKey: configPago.publicKey,
+        monto: comparacion.montoAPagar,
+        titulo: 'RutaLibre',
+        contenedor: '#culqi-contenedor',
+        tema: temaRef.current,
+      })
+    } catch (error) {
+      enVuelo.current = false
+      if (!error.cancelado) despachar({ tipo: 'aviso-pago', aviso: { tipo: 'error', mensaje: error.message } })
+      return
+    }
+    despachar({ tipo: 'iniciar-pago' })
+    try {
+      const correoPagador = correoRef.current
+      let respuesta = await iniciarPagoCambio(pasaje.idPasaje, construirSolicitudCambio({
+        idViajeNuevo: viaje.id,
+        idAsiento: asiento.idAsiento,
+        tokenSesion: sesion.tokenSesion,
+        claveIdempotencia: nuevaClaveIdempotencia(),
+        token,
+        correo: correoPagador,
+      }))
+      if (respuesta.sesion?.tokenSesion) {
+        despachar({ tipo: 'guardar-sesion', sesion: guardarSesionAsientos(viaje.id, respuesta.sesion) })
+      }
+      if (respuesta.estado === 'ACCION_REQUERIDA' && respuesta.requiere3ds) {
+        const parametros = await autenticar3ds({
+          publicKey: configPago.publicKey,
+          tokenId: token.id,
+          monto: comparacion.montoAPagar,
+          correo: token.email || correoPagador,
+        })
+        respuesta = await confirmar3ds(respuesta.referencia, { token: token.id, parametros })
+      }
+      let agotado = false
+      if (ESTADOS_ACTIVOS.has(respuesta.estado)) {
+        const espera = await esperarResultadoPago(respuesta.referencia, { maxEsperaMs: 120000 })
+        respuesta = espera.respuesta ?? respuesta
+        agotado = espera.agotado
+      }
+      resolverPagoCambio(respuesta, agotado)
+    } catch (error) {
+      despachar({ tipo: 'aviso-pago', aviso: { tipo: 'error', mensaje: error.message || 'No pudimos procesar el pago. Inténtalo de nuevo.' } })
+    } finally {
+      enVuelo.current = false
+    }
+  }, [pasaje, resolverPagoCambio])
+
+  const cambiarTerminosPago = useCallback((valor) => despachar({ tipo: 'terminos-pago', valor }), [])
+
   const pagar = useCallback(async () => {
+    if (pasaje.deCompraReal) {
+      await pagarConCulqi()
+      return
+    }
     if (enVuelo.current) return
     const { intentos: previos, metodo: elegido, datosPago } = estadoRef.current
     const cobro = evaluarCobro({ intentos: previos, metodo: elegido, datos: datosPago })
@@ -271,7 +398,7 @@ export function usePostergacion({ pasaje, idCliente, escenario, alEscenarioConsu
     } finally {
       enVuelo.current = false
     }
-  }, [confirmar, manejarFallo])
+  }, [pasaje.deCompraReal, pagarConCulqi, confirmar, manejarFallo])
 
   const continuarDesdeTarifa = useCallback(() => {
     const { comparacion, aceptaCondiciones } = estadoRef.current
@@ -296,6 +423,7 @@ export function usePostergacion({ pasaje, idCliente, escenario, alEscenarioConsu
       aceptarCondiciones,
       continuarDesdeTarifa,
       cambiarMetodo,
+      cambiarTerminosPago,
       editarDatoPago,
       pagar,
       volver,

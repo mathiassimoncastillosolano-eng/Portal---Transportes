@@ -9,7 +9,6 @@ import {
   Ticket,
   UserRoundSearch,
 } from 'lucide-react'
-import { MOSTRAR_CLIENTES } from '@/config/navigation'
 import { hasPermission, useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
 import { cn } from '@/utils/cn'
@@ -74,7 +73,7 @@ function PaletaAbierta() {
       { id: 'ventas', titulo: 'Ver ventas', descripcion: 'Ingresos y ocupación en el Dashboard', icono: <LayoutDashboard className={icono} />, claves: 'ingresos dashboard kpi', permiso: 'dashboard:ver', ejecutar: ir('dashboard') },
       { id: 'pasajero', titulo: 'Buscar pasajero', descripcion: 'Por documento o nombre', icono: <UserRoundSearch className={icono} />, claves: 'cliente dni documento', permiso: 'pasajes:registrar', ejecutar: ir('clientes') },
       { id: 'viaje', titulo: 'Consultar viaje', descripcion: 'Estado y manifiesto de un viaje', icono: <BookOpenCheck className={icono} />, claves: 'manifiesto codigo', pronto: true },
-    ].filter((c) => (c.id !== 'pasajero' || MOSTRAR_CLIENTES) && hasPermission(user, c.permiso))
+    ].filter((c) => hasPermission(user, c.permiso))
   }, [setActiveSection, user])
 
   const filtrados = useMemo(() => {

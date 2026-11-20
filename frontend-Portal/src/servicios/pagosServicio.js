@@ -21,14 +21,14 @@ export function esFalloTransitorio(error) {
 }
 
 export async function iniciarPago(solicitud, opciones = {}) {
-  const { intentos = 3, esperaMs = 2500, dormir = esperar, enviar = solicitarApi } = opciones
+  const { intentos = 3, esperaMs = 2500, dormir = esperar, enviar = solicitarApi, ruta = '/api/pagos' } = opciones
   if ('monto' in solicitud || 'importe' in solicitud) {
     throw new Error('La solicitud de pago no debe incluir el importe.')
   }
   let ultimoError
   for (let intento = 1; intento <= intentos; intento += 1) {
     try {
-      return await enviar('/api/pagos', {
+      return await enviar(ruta, {
         method: 'POST',
         body: JSON.stringify(solicitud),
         timeoutMs: TIMEOUT_INICIAR_MS,
@@ -40,6 +40,10 @@ export async function iniciarPago(solicitud, opciones = {}) {
     }
   }
   throw ultimoError
+}
+
+export function iniciarPagoCambio(idPasaje, solicitud, opciones = {}) {
+  return iniciarPago(solicitud, { ...opciones, ruta: `/api/pagos/cambios/${encodeURIComponent(idPasaje)}` })
 }
 
 export function obtenerConfiguracionPago({ enviar = solicitarApi } = {}) {

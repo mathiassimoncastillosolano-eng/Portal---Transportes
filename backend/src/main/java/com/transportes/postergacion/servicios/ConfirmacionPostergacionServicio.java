@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.transportes.compras.dto.FilaCompra;
 import com.transportes.compras.repositorios.CompraRepositorio;
+import com.transportes.pagos.entidades.OperacionPago;
 import com.transportes.pagos.entidades.Pasaje;
 import com.transportes.pagos.repositorios.PasajeRepositorio;
 import com.transportes.postergacion.dto.ConfirmacionPostergacionDto;
@@ -38,10 +39,6 @@ import static com.transportes.postergacion.excepciones.PostergacionRechazadaExce
 import static com.transportes.postergacion.excepciones.PostergacionRechazadaException.SESION_VENCIDA;
 import static com.transportes.postergacion.excepciones.PostergacionRechazadaException.VIAJE_NO_RESERVABLE;
 
-/**
- * Lógica para confirmar el cambio de pasaje: ocupa el asiento nuevo, mueve el pasaje, libera el anterior y guarda
- * el registro.
- */
 @Service
 public class ConfirmacionPostergacionServicio {
 
@@ -74,46 +71,77 @@ public class ConfirmacionPostergacionServicio {
         this.reloj = relojNegocio;
     }
 
-    /** Confirma el cambio. Si algo falla, no se guarda nada. */
     @Transactional
     public ConfirmacionPostergacionDto confirmar(int idUsuario, int idPasaje, ConfirmarPostergacionRequest solicitud) {
-        // Evita que dos confirmaciones del mismo pasaje se hagan a la vez.
         asientos.bloquearSesion("postergacion:" + idPasaje);
-
-        // Vuelve a revisar el pasaje y la sesión del asiento nuevo.
         FilaCompra antes = postergaciones.exigirPasajeCambiable(idUsuario, idPasaje);
-        SesionReserva sesion = validarSesion(solicitud);
+        SesionReserva sesion = validarSesion(solicitud.tokenSesion(), solicitud.idViajeNuevo());
+        return aplicar(idUsuario, idPasaje, antes, solicitud.idViajeNuevo(), solicitud.idAsiento(),
+                sesion.idSesion(), null, null);
+    }
+
+    @Transactional
+    public ConfirmacionPostergacionDto aplicarCambioPagado(OperacionPago operacion) {
+        int idPasaje = operacion.getIdPasaje();
+        asientos.bloquearSesion("postergacion:" + idPasaje);
+        FilaCompra antes = postergaciones.exigirPasajeCambiable(operacion.getIdUsuario(), idPasaje);
+        return aplicar(operacion.getIdUsuario(), idPasaje, antes, operacion.getIdViaje(),
+                operacion.getIdAsientoNuevo(), operacion.getIdSesionReserva(), operacion.getMonto(),
+                operacion.getReferenciaExterna());
+    }
+
+    @Transactional(readOnly = true)
+    public ConfirmacionPostergacionDto resultadoDelPago(int idUsuario, String referencia) {
+        Postergacion fila = historial.findByReferenciaPago(referencia)
+                .orElseThrow(() -> rechazo(CAMBIO_NO_APLICADO, "No encontramos el cambio de este pago."));
+        FilaCompra despues = filaDelPasaje(idUsuario, fila.getIdPasaje());
+        return new ConfirmacionPostergacionDto(true, fila.getIdPostergacion(), fila.getIdPasaje(), fila.getIdVenta(),
+                fila.getIdViajeAnterior(), null,
+                despues.idViaje(), despues.origen(), despues.destino(), despues.fechaSalida(), despues.horaSalida(),
+                despues.numeroAsiento(), fila.getImporteAdicional(), fila.getReferenciaPago(),
+                fila.getFechaPostergacion());
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal diferenciaDelCambio(int idUsuario, int idPasaje, long idViajeNuevo, int idAsiento) {
+        FilaCompra antes = postergaciones.exigirPasajeCambiable(idUsuario, idPasaje);
+        Pasaje pasaje = pasajes.findById(idPasaje)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No encontramos este pasaje entre tus compras."));
+        ViajeAsiento nuevo = asientos.findByIdViajeAndIdAsiento(Math.toIntExact(idViajeNuevo), idAsiento)
+                .orElseThrow(() -> rechazo(ASIENTO_NO_DISPONIBLE, MOTIVO_ASIENTO));
+        return diferencia(pasaje, antes, nuevo);
+    }
+
+    private ConfirmacionPostergacionDto aplicar(int idUsuario, int idPasaje, FilaCompra antes, Long idViajeNuevo,
+                                                Integer idAsiento, String idSesion, BigDecimal montoPagado,
+                                                String referenciaPago) {
         Pasaje pasaje = pasajes.findById(idPasaje)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "No encontramos este pasaje entre tus compras."));
         ViajeAsiento original = asientos.findById(pasaje.getIdViajeAsiento())
                 .orElseThrow(() -> rechazo(CAMBIO_NO_APLICADO,
                         "No pudimos leer el asiento actual de tu pasaje. No se hizo ningún cambio."));
-        ViajeAsiento nuevo = asientos.findByIdViajeAndIdAsiento(
-                        Math.toIntExact(solicitud.idViajeNuevo()), solicitud.idAsiento())
+        ViajeAsiento nuevo = asientos.findByIdViajeAndIdAsiento(Math.toIntExact(idViajeNuevo), idAsiento)
                 .orElseThrow(() -> rechazo(ASIENTO_NO_DISPONIBLE, MOTIVO_ASIENTO));
 
         if (Objects.equals(nuevo.getIdViajeAsiento(), original.getIdViajeAsiento())
                 || Objects.equals(nuevo.getIdViaje(), original.getIdViaje())) {
             throw rechazo(MISMO_VIAJE, "Elige un viaje distinto al original.");
         }
-        exigirViajeReservable(solicitud.idViajeNuevo());
-        BigDecimal importe = exigirPagoSuficiente(solicitud, pasaje, antes, nuevo);
+        exigirViajeReservable(idViajeNuevo);
+        BigDecimal importe = importeAplicable(diferencia(pasaje, antes, nuevo), montoPagado, referenciaPago);
 
-        // Ocupa el asiento nuevo.
-        if (asientos.ocuparAsientoDeSesion(nuevo.getIdViajeAsiento(), sesion.idSesion(), pasaje.getIdPasajero()) != 1) {
+        if (asientos.ocuparAsientoDeSesion(nuevo.getIdViajeAsiento(), idSesion, pasaje.getIdPasajero()) != 1) {
             throw rechazo(ASIENTO_NO_DISPONIBLE, MOTIVO_ASIENTO);
         }
-        // Mueve el pasaje al asiento nuevo.
         if (historial.moverPasajeAlAsiento(idPasaje, original.getIdViajeAsiento(), nuevo.getIdViajeAsiento()) != 1) {
             throw rechazo(CAMBIO_NO_APLICADO, "No pudimos actualizar tu pasaje. No se hizo ningún cambio.");
         }
-        // Libera el asiento anterior.
         if (historial.liberarAsientoOcupado(original.getIdViajeAsiento()) != 1) {
             throw rechazo(CAMBIO_NO_APLICADO, "No pudimos liberar tu asiento anterior. No se hizo ningún cambio.");
         }
 
-        // Guarda el registro del cambio.
         LocalDateTime ahora = LocalDateTime.now(reloj);
         Postergacion fila = new Postergacion();
         fila.setIdPasaje(idPasaje);
@@ -123,19 +151,12 @@ public class ConfirmacionPostergacionServicio {
         fila.setIdViajeAsientoAnterior(original.getIdViajeAsiento());
         fila.setIdViajeAsientoNuevo(nuevo.getIdViajeAsiento());
         fila.setImporteAdicional(importe);
-        fila.setReferenciaPago(importe.signum() > 0 ? solicitud.referenciaPago() : null);
+        fila.setReferenciaPago(importe.signum() > 0 ? referenciaPago : null);
         fila.setFechaPostergacion(ahora);
         fila = historial.save(fila);
 
-        // Arma la respuesta con los datos guardados.
-        FilaCompra despues = compras.filasDelUsuario(idUsuario).stream()
-                .filter(f -> Objects.equals(f.idPasaje(), idPasaje))
-                .findFirst()
-                .orElseThrow(() -> rechazo(CAMBIO_NO_APLICADO,
-                        "No pudimos leer tu pasaje actualizado. No se hizo ningún cambio."));
+        FilaCompra despues = filaDelPasaje(idUsuario, idPasaje);
 
-        // Avisa al mapa de asientos en tiempo real, pero solo cuando la transacción se confirma (si se deshace, no
-        // se avisa).
         publicador.publishEvent(new AsientoCambiadoEvento(
                 original.getIdViaje().longValue(), original.getIdAsiento(), "disponible"));
         publicador.publishEvent(new AsientoCambiadoEvento(
@@ -147,13 +168,17 @@ public class ConfirmacionPostergacionServicio {
                 despues.numeroAsiento(), importe, fila.getReferenciaPago(), ahora);
     }
 
-    /**
-     * Valida la sesión de reserva del asiento nuevo. Si venció o es de otro viaje, el asiento ya no está reservado
-     * para el usuario.
-     */
-    private SesionReserva validarSesion(ConfirmarPostergacionRequest solicitud) {
+    private FilaCompra filaDelPasaje(int idUsuario, int idPasaje) {
+        return compras.filasDelUsuario(idUsuario).stream()
+                .filter(f -> Objects.equals(f.idPasaje(), idPasaje))
+                .findFirst()
+                .orElseThrow(() -> rechazo(CAMBIO_NO_APLICADO,
+                        "No pudimos leer tu pasaje actualizado. No se hizo ningún cambio."));
+    }
+
+    private SesionReserva validarSesion(String tokenSesion, Long idViajeNuevo) {
         try {
-            return tokens.validar(solicitud.tokenSesion(), solicitud.idViajeNuevo());
+            return tokens.validar(tokenSesion, idViajeNuevo);
         } catch (SesionExpiradaException expirada) {
             throw rechazo(SESION_VENCIDA,
                     "La reserva de tu asiento venció. Tu pasaje original no fue modificado.");
@@ -163,7 +188,6 @@ public class ConfirmacionPostergacionServicio {
         }
     }
 
-    /** Exige que el viaje nuevo todavía acepte reservas (programado, no salió y faltan 20 minutos o más). */
     private void exigirViajeReservable(Long idViajeNuevo) {
         try {
             validadorReserva.exigirReservable(idViajeNuevo);
@@ -174,22 +198,29 @@ public class ConfirmacionPostergacionServicio {
         }
     }
 
-    /** Revisa que el pago cubra la diferencia de precio y devuelve el monto a guardar. */
-    private BigDecimal exigirPagoSuficiente(ConfirmarPostergacionRequest solicitud, Pasaje pasaje, FilaCompra antes,
-                                            ViajeAsiento nuevo) {
+    private BigDecimal diferencia(Pasaje pasaje, FilaCompra antes, ViajeAsiento nuevo) {
         BigDecimal adicionalPrevio = antes.adicionalPagado() == null ? BigDecimal.ZERO : antes.adicionalPagado();
         BigDecimal pagadoHastaAhora = pasaje.getPrecio().add(adicionalPrevio);
-        BigDecimal diferencia = nuevo.getPrecio().subtract(pagadoHastaAhora).max(BigDecimal.ZERO);
-        BigDecimal pagado = solicitud.montoAdicional();
-        if (pagado.compareTo(diferencia) < 0) {
+        return nuevo.getPrecio().subtract(pagadoHastaAhora).max(BigDecimal.ZERO);
+    }
+
+    private BigDecimal importeAplicable(BigDecimal diferencia, BigDecimal montoPagado, String referenciaPago) {
+        if (montoPagado == null) {
+            if (diferencia.signum() > 0) {
+                throw rechazo(PAGO_INSUFICIENTE,
+                        "Este cambio tiene una diferencia de tarifa que debes pagar. Tu pasaje original no fue modificado.");
+            }
+            return BigDecimal.ZERO;
+        }
+        if (montoPagado.compareTo(diferencia) < 0) {
             throw rechazo(PAGO_INSUFICIENTE,
                     "El pago no cubre la diferencia de tarifa. Tu pasaje original no fue modificado.");
         }
-        if (pagado.signum() > 0 && (solicitud.referenciaPago() == null || solicitud.referenciaPago().isBlank())) {
+        if (montoPagado.signum() > 0 && (referenciaPago == null || referenciaPago.isBlank())) {
             throw rechazo(PAGO_INSUFICIENTE,
                     "Falta la referencia del pago adicional. Tu pasaje original no fue modificado.");
         }
-        return pagado;
+        return montoPagado;
     }
 
     private static PostergacionRechazadaException rechazo(String codigo, String motivo) {

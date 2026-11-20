@@ -48,6 +48,11 @@ final class MensajesPago {
     static final String EXPIRADO = "El tiempo para completar el pago terminó y la operación se canceló.";
     static final String SIN_ASIENTOS = "Recibimos tu pago, pero tus asientos ya no estaban disponibles. "
             + "Estamos devolviendo el importe a tu medio de pago.";
+    static final String APROBADO_CAMBIO = "¡Listo! Tu pago fue aprobado y el cambio de tu pasaje quedó registrado.";
+    static final String SIN_CAMBIO = "Recibimos tu pago, pero no pudimos aplicar el cambio de tu pasaje. "
+            + "Tu pasaje original sigue igual y estamos devolviendo el importe a tu medio de pago.";
+    static final String REEMBOLSADO_CAMBIO = "No pudimos aplicar el cambio de tu pasaje y el importe fue devuelto a tu medio de pago. "
+            + "Tu pasaje original sigue igual.";
     static final String REEMBOLSADO = "Tus asientos ya no estaban disponibles y el importe fue devuelto a tu medio de pago.";
     static final String ERROR_DATOS = "No pudimos procesar los datos de pago. Revisa la información e inténtalo de nuevo.";
     static final String ERROR_CREACION = "No pudimos iniciar el pago con Culqi. No se realizó ningún cobro; inténtalo de nuevo.";

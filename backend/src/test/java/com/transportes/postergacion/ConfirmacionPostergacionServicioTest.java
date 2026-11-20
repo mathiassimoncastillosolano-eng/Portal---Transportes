@@ -30,6 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.transportes.compras.dto.FilaCompra;
 import com.transportes.compras.repositorios.CompraRepositorio;
+import com.transportes.pagos.entidades.OperacionPago;
 import com.transportes.pagos.entidades.Pasaje;
 import com.transportes.pagos.repositorios.PasajeRepositorio;
 import com.transportes.postergacion.dto.ConfirmacionPostergacionDto;
@@ -144,7 +145,7 @@ class ConfirmacionPostergacionServicioTest {
         when(asientos.findByIdViajeAndIdAsiento(600, ASIENTO_NUEVO))
                 .thenReturn(Optional.of(asiento(VA_NUEVO, 600, ASIENTO_NUEVO, "60.00", "BLOQUEADO_TEMPORAL")));
 
-        ConfirmacionPostergacionDto r = servicio.confirmar(USUARIO, PASAJE, solicitud("17.00", "SIM-ABC123"));
+        ConfirmacionPostergacionDto r = servicio.aplicarCambioPagado(operacion("17.00", "SIM-ABC123"));
 
         ArgumentCaptor<Postergacion> captor = ArgumentCaptor.forClass(Postergacion.class);
         verify(historial).save(captor.capture());
@@ -251,7 +252,7 @@ class ConfirmacionPostergacionServicioTest {
                 .thenReturn(Optional.of(asiento(VA_NUEVO, 600, ASIENTO_NUEVO, "60.00", "BLOQUEADO_TEMPORAL")));
 
         PostergacionRechazadaException e = assertThrows(PostergacionRechazadaException.class,
-                () -> servicio.confirmar(USUARIO, PASAJE, solicitud("10.00", "SIM-ABC123")));
+                () -> servicio.aplicarCambioPagado(operacion("10.00", "SIM-ABC123")));
 
         assertEquals(PostergacionRechazadaException.PAGO_INSUFICIENTE, e.getCodigo());
         sinCambios();
@@ -272,7 +273,7 @@ class ConfirmacionPostergacionServicioTest {
                 .thenReturn(Optional.of(asiento(VA_NUEVO, 600, ASIENTO_NUEVO, "70.00", "BLOQUEADO_TEMPORAL")));
 
         // 70.00 - (43.00 + 17.00) = 10.00. Con el cálculo anterior (70.00 - 43.00) habría pedido 27.00.
-        ConfirmacionPostergacionDto r = servicio.confirmar(USUARIO, PASAJE, solicitud("10.00", "SIM-SEGUNDA"));
+        ConfirmacionPostergacionDto r = servicio.aplicarCambioPagado(operacion("10.00", "SIM-SEGUNDA"));
 
         ArgumentCaptor<Postergacion> captor = ArgumentCaptor.forClass(Postergacion.class);
         verify(historial).save(captor.capture());
@@ -287,7 +288,7 @@ class ConfirmacionPostergacionServicioTest {
                 .thenReturn(Optional.of(asiento(VA_NUEVO, 600, ASIENTO_NUEVO, "70.00", "BLOQUEADO_TEMPORAL")));
 
         PostergacionRechazadaException e = assertThrows(PostergacionRechazadaException.class,
-                () -> servicio.confirmar(USUARIO, PASAJE, solicitud("9.99", "SIM-SEGUNDA")));
+                () -> servicio.aplicarCambioPagado(operacion("9.99", "SIM-SEGUNDA")));
 
         assertEquals(PostergacionRechazadaException.PAGO_INSUFICIENTE, e.getCodigo());
         sinCambios();
@@ -312,7 +313,7 @@ class ConfirmacionPostergacionServicioTest {
                 .thenReturn(Optional.of(asiento(VA_NUEVO, 600, ASIENTO_NUEVO, "70.00", "BLOQUEADO_TEMPORAL")));
 
         PostergacionRechazadaException e = assertThrows(PostergacionRechazadaException.class,
-                () -> servicio.confirmar(USUARIO, PASAJE, solicitud("10.00", "SIM-PRIMERA")));
+                () -> servicio.aplicarCambioPagado(operacion("10.00", "SIM-PRIMERA")));
 
         assertEquals(PostergacionRechazadaException.PAGO_INSUFICIENTE, e.getCodigo(), "70.00 - 43.00 = 27.00");
         sinCambios();
@@ -324,7 +325,7 @@ class ConfirmacionPostergacionServicioTest {
                 .thenReturn(Optional.of(asiento(VA_NUEVO, 600, ASIENTO_NUEVO, "60.00", "BLOQUEADO_TEMPORAL")));
 
         PostergacionRechazadaException e = assertThrows(PostergacionRechazadaException.class,
-                () -> servicio.confirmar(USUARIO, PASAJE, solicitud("17.00", " ")));
+                () -> servicio.aplicarCambioPagado(operacion("17.00", " ")));
 
         assertEquals(PostergacionRechazadaException.PAGO_INSUFICIENTE, e.getCodigo());
         sinCambios();
@@ -364,6 +365,18 @@ class ConfirmacionPostergacionServicioTest {
         verify(historial, never()).liberarAsientoOcupado(anyInt());
         verify(historial, never()).save(any(Postergacion.class));
         verify(publicador, never()).publishEvent(any(Object.class));
+    }
+
+    static OperacionPago operacion(String monto, String referencia) {
+        OperacionPago o = new OperacionPago();
+        o.setIdPasaje(PASAJE);
+        o.setIdUsuario(USUARIO);
+        o.setIdViaje(VIAJE_NUEVO);
+        o.setIdAsientoNuevo(ASIENTO_NUEVO);
+        o.setIdSesionReserva(SESION);
+        o.setMonto(new BigDecimal(monto));
+        o.setReferenciaExterna(referencia);
+        return o;
     }
 
     static ConfirmarPostergacionRequest solicitud(String monto, String referencia) {

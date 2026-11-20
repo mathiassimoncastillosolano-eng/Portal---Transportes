@@ -2,6 +2,7 @@ package com.transportes.postergacion;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
@@ -27,6 +28,9 @@ import org.springframework.test.context.ActiveProfiles;
 
 import com.transportes.RelojPruebaConfiguracion;
 import com.transportes.RelojPruebaConfiguracion.RelojPrueba;
+import com.transportes.pagos.entidades.OperacionPago;
+import com.transportes.postergacion.excepciones.PostergacionRechazadaException;
+import com.transportes.postergacion.servicios.ConfirmacionPostergacionServicio;
 import com.transportes.viajes.servicios.TokenSesionServicio;
 
 import tools.jackson.databind.ObjectMapper;
@@ -50,6 +54,7 @@ class PostergacionConfirmacionIntegracionTest {
     @Autowired ObjectMapper json;
     @Autowired RelojPrueba reloj;
     @Autowired TokenSesionServicio tokens;
+    @Autowired ConfirmacionPostergacionServicio confirmacion;
     final HttpClient http = HttpClient.newHttpClient();
 
     // Viaje original 5 (19/10 08:00) con el asiento 1 (12A). Viaje nuevo 6 (21/10 08:00) con el asiento 4 (20B).
@@ -131,8 +136,7 @@ class PostergacionConfirmacionIntegracionTest {
     @Test
     void laDiferenciaPagadaQuedaComoPagoAdicionalEnElHistorial() throws Exception {
         jdbc.update("UPDATE viaje_asiento SET precio = 60.00 WHERE id_viaje_asiento = 4"); // 17.00 más caro
-        var r = confirmar(pasaje, jwtA, cuerpo(6, 4, "17.00", "SIM-ABC123"));
-        assertEquals(200, r.statusCode(), r.body());
+        pagarCambio(6, 4, "17.00", "SIM-ABC123", sesion.idSesion());
         var fila = jdbc.queryForMap("SELECT * FROM postergacion WHERE id_pasaje = " + pasaje);
         assertEquals(0, new BigDecimal("17.00").compareTo((BigDecimal) fila.get("importe_adicional")));
         assertEquals("SIM-ABC123", fila.get("referencia_pago"));
@@ -144,8 +148,19 @@ class PostergacionConfirmacionIntegracionTest {
     /** Primera postergación: viaje 5 -> 6, asiento de 60.00, paga 17.00. Deja el pasaje en el viaje 6 con 60.00 pagado. */
     private void postergarPrimeraVez() throws Exception {
         jdbc.update("UPDATE viaje_asiento SET precio = 60.00 WHERE id_viaje_asiento = 4");
-        var r = confirmar(pasaje, jwtA, cuerpo(6, 4, "17.00", "SIM-PRIMERA"));
-        assertEquals(200, r.statusCode(), r.body());
+        pagarCambio(6, 4, "17.00", "SIM-PRIMERA", sesion.idSesion());
+    }
+
+    private void pagarCambio(int idViaje, int idAsiento, String monto, String referencia, String idSesion) {
+        OperacionPago operacion = new OperacionPago();
+        operacion.setIdPasaje(pasaje);
+        operacion.setIdUsuario(idUsuario("a"));
+        operacion.setIdViaje((long) idViaje);
+        operacion.setIdAsientoNuevo(idAsiento);
+        operacion.setIdSesionReserva(idSesion);
+        operacion.setMonto(new BigDecimal(monto));
+        operacion.setReferenciaExterna(referencia);
+        confirmacion.aplicarCambioPagado(operacion);
     }
 
     /** Prepara el viaje 7 con el asiento 5 (precio dado), bloqueado por una sesión de reserva nueva. */
@@ -156,24 +171,13 @@ class PostergacionConfirmacionIntegracionTest {
         return sesion7;
     }
 
-    private Map<String, Object> cuerpoSegundoDestino(TokenSesionServicio.SesionReserva sesion7, String monto, String referencia) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("idViajeNuevo", 7);
-        m.put("idAsiento", 5);
-        m.put("tokenSesion", sesion7.tokenSesion());
-        m.put("montoAdicional", monto);
-        if (referencia != null) m.put("referenciaPago", referencia);
-        return m;
-    }
-
     @Test
     void laSegundaPostergacionSeCalculaSobreLoYaPagadoYSeRegistraOtraFila() throws Exception {
         postergarPrimeraVez();
         var sesion7 = prepararSegundoDestino("70.00");
 
         // 70.00 - (43.00 + 17.00) = 10.00 (con el cálculo anterior serían 27.00).
-        var r = confirmar(pasaje, jwtA, cuerpoSegundoDestino(sesion7, "10.00", "SIM-SEGUNDA"));
-        assertEquals(200, r.statusCode(), r.body());
+        pagarCambio(7, 5, "10.00", "SIM-SEGUNDA", sesion7.idSesion());
 
         assertEquals(5, idAsientoDelPasaje(pasaje));
         assertEquals("DISPONIBLE", estadoAsiento(4), "el asiento de la primera postergación vuelve a quedar libre");
@@ -187,10 +191,10 @@ class PostergacionConfirmacionIntegracionTest {
         postergarPrimeraVez();
         var sesion7 = prepararSegundoDestino("70.00");
 
-        var r = confirmar(pasaje, jwtA, cuerpoSegundoDestino(sesion7, "9.99", "SIM-SEGUNDA"));
+        var e = assertThrows(PostergacionRechazadaException.class,
+                () -> pagarCambio(7, 5, "9.99", "SIM-SEGUNDA", sesion7.idSesion()));
 
-        assertEquals(409, r.statusCode(), r.body());
-        assertEquals("PAGO_INSUFICIENTE", codigo(r));
+        assertEquals(PostergacionRechazadaException.PAGO_INSUFICIENTE, e.getCodigo());
         assertEquals(4, idAsientoDelPasaje(pasaje), "sigue en el asiento de la primera postergación");
         assertEquals("BLOQUEADO_TEMPORAL", estadoAsiento(5));
         assertEquals(1, contar("SELECT COUNT(*) FROM postergacion WHERE id_pasaje = " + pasaje));
@@ -203,7 +207,7 @@ class PostergacionConfirmacionIntegracionTest {
 
         postergarPrimeraVez();
         var sesion7 = prepararSegundoDestino("70.00");
-        assertEquals(200, confirmar(pasaje, jwtA, cuerpoSegundoDestino(sesion7, "10.00", "SIM-SEGUNDA")).statusCode());
+        pagarCambio(7, 5, "10.00", "SIM-SEGUNDA", sesion7.idSesion());
 
         var compra = json.readTree(listarPasajes(jwtA).body()).get("compras").get(0);
         var boleto = compra.get("boletos").get(0);

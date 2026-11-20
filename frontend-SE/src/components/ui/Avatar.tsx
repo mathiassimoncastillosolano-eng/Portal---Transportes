@@ -2,7 +2,7 @@ import { cn } from '@/utils/cn'
 
 interface AvatarProps {
   name: string
-  size?: 'sm' | 'md'
+  size?: 'sm' | 'md' | 'lg'
   className?: string
 }
 
@@ -15,6 +15,7 @@ function getInitials(name: string) {
 const sizeClasses: Record<NonNullable<AvatarProps['size']>, string> = {
   sm: 'h-8 w-8 text-xs',
   md: 'h-9 w-9 text-sm',
+  lg: 'h-14 w-14 text-lg',
 }
 
 /** Avatar con iniciales — evita depender de imágenes externas en la plantilla base. */

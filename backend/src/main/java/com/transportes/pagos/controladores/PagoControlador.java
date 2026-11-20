@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.transportes.pagos.dto.Confirmar3dsRequest;
 import com.transportes.pagos.dto.ConfiguracionPagoResponse;
 import com.transportes.pagos.dto.EstadoPagoResponse;
+import com.transportes.pagos.dto.IniciarPagoCambioRequest;
 import com.transportes.pagos.dto.IniciarPagoRequest;
 import com.transportes.pagos.servicios.PagoServicio;
 import com.transportes.security.servicios.UsuarioAutenticado;
@@ -40,6 +41,12 @@ public class PagoControlador {
     public ResponseEntity<EstadoPagoResponse> iniciar(@AuthenticationPrincipal UsuarioAutenticado usuario,
             @RequestBody @Valid IniciarPagoRequest request) {
         return ResponseEntity.ok(pagoServicio.iniciar(usuario.idUsuario(), request));
+    }
+
+    @PostMapping("/cambios/{idPasaje}")
+    public ResponseEntity<EstadoPagoResponse> iniciarCambio(@AuthenticationPrincipal UsuarioAutenticado usuario,
+            @PathVariable int idPasaje, @RequestBody @Valid IniciarPagoCambioRequest request) {
+        return ResponseEntity.ok(pagoServicio.iniciarCambio(usuario.idUsuario(), idPasaje, request));
     }
 
     @PostMapping("/{referencia}/3ds")

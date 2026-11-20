@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.transportes.buses.dto.AsientoFisicoDTO;
 import com.transportes.buses.servicios.AsientoServicio;
@@ -36,6 +38,7 @@ import com.transportes.pagos.dto.EstadoPagoResponse;
 import com.transportes.pagos.dto.EstadoPagoResponse.CompraConfirmada;
 import com.transportes.pagos.dto.EstadoPagoResponse.PasajeConfirmado;
 import com.transportes.pagos.dto.EstadoPagoResponse.SesionRenovada;
+import com.transportes.pagos.dto.IniciarPagoCambioRequest;
 import com.transportes.pagos.dto.IniciarPagoRequest;
 import com.transportes.pagos.entidades.EstadoOperacion;
 import com.transportes.pagos.entidades.OperacionPago;
@@ -45,6 +48,8 @@ import com.transportes.pagos.excepciones.PagoException;
 import com.transportes.pagos.repositorios.OperacionPagoRepositorio;
 import com.transportes.pagos.repositorios.PasajeRepositorio;
 import com.transportes.pagos.repositorios.VentaRepositorio;
+import com.transportes.postergacion.dto.ConfirmacionPostergacionDto;
+import com.transportes.postergacion.servicios.ConfirmacionPostergacionServicio;
 import com.transportes.usuarios.entidades.Usuario;
 import com.transportes.usuarios.repositorios.UsuarioRepository;
 import com.transportes.viajes.dto.PasajeroAsientoRequest;
@@ -68,6 +73,7 @@ public class PagoServicio {
             EnumSet.of(EstadoOperacion.CREANDO, EstadoOperacion.EN_PROCESO, EstadoOperacion.ACCION_REQUERIDA);
     private static final String ESTADO_BLOQUEADO = "BLOQUEADO_TEMPORAL";
     private static final String DESCRIPCION = "RutaLibre - pasajes de bus";
+    private static final String DESCRIPCION_CAMBIO = "RutaLibre - cambio de pasaje";
     private static final String MOTIVO_REEMBOLSO = "solicitud_comprador";
     private static final String MONEDA = "PEN";
 
@@ -87,6 +93,7 @@ public class PagoServicio {
     private final UsuarioRepository usuarioRepositorio;
     private final AsientoServicio asientoServicio;
     private final ValidadorReservaViaje validadorReserva;
+    private final ConfirmacionPostergacionServicio confirmacionPostergacion;
     private final TransactionTemplate tx;
 
     public PagoServicio(OperacionPagoRepositorio operaciones, ViajeAsientoRepositorio viajeAsientoRepositorio,
@@ -96,7 +103,9 @@ public class PagoServicio {
                         PropiedadesPago propiedades, VentaRepositorio ventaRepositorio,
                         PasajeRepositorio pasajeRepositorio, PasajeroRepositorio pasajeroRepositorio,
                         UsuarioRepository usuarioRepositorio, AsientoServicio asientoServicio,
-                        ValidadorReservaViaje validadorReserva, PlatformTransactionManager transactionManager) {
+                        ValidadorReservaViaje validadorReserva,
+                        ConfirmacionPostergacionServicio confirmacionPostergacion,
+                        PlatformTransactionManager transactionManager) {
         this.operaciones = operaciones;
         this.viajeAsientoRepositorio = viajeAsientoRepositorio;
         this.viajeAsientoServicio = viajeAsientoServicio;
@@ -113,6 +122,7 @@ public class PagoServicio {
         this.usuarioRepositorio = usuarioRepositorio;
         this.asientoServicio = asientoServicio;
         this.validadorReserva = validadorReserva;
+        this.confirmacionPostergacion = confirmacionPostergacion;
         this.tx = new TransactionTemplate(transactionManager);
     }
 
@@ -126,17 +136,29 @@ public class PagoServicio {
     }
 
     public EstadoPagoResponse iniciar(Integer idUsuario, IniciarPagoRequest req) {
+        return iniciarOperacion(idUsuario, req.claveIdempotencia(), req.tokenSesion(), req.idViaje(),
+                req.medioPago(), req.token(), sesion -> preparar(idUsuario, req, sesion));
+    }
+
+    public EstadoPagoResponse iniciarCambio(Integer idUsuario, int idPasaje, IniciarPagoCambioRequest req) {
+        return iniciarOperacion(idUsuario, req.claveIdempotencia(), req.tokenSesion(), req.idViajeNuevo(),
+                req.medioPago(), req.token(), sesion -> prepararCambio(idUsuario, idPasaje, req, sesion));
+    }
+
+    private EstadoPagoResponse iniciarOperacion(Integer idUsuario, String claveIdempotencia, String tokenSesion,
+                                                Long idViaje, String medioPago, String token,
+                                                Function<SesionReserva, Preparacion> preparador) {
         exigirDisponible();
 
-        Optional<OperacionPago> repetida = operaciones.findByClaveIdempotencia(req.claveIdempotencia());
+        Optional<OperacionPago> repetida = operaciones.findByClaveIdempotencia(claveIdempotencia);
         if (repetida.isPresent()) {
             return respuestaDeExistente(repetida.get(), idUsuario);
         }
 
-        SesionReserva sesion = tokenSesionServicio.validar(req.tokenSesion(), req.idViaje());
-        validadorReserva.exigirReservable(req.idViaje());
+        SesionReserva sesion = tokenSesionServicio.validar(tokenSesion, idViaje);
+        validadorReserva.exigirReservable(idViaje);
         try {
-            registroCompra.idMetodoPago(req.medioPago());
+            registroCompra.idMetodoPago(medioPago);
         } catch (IllegalStateException e) {
             log.error("Configuración incompleta: {}", e.getMessage());
             throw new PagoException(HttpStatus.SERVICE_UNAVAILABLE,
@@ -145,9 +167,9 @@ public class PagoServicio {
 
         Preparacion prep;
         try {
-            prep = tx.execute(estado -> preparar(idUsuario, req, sesion));
+            prep = tx.execute(estado -> preparador.apply(sesion));
         } catch (DataIntegrityViolationException e) {
-            return operaciones.findByClaveIdempotencia(req.claveIdempotencia())
+            return operaciones.findByClaveIdempotencia(claveIdempotencia)
                     .map(op -> respuestaDeExistente(op, idUsuario))
                     .orElseThrow(() -> new PagoException(HttpStatus.CONFLICT,
                             "Ya hay un pago en curso para esta reserva."));
@@ -157,11 +179,13 @@ public class PagoServicio {
             return respuestaDeExistente(op, idUsuario);
         }
 
-        pasajerosCache.guardar(op.getIdSesionReserva(), op.getFechaExpiracion(), prep.pasajeros());
+        if (!prep.pasajeros().isEmpty()) {
+            pasajerosCache.guardar(op.getIdSesionReserva(), op.getFechaExpiracion(), prep.pasajeros());
+        }
         SesionReserva renovada = tokenSesionServicio.reemitir(op.getIdSesionReserva(), op.getIdViaje(),
                 op.getFechaExpiracion());
 
-        cobrar(op.getIdOperacionPago(), construirSolicitud(op, req.token(), null));
+        cobrar(op.getIdOperacionPago(), construirSolicitud(op, token, null));
         return respuesta(op.getIdOperacionPago(), renovada);
     }
 
@@ -249,28 +273,88 @@ public class PagoServicio {
         LocalDateTime expiracion = ahora.plusMinutes(propiedades.getMinutosPago());
         viajeAsientoServicio.extenderBloqueoSesion(req.idViaje(), idSesion, expiracion);
 
-        OperacionPago op = new OperacionPago();
-        op.setReferenciaExterna("RL-" + UUID.randomUUID());
-        op.setClaveIdempotencia(req.claveIdempotencia());
-        op.setIdViaje(req.idViaje());
-        op.setIdSesionReserva(idSesion);
-        op.setIdUsuario(idUsuario);
-        op.setMedioPago(req.medioPago());
-        op.setEntorno(credenciales.entorno());
-        op.setMonto(monto);
-        op.setMoneda(MONEDA);
-        op.setEstado(EstadoOperacion.CREANDO);
-        op.setEmailPagador(req.emailPagador().trim());
-        op.setTerminosAceptadosEn(ahora);
-        op.setTerminosVersion(propiedades.getVersionTerminos());
+        OperacionPago op = nuevaOperacion(idUsuario, idSesion, req.idViaje(), req.medioPago(),
+                req.claveIdempotencia(), req.emailPagador(), monto, expiracion, ahora);
         op.setDatosPasajeros(datosPasajerosJson.escribir(pasajeros));
-        op.setFechaExpiracion(expiracion);
-        op.setFechaCreacion(ahora);
-        op.setFechaActualizacion(ahora);
         op = operaciones.saveAndFlush(op);
         log.info("Operación de pago creada: referencia={}, entorno={}, viaje={}, asientos={}, monto={}, medio={}",
                 op.getReferenciaExterna(), op.getEntorno(), req.idViaje(), asientos.size(), monto, req.medioPago());
         return new Preparacion(op, true, pasajeros);
+    }
+
+    private Preparacion prepararCambio(Integer idUsuario, int idPasaje, IniciarPagoCambioRequest req,
+                                       SesionReserva sesion) {
+        String idSesion = sesion.idSesion();
+        viajeAsientoRepositorio.bloquearSesion("pago:" + idSesion);
+
+        Optional<OperacionPago> repetida = operaciones.findByClaveIdempotencia(req.claveIdempotencia());
+        if (repetida.isPresent()) {
+            return new Preparacion(repetida.get(), false, List.of());
+        }
+        List<OperacionPago> activas = operaciones.findByIdSesionReservaAndEstadoIn(idSesion, ACTIVOS);
+        if (!activas.isEmpty()) {
+            return new Preparacion(activas.get(0), false, List.of());
+        }
+
+        LocalDateTime ahora = LocalDateTime.now();
+        List<ViajeAsiento> asientos = viajeAsientoRepositorio
+                .findByIdViajeAndTokenBloqueoAndEstadoViajeAsiento(Math.toIntExact(req.idViajeNuevo()), idSesion,
+                        ESTADO_BLOQUEADO).stream()
+                .filter(va -> va.getFechaExpiracionBloqueo() != null && !va.getFechaExpiracionBloqueo().isBefore(ahora))
+                .toList();
+        if (asientos.size() != 1 || !asientos.get(0).getIdAsiento().equals(req.idAsiento())) {
+            throw new PagoException(HttpStatus.CONFLICT,
+                    "Tu reserva de asiento expiró. Vuelve a seleccionar tu asiento.");
+        }
+
+        BigDecimal monto = confirmacionPostergacion
+                .diferenciaDelCambio(idUsuario, idPasaje, req.idViajeNuevo(), req.idAsiento())
+                .setScale(2, RoundingMode.HALF_UP);
+        if (monto.signum() <= 0) {
+            throw new PagoException(HttpStatus.CONFLICT, "Este cambio no tiene ninguna diferencia por pagar.");
+        }
+        if ("YAPE".equals(req.medioPago()) && monto.compareTo(propiedades.getTopeYape()) > 0) {
+            throw new PagoException(HttpStatus.BAD_REQUEST,
+                    "El total supera el tope de Yape. Usa una tarjeta.");
+        }
+        if ("YAPE".equals(req.medioPago()) != req.token().startsWith("ype_")) {
+            throw new PagoException(HttpStatus.BAD_REQUEST, "El token de pago no corresponde al medio elegido.");
+        }
+
+        LocalDateTime expiracion = ahora.plusMinutes(propiedades.getMinutosPago());
+        viajeAsientoServicio.extenderBloqueoSesion(req.idViajeNuevo(), idSesion, expiracion);
+
+        OperacionPago op = nuevaOperacion(idUsuario, idSesion, req.idViajeNuevo(), req.medioPago(),
+                req.claveIdempotencia(), req.emailPagador(), monto, expiracion, ahora);
+        op.setIdPasaje(idPasaje);
+        op.setIdAsientoNuevo(req.idAsiento());
+        op = operaciones.saveAndFlush(op);
+        log.info("Operación de pago de cambio creada: referencia={}, entorno={}, pasaje={}, viaje={}, monto={}, medio={}",
+                op.getReferenciaExterna(), op.getEntorno(), idPasaje, req.idViajeNuevo(), monto, req.medioPago());
+        return new Preparacion(op, true, List.of());
+    }
+
+    private OperacionPago nuevaOperacion(Integer idUsuario, String idSesion, Long idViaje, String medioPago,
+                                         String claveIdempotencia, String emailPagador, BigDecimal monto,
+                                         LocalDateTime expiracion, LocalDateTime ahora) {
+        OperacionPago op = new OperacionPago();
+        op.setReferenciaExterna("RL-" + UUID.randomUUID());
+        op.setClaveIdempotencia(claveIdempotencia);
+        op.setIdViaje(idViaje);
+        op.setIdSesionReserva(idSesion);
+        op.setIdUsuario(idUsuario);
+        op.setMedioPago(medioPago);
+        op.setEntorno(credenciales.entorno());
+        op.setMonto(monto);
+        op.setMoneda(MONEDA);
+        op.setEstado(EstadoOperacion.CREANDO);
+        op.setEmailPagador(emailPagador.trim());
+        op.setTerminosAceptadosEn(ahora);
+        op.setTerminosVersion(propiedades.getVersionTerminos());
+        op.setFechaExpiracion(expiracion);
+        op.setFechaCreacion(ahora);
+        op.setFechaActualizacion(ahora);
+        return op;
     }
 
     SolicitudCargo construirSolicitud(OperacionPago op, String token, Autenticacion3ds autenticacion) {
@@ -279,7 +363,8 @@ public class PagoServicio {
         String apellido = comprador == null ? null : textoOpcional(comprador.getApellidos());
         String telefono = comprador == null || comprador.getNroTelefono() == null ? null
                 : comprador.getNroTelefono().replaceAll("\\D", "");
-        return new SolicitudCargo(op.getReferenciaExterna(), op.getMonto(), op.getMoneda(), DESCRIPCION,
+        return new SolicitudCargo(op.getReferenciaExterna(), op.getMonto(), op.getMoneda(),
+                op.getIdPasaje() != null ? DESCRIPCION_CAMBIO : DESCRIPCION,
                 op.getEmailPagador(), token, nombre, apellido, telefono, autenticacion);
     }
 
@@ -320,7 +405,7 @@ public class PagoServicio {
         boolean reembolsar;
         try {
             reembolsar = Boolean.TRUE.equals(tx.execute(estado -> aplicarEnTransaccion(idOperacion, cargo)));
-        } catch (AsientoNoDisponibleException | CompraNoRegistrableException e) {
+        } catch (AsientoNoDisponibleException | CompraNoRegistrableException | ResponseStatusException e) {
             log.error("Pago aprobado sin poder registrar la compra (operación {}): {}", idOperacion, e.getMessage());
             reembolsar = Boolean.TRUE.equals(tx.execute(estado -> marcarSinAsientos(idOperacion, cargo)));
         }
@@ -377,8 +462,12 @@ public class PagoServicio {
             } catch (IllegalStateException e) {
                 throw new CompraNoRegistrableException(e.getMessage());
             }
-            registroCompra.registrar(op, cargo);
-            op.setMensaje(MensajesPago.APROBADO);
+            if (op.getIdPasaje() != null) {
+                registrarCambio(op);
+            } else {
+                registroCompra.registrar(op, cargo);
+                op.setMensaje(MensajesPago.APROBADO);
+            }
             pasajerosCache.eliminar(op.getIdSesionReserva());
             return false;
         }
@@ -397,6 +486,15 @@ public class PagoServicio {
         return false;
     }
 
+    private void registrarCambio(OperacionPago op) {
+        operaciones.flush();
+        confirmacionPostergacion.aplicarCambioPagado(op);
+        OperacionPago actual = operaciones.bloquearPorId(op.getIdOperacionPago()).orElseThrow();
+        actual.setEstado(EstadoOperacion.APROBADO);
+        actual.setMensaje(MensajesPago.APROBADO_CAMBIO);
+        actual.setFechaActualizacion(LocalDateTime.now());
+    }
+
     private boolean marcarSinAsientos(Integer idOperacion, CargoCulqi cargo) {
         OperacionPago op = operaciones.bloquearPorId(idOperacion).orElseThrow();
         if (op.getEstado() == EstadoOperacion.APROBADO || op.getIdVenta() != null) {
@@ -408,7 +506,7 @@ public class PagoServicio {
         op.setCulqiEstado(recortar(cargo.tipoResultado(), 40));
         op.setCulqiCodigo(recortar(cargo.codigo(), 60));
         op.setEstado(EstadoOperacion.APROBADO_SIN_ASIENTOS);
-        op.setMensaje(MensajesPago.SIN_ASIENTOS);
+        op.setMensaje(op.getIdPasaje() != null ? MensajesPago.SIN_CAMBIO : MensajesPago.SIN_ASIENTOS);
         op.setDatosPasajeros(null);
         op.setFechaActualizacion(LocalDateTime.now());
         return true;
@@ -438,7 +536,7 @@ public class PagoServicio {
                 if (o.getEstado() == EstadoOperacion.APROBADO_SIN_ASIENTOS) {
                     o.setEstado(EstadoOperacion.REEMBOLSADO);
                     o.setCulqiRefundId(recortar(idReembolso, 64));
-                    o.setMensaje(MensajesPago.REEMBOLSADO);
+                    o.setMensaje(o.getIdPasaje() != null ? MensajesPago.REEMBOLSADO_CAMBIO : MensajesPago.REEMBOLSADO);
                     o.setFechaActualizacion(LocalDateTime.now());
                 }
             }));
@@ -535,7 +633,11 @@ public class PagoServicio {
                     : new SesionRenovada(renovada.tokenSesion(), renovada.segundosRestantes());
             return new EstadoPagoResponse(op.getReferenciaExterna(), e.name(), e.esFinal(), reintentable, mensaje,
                     op.getCulqiChargeId(), op.getMonto(), e == EstadoOperacion.ACCION_REQUERIDA,
-                    sesion, e == EstadoOperacion.APROBADO ? compra(op) : null, op.getEntorno().name());
+                    sesion, e == EstadoOperacion.APROBADO && op.getIdPasaje() == null ? compra(op) : null,
+                    op.getEntorno().name(),
+                    e == EstadoOperacion.APROBADO && op.getIdPasaje() != null
+                            ? confirmacionPostergacion.resultadoDelPago(op.getIdUsuario(), op.getReferenciaExterna())
+                            : null);
         });
     }
 

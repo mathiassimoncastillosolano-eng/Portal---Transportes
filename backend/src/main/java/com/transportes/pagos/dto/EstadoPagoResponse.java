@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.transportes.postergacion.dto.ConfirmacionPostergacionDto;
+
 public record EstadoPagoResponse(
         String referencia,
         String estado,
@@ -15,7 +17,8 @@ public record EstadoPagoResponse(
         boolean requiere3ds,
         SesionRenovada sesion,
         CompraConfirmada compra,
-        String entorno) {
+        String entorno,
+        ConfirmacionPostergacionDto cambio) {
 
     public record SesionRenovada(String tokenSesion, long segundosRestantes) {
     }

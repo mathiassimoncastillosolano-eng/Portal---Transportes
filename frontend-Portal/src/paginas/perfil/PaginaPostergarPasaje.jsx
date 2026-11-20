@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
+import { useTema } from '../../hooks/useTema'
 import { FASES, usePostergacion } from '../../hooks/usePostergacion'
+import { cerrarCheckout } from '../../servicios/culqiSdk'
 import { IndicadorProgreso } from '../../componentes/reserva/IndicadorProgreso'
 import { ModalBase } from '../../componentes/comunes/ModalBase'
 import { BotonPrincipal } from '../../componentes/comunes/BotonPrincipal'
@@ -53,13 +55,27 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
   const primeraFase = useRef(true)
   const consumirEscenarioAsiento = useCallback(() => setEscenario((actual) => ({ ...actual, asiento: 'disponible' })), [])
 
+  const { usuario } = useAutenticacion()
+  const { tema } = useTema()
+
   const { estado, acciones } = usePostergacion({
     pasaje,
     idCliente,
     escenario,
     alEscenarioConsumido: consumirEscenarioAsiento,
+    tema,
+    correo: usuario?.correo ?? '',
   })
-  const { fase, viaje, asiento, comparacion, aceptaCondiciones, metodo, procesando, avisoPago, intentos, busqueda, versionMapa, resultado, sesion, sesionVencida, datosPago, erroresPago } = estado
+  const { fase, viaje, asiento, comparacion, aceptaCondiciones, metodo, procesando, avisoPago, intentos, busqueda, versionMapa, resultado, sesion, sesionVencida, datosPago, erroresPago, aceptaTerminosPago, configPago, pendiente } = estado
+  const pagoConCulqi = Boolean(pasaje.deCompraReal)
+  const formularioPagoListo = Boolean(configPago?.disponible && configPago?.publicKey)
+  const cobroBloqueado = pagoConCulqi ? Boolean(pendiente) : !puedeIniciarNuevoCobro(intentos).permitido
+
+  useEffect(() => {
+    if (!pagoConCulqi || fase !== FASES.PAGO || !aceptaTerminosPago || !formularioPagoListo || procesando || pendiente) return undefined
+    acciones.pagar()
+    return () => cerrarCheckout()
+  }, [pagoConCulqi, fase, aceptaTerminosPago, formularioPagoListo, procesando, pendiente, tema])
 
   useEffect(() => {
     if (primeraFase.current) {
@@ -215,17 +231,20 @@ function FlujoPostergacion({ pasajeInicial, idCliente }) {
                 procesando={procesando}
                 avisoPago={avisoPago}
                 intentos={intentos}
+                esPrueba={configPago?.entorno === 'SANDBOX'}
+                aceptaTerminos={aceptaTerminosPago}
+                alCambiarTerminos={acciones.cambiarTerminosPago}
               />
               <BarraAcciones
                 alVolver={acciones.volver}
                 alCancelar={pedirCancelacion}
                 alContinuar={acciones.pagar}
-                textoContinuar={puedeIniciarNuevoCobro(intentos).permitido
-                  ? `${avisoPago ? 'Reintentar pago' : 'Pagar'} ${formatearPrecio(comparacion.montoAPagar, pasaje.moneda)}`
-                  : 'Pago en revisión'}
+                textoContinuar={cobroBloqueado
+                  ? 'Pago en revisión'
+                  : `${avisoPago ? 'Reintentar pago' : 'Pagar'} ${formatearPrecio(comparacion.montoAPagar, pasaje.moneda)}`}
                 cargando={procesando}
                 bloqueado={procesando}
-                deshabilitado={!puedeIniciarNuevoCobro(intentos).permitido}
+                deshabilitado={cobroBloqueado || (pagoConCulqi && !(aceptaTerminosPago && formularioPagoListo))}
               />
             </>
           )}

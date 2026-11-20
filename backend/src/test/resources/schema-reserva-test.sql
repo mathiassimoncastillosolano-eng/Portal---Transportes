@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS operacion_pago (
  monto numeric(10,2) NOT NULL, moneda varchar(3) NOT NULL DEFAULT 'PEN', estado varchar(30) NOT NULL,
  culqi_charge_id varchar(64), culqi_estado varchar(40), culqi_codigo varchar(60), culqi_refund_id varchar(64),
  email_pagador varchar(150), terminos_aceptados_en timestamp, terminos_version varchar(20), datos_pasajeros varchar(20000), id_venta integer REFERENCES venta(id_venta),
+ id_pasaje integer, id_asiento_nuevo integer,
  mensaje varchar(255), entorno varchar(12) NOT NULL DEFAULT 'PRODUCTION', fecha_expiracion timestamp NOT NULL, fecha_ultima_consulta timestamp,
  fecha_creacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
  fecha_actualizacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

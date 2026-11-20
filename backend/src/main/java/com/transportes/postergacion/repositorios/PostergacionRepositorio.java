@@ -1,6 +1,7 @@
 package com.transportes.postergacion.repositorios;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -13,6 +14,8 @@ import com.transportes.postergacion.entidades.Postergacion;
 public interface PostergacionRepositorio extends JpaRepository<Postergacion, Integer> {
 
     List<Postergacion> findByIdPasajeOrderByIdPostergacion(Integer idPasaje);
+
+    Optional<Postergacion> findByReferenciaPago(String referenciaPago);
 
     /**
      * Pasa el pasaje al asiento nuevo, solo si todavía tiene el asiento que se esperaba (nadie lo movió antes).

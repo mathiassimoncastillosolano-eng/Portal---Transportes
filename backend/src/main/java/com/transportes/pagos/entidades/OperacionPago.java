@@ -91,6 +91,12 @@ public class OperacionPago {
     @Column(name = "id_venta")
     private Integer idVenta;
 
+    @Column(name = "id_pasaje")
+    private Integer idPasaje;
+
+    @Column(name = "id_asiento_nuevo")
+    private Integer idAsientoNuevo;
+
     @Column(name = "mensaje", length = 255)
     private String mensaje;
 
