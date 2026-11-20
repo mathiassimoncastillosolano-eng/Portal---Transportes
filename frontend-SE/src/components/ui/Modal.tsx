@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/utils/cn'
 
@@ -43,7 +44,7 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div
         className="animate-fade-in absolute inset-0 bg-scrim"
@@ -77,6 +78,7 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/utils/cn'
 
 interface DrawerProps {
@@ -35,7 +36,7 @@ export function Drawer({
     }
   }, [open])
 
-  return (
+  return createPortal(
     <div
       className={cn(
         'fixed inset-0 z-[90] transition-opacity duration-200',
@@ -67,6 +68,7 @@ export function Drawer({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
