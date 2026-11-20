@@ -10,12 +10,12 @@ import { Button } from '@/components/ui/Button'
 import { Drawer } from '@/components/ui/Drawer'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { clientesService } from '@/services'
-import { useToastStore } from '@/stores/toastStore'
 import type { ViajeHistorial } from '@/types/cliente'
 import type { ClienteFiltro } from '@/types/listadoPasajes'
 import { cn } from '@/utils/cn'
 import { formatearFecha, formatearFechaHora, nombrePropio } from '@/utils/formato'
 import { ETIQUETA_ESTADO, formatearPrecio, textoLlegada, textoSalida } from '../utils/boleto'
+import { PostergarPasajeDialog } from '@/features/pasajes/postergacion/PostergarPasajeDialog'
 import { BoletoModal } from './BoletoModal'
 
 interface ClienteDetalleProps {
@@ -70,8 +70,7 @@ function Dato({ etiqueta, valor, icono: Icono }: { etiqueta: string; valor: stri
   )
 }
 
-function TarjetaViaje({ viaje, onBoleto }: { viaje: ViajeHistorial; onBoleto: () => void }) {
-  const pushToast = useToastStore((s) => s.push)
+function TarjetaViaje({ viaje, onBoleto, onPostergar }: { viaje: ViajeHistorial; onBoleto: () => void; onPostergar: () => void }) {
   const llegada = textoLlegada(viaje)
   return (
     <li className={cn('rounded-xl border border-l-4 border-border bg-surface-card p-4', BORDE_FASE[viaje.fase])}>
@@ -127,7 +126,7 @@ function TarjetaViaje({ viaje, onBoleto }: { viaje: ViajeHistorial; onBoleto: ()
           <Button
             variant="outline"
             size="sm"
-            onClick={() => pushToast({ tone: 'info', title: 'Postergar pasaje', description: 'Esta opción estará disponible próximamente.' })}
+            onClick={onPostergar}
             iconLeft={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
           >
             Postergar este pasaje
@@ -158,6 +157,7 @@ export function ClienteDetalle({ idPasajero, onClose, onVerPasajes }: ClienteDet
     setPestana('proximos')
   }
   const [boleto, setBoleto] = useState<ViajeHistorial | null>(null)
+  const [postergar, setPostergar] = useState<ViajeHistorial | null>(null)
 
   const grupos = useMemo(() => {
     const historial = data?.historial ?? []
@@ -303,7 +303,7 @@ export function ClienteDetalle({ idPasajero, onClose, onVerPasajes }: ClienteDet
                 ) : (
                   <ul className="flex flex-col gap-3">
                     {lista.map((v) => (
-                      <TarjetaViaje key={v.idPasaje} viaje={v} onBoleto={() => setBoleto(v)} />
+                      <TarjetaViaje key={v.idPasaje} viaje={v} onBoleto={() => setBoleto(v)} onPostergar={() => setPostergar(v)} />
                     ))}
                   </ul>
                 )}
@@ -314,6 +314,7 @@ export function ClienteDetalle({ idPasajero, onClose, onVerPasajes }: ClienteDet
       </Drawer>
 
       <BoletoModal viaje={boleto} onClose={() => setBoleto(null)} />
+      <PostergarPasajeDialog pasaje={postergar} onClose={() => setPostergar(null)} />
     </>
   )
 }

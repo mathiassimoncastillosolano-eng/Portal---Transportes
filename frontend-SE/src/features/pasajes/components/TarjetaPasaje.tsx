@@ -1,4 +1,4 @@
-import { Armchair, Bus, FileText, Hash, UserRound } from 'lucide-react'
+import { Armchair, Bus, CalendarClock, FileText, Hash, UserRound } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -19,9 +19,10 @@ interface TarjetaPasajeProps {
   pasaje: Pasaje
   onBoleto: () => void
   onCliente: () => void
+  onPostergar: () => void
 }
 
-export function TarjetaPasaje({ pasaje, onBoleto, onCliente }: TarjetaPasajeProps) {
+export function TarjetaPasaje({ pasaje, onBoleto, onCliente, onPostergar }: TarjetaPasajeProps) {
   const fase = FASE[pasaje.fase]
   const llegada = textoLlegada(pasaje)
   const pasajero = nombrePropio(pasaje.pasajero)
@@ -105,15 +106,22 @@ export function TarjetaPasaje({ pasaje, onBoleto, onCliente }: TarjetaPasajeProp
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-500">Precio</p>
             <p className="font-display text-xl font-semibold tabular-nums text-text-900">{formatearPrecio(pasaje.precio, pasaje.moneda)}</p>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={!pasaje.documentoDisponible}
-            onClick={onBoleto}
-            iconLeft={<FileText className="h-3.5 w-3.5" aria-hidden="true" />}
-          >
-            Ver boleto
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {pasaje.fase === 'PROXIMO' && (
+              <Button variant="outline" size="sm" onClick={onPostergar} iconLeft={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}>
+                Postergar
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!pasaje.documentoDisponible}
+              onClick={onBoleto}
+              iconLeft={<FileText className="h-3.5 w-3.5" aria-hidden="true" />}
+            >
+              Ver boleto
+            </Button>
+          </div>
         </div>
       </div>
     </li>

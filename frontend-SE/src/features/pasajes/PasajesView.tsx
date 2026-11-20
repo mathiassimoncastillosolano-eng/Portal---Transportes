@@ -20,6 +20,7 @@ import { formatearNumero } from '@/utils/formato'
 import { BoletoModal } from '@/features/clientes/components/BoletoModal'
 import { ClienteDetalle } from '@/features/clientes/components/ClienteDetalle'
 import { formatearPrecio } from '@/features/clientes/utils/boleto'
+import { PostergarPasajeDialog } from './postergacion/PostergarPasajeDialog'
 import { TarjetaPasaje } from './components/TarjetaPasaje'
 
 const FASES: { id: FasePasaje; label: string }[] = [
@@ -94,6 +95,7 @@ export function PasajesView() {
   }))
   const [boleto, setBoleto] = useState<Pasaje | null>(null)
   const [clienteAbierto, setClienteAbierto] = useState<number | null>(null)
+  const [postergar, setPostergar] = useState<Pasaje | null>(null)
   const q = useRetardo(busqueda, 350)
 
   useEffect(() => {
@@ -271,7 +273,7 @@ export function PasajesView() {
           {cargando || !pagina
             ? Array.from({ length: 6 }, (_, i) => <TarjetaCarga key={i} />)
             : pagina.contenido.map((p) => (
-                <TarjetaPasaje key={p.idPasaje} pasaje={p} onBoleto={() => setBoleto(p)} onCliente={() => setClienteAbierto(p.idPasajero)} />
+                <TarjetaPasaje key={p.idPasaje} pasaje={p} onBoleto={() => setBoleto(p)} onCliente={() => setClienteAbierto(p.idPasajero)} onPostergar={() => setPostergar(p)} />
               ))}
         </ul>
       )}
@@ -312,6 +314,7 @@ export function PasajesView() {
         cambiar({ cliente })
       }} />
       <BoletoModal viaje={boleto} onClose={() => setBoleto(null)} />
+      <PostergarPasajeDialog pasaje={postergar} onClose={() => setPostergar(null)} />
     </PageContainer>
   )
 }
