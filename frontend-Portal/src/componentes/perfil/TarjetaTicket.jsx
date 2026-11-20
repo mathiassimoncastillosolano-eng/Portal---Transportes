@@ -3,6 +3,7 @@ import { formatearFechaCorta, formatearFechaHoraCompra, formatearFechaHoraLima, 
 import { documentosCambio, resumenDocumento } from '../../utilidades/documentosCambio'
 import { avisoTotal, datosFaltantes, estadoVisible } from '../../utilidades/pasajesVista'
 import './tarjetaTicket.css'
+import { LogoMarca } from '../comunes/LogoMarca'
 
 function motivoSinDocumento(compra) {
   if (compra.estado === 'REEMBOLSADA') return 'Esta compra fue reembolsada: no hay documento para descargar.'
@@ -29,7 +30,7 @@ export function TarjetaTicket({ compra, onDescargar, onVerPdf, descargando, erro
   return (
     <article className="tarjeta-ticket">
       <div className="tarjeta-ticket__franja">
-        <span className="tarjeta-ticket__marca"><span className="tarjeta-ticket__isotipo">RL</span> RutaLibre</span>
+        <span className="tarjeta-ticket__marca"><LogoMarca variante="claro" alto={30} /> RutaLibre</span>
         <EstadoDisponibilidad estado={estado.clave} etiqueta={estado.etiqueta} />
       </div>
       <div className="tarjeta-ticket__cuerpo">

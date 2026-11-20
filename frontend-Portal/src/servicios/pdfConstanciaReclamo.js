@@ -1,7 +1,7 @@
 import { formatearFechaLarga, formatearPrecio } from '../utilidades/formato.js'
+import logoClaro from '../assets/logo/logo-claro.png?inline'
 
 const AZUL = [11, 53, 64]
-const TURQUESA = [20, 127, 145]
 const VERDE = [16, 185, 129]
 const GRIS = [83, 102, 112]
 const TEXTO = [23, 43, 58]
@@ -106,14 +106,11 @@ export async function descargarConstanciaPdf(constancia, proveedor) {
     pdf.rect(0, 0, 210, 34, 'F')
     pdf.setFillColor(...VERDE)
     pdf.rect(0, 34, 210, 1.2, 'F')
-    pdf.setFillColor(...TURQUESA)
-    pdf.roundedRect(MARGEN, 9, 16, 16, 3.5, 3.5, 'F')
+    pdf.addImage(logoClaro, 'PNG', MARGEN, 9.5, 24.6, 15.6)
     pdf.setTextColor(255, 255, 255)
     pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(10)
-    pdf.text('RL', MARGEN + 8, 19.2, { align: 'center' })
     pdf.setFontSize(17)
-    pdf.text('RutaLibre', MARGEN + 21, 19.5)
+    pdf.text('RutaLibre', MARGEN + 29, 19.5)
     pdf.setFontSize(8.5)
     pdf.text(doc.titulo, 210 - MARGEN, 15, { align: 'right' })
     pdf.setFontSize(13)

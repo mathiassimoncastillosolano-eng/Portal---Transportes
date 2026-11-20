@@ -102,13 +102,6 @@
   gap: 10px;
 }
 
-.inicio-rl__logo {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  box-shadow: 0 0 0 1px rgba(45, 212, 168, 0.25), 0 8px 24px -8px rgba(16, 185, 129, 0.5);
-}
-
 .inicio-rl__nombre {
   font-family: var(--fuente-titulos, 'Space Grotesk', sans-serif);
   font-size: 1.125rem;

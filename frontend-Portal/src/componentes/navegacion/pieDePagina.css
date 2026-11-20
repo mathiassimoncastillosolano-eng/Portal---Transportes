@@ -34,20 +34,6 @@
   margin-bottom: 0.4rem;
 }
 
-.pie-de-pagina__isotipo {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--gradiente-marca-suave);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--fuente-titulos);
-  font-weight: 700;
-  font-size: 0.75rem;
-}
-
 .pie-de-pagina__nombre {
   font-family: var(--fuente-titulos);
   font-weight: 600;

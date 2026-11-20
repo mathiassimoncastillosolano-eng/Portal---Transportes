@@ -7,6 +7,7 @@ import './estilos/globales.css'
 import './componentes/perfil/tarjetaTicket.css'
 import './paginas/perfil/paginaMisPasajes.css'
 import './vistaDetalleCompraCambiado.css'
+import { LogoMarca } from './componentes/comunes/LogoMarca'
 
 function Boleto({ boleto, indice }) {
   const cambiado = boleto.idPasaje === cambioEjemplo.idPasaje
@@ -57,7 +58,7 @@ function VistaDetalleCompraCambiado() {
         <p className="detalle-cambiado__aviso">Vista de ejemplo: este cambio aún no se registra en la base de datos.</p>
         <article className="tarjeta-ticket">
           <div className="tarjeta-ticket__franja">
-            <span className="tarjeta-ticket__marca"><span className="tarjeta-ticket__isotipo">RL</span> RutaLibre</span>
+            <span className="tarjeta-ticket__marca"><LogoMarca variante="claro" alto={30} /> RutaLibre</span>
             <EstadoDisponibilidad estado="confirmado" etiqueta="Compra confirmada" />
           </div>
           <div className="tarjeta-ticket__cuerpo">

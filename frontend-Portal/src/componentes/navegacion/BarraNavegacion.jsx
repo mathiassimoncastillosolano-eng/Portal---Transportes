@@ -5,6 +5,7 @@ import { iniciales } from '../../utilidades/formato'
 import { useClicFuera } from '../../hooks/useClicFuera'
 import { BotonTema } from '../comunes/BotonTema'
 import './barraNavegacion.css'
+import { LogoMarca } from '../comunes/LogoMarca'
 
 const ENLACES = [
   { ruta: '/', etiqueta: 'Inicio' },
@@ -51,7 +52,7 @@ export function BarraNavegacion({ alAbrirInicioSesion }) {
     <header className={`barra-navegacion ${conFondo ? 'barra-navegacion--con-fondo' : ''}`}>
       <div className="contenedor barra-navegacion__interior">
         <NavLink to="/" className="barra-navegacion__marca" onClick={manejarClicLogo}>
-          <span className="barra-navegacion__isotipo">RL</span>
+          <LogoMarca alto={44} className="barra-navegacion__logo" />
           <span className="barra-navegacion__nombre">RutaLibre</span>
         </NavLink>
 

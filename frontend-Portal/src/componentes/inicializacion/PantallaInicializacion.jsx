@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from 'react'
 import { ESTADOS_INICIO, describirEstado, etapaDe } from '../../utilidades/inicializacion'
 import './pantallaInicializacion.css'
+import { LogoMarca } from '../comunes/LogoMarca'
 
 // Geometría de la ruta (unidades del viewBox 600 × 132).
 const DEPOSITO_X = 56
@@ -89,11 +90,7 @@ export function PantallaInicializacion({
       </div>
 
       <header className="inicio-rl__marca">
-        <svg className="inicio-rl__logo" viewBox="0 0 32 32" aria-hidden="true">
-          <rect width="32" height="32" rx="8" fill="#0F4C5C" />
-          <path d="M8 20 L16 9 L24 20" stroke="#2DD4A8" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx="16" cy="24" r="2" fill="#2DD4A8" />
-        </svg>
+        <LogoMarca variante="claro" alto={38} />
         <span className="inicio-rl__nombre">
           Ruta<strong>Libre</strong>
         </span>

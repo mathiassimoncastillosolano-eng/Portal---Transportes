@@ -422,42 +422,6 @@
 }
 
 
-/* Isotipo de marca — copia de `.barra-navegacion__isotipo` del portal. */
-.brand-isotipo {
-  --brand-size: 44px;
-  position: relative;
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: var(--brand-size);
-  height: var(--brand-size);
-  border-radius: calc(var(--brand-size) * 0.318);
-  background:
-    radial-gradient(120% 90% at 20% 0%, rgba(45, 212, 168, 0.5) 0%, transparent 55%),
-    var(--gradient-brand-deep);
-  color: #fff;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: calc(var(--brand-size) * 0.216);
-  letter-spacing: 0.02em;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -6px 10px -6px rgba(0, 0, 0, 0.35),
-    0 10px 20px -8px rgba(11, 53, 64, 0.65);
-}
-.brand-isotipo::after {
-  content: '';
-  position: absolute;
-  right: calc(var(--brand-size) * 0.136);
-  top: calc(var(--brand-size) * 0.136);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #2dd4a8;
-  box-shadow: 0 0 0 3px rgba(45, 212, 168, 0.22);
-}
-
 @layer utilities {
   /* Atmósfera del lienzo (= .diseno-principal del portal): luces ambientales muy tenues, sin tramas. */
   .app-canvas {

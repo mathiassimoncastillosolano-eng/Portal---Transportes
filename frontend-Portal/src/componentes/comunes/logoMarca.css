@@ -1,0 +1,28 @@
+.logo-marca {
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.logo-marca__img {
+  display: block;
+  height: var(--logo-alto, 44px);
+  width: auto;
+}
+
+.logo-marca__img--tema-oscuro {
+  display: none;
+}
+
+.logo-marca__img--tema-oscuro,
+.logo-marca__img--fijo {
+  filter: drop-shadow(0 6px 14px rgba(45, 212, 168, 0.2));
+}
+
+[data-theme='dark'] .logo-marca__img--tema-claro {
+  display: none;
+}
+
+[data-theme='dark'] .logo-marca__img--tema-oscuro {
+  display: block;
+}

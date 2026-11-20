@@ -1,3 +1,4 @@
+import { LogoMarca } from '../comunes/LogoMarca'
 const ICONO_CHECK = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M5 12.5 10 17l9-10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -14,7 +15,7 @@ export function PanelMarcaAutenticacion({ titulo, texto, ventajas = [] }) {
   return (
     <aside className="pagina-autenticacion__marca">
       <div className="pagina-autenticacion__marca-logo">
-        <span className="pagina-autenticacion__marca-isotipo">RL</span>
+        <LogoMarca variante="claro" alto={44} className="pagina-autenticacion__marca-img" />
         RutaLibre
       </div>
 

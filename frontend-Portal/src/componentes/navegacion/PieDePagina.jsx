@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { ciudades } from '../../datos/ciudades'
 import { CONTACTO } from '../../datos/contacto'
 import './pieDePagina.css'
+import { LogoMarca } from '../comunes/LogoMarca'
 
 const redesSociales = [
   {
@@ -39,7 +40,7 @@ export function PieDePagina() {
       <div className="contenedor pie-de-pagina__interior">
         <div className="pie-de-pagina__columna pie-de-pagina__columna--marca">
           <div className="pie-de-pagina__marca">
-            <span className="pie-de-pagina__isotipo">RL</span>
+            <LogoMarca variante="claro" alto={38} />
             <span className="pie-de-pagina__nombre">RutaLibre</span>
           </div>
           <p className="pie-de-pagina__descripcion">

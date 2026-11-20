@@ -1,29 +1,31 @@
+import logo from '@/assets/logo/logo.png'
+import logoClaro from '@/assets/logo/logo-claro.png'
 import { cn } from '@/utils/cn'
 
 interface BrandLogoProps {
-  /** Solo el isotipo (sidebar contraído). */
   compact?: boolean
-  /** Línea secundaria bajo el nombre (ej. "Sistema Empresarial"). */
   subtitle?: string
-  /** `light` = nombre claro (sobre fondos oscuros); `dark` = nombre de marca (sobre fondos claros). */
   tone?: 'light' | 'dark'
-  /** Lado del isotipo en px (el portal usa 44). */
   size?: number
   className?: string
 }
 
-/**
- * Logotipo de RutaLibre: isotipo "RL" + nombre, idéntico al del Portal de
- * Clientes (`barra-navegacion__isotipo` / `__nombre`): cuadrado de 14 px de
- * radio con degradado de marca profunda, brillo menta superior-izquierdo,
- * punto verde en la esquina y tipografía Space Grotesk. Los estilos viven en
- * `index.css` (`.brand-isotipo`) para que haya una única definición.
- */
+const BRILLO = 'drop-shadow-[0_6px_14px_rgba(45,212,168,0.2)]'
+
 export function BrandLogo({ compact, subtitle, tone = 'light', size = 44, className }: BrandLogoProps) {
+  const estilo = { height: size, width: 'auto' }
+
   return (
     <div className={cn('flex items-center gap-3 overflow-hidden', className)}>
-      <span className="brand-isotipo" style={{ ['--brand-size' as string]: `${size}px` }} aria-hidden="true">
-        RL
+      <span className="flex shrink-0 leading-none" aria-hidden="true">
+        {tone === 'light' ? (
+          <img src={logoClaro} alt="" className={cn('block max-w-none', BRILLO)} style={estilo} />
+        ) : (
+          <>
+            <img src={logo} alt="" className="block max-w-none dark:hidden" style={estilo} />
+            <img src={logoClaro} alt="" className={cn('hidden max-w-none dark:block', BRILLO)} style={estilo} />
+          </>
+        )}
       </span>
       {!compact && (
         <span className="min-w-0 leading-tight">
