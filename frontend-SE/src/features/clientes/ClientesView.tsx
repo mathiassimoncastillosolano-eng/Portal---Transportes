@@ -13,7 +13,7 @@ import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { clientesService } from '@/services'
 import type { ActividadCliente, ClienteResumen, ConsultaClientes, OrdenCliente } from '@/types/cliente'
 import { cn } from '@/utils/cn'
-import { formatearFechaHora, formatearNumero } from '@/utils/formato'
+import { formatearFechaHora, formatearNumero, nombrePropio } from '@/utils/formato'
 import { ClienteDetalle } from './components/ClienteDetalle'
 
 const ACTIVIDADES: { id: ActividadCliente; label: string }[] = [
@@ -73,7 +73,7 @@ function Indicador({ etiqueta, valor, icono: Icono, cargando }: { etiqueta: stri
 }
 
 function FilaCliente({ cliente, onAbrir }: { cliente: ClienteResumen; onAbrir: () => void }) {
-  const nombre = `${cliente.nombres} ${cliente.apellidos}`.trim()
+  const nombre = nombrePropio(`${cliente.nombres} ${cliente.apellidos}`.trim())
   return (
     <tr
       onClick={onAbrir}

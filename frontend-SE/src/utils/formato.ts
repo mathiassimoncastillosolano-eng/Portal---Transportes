@@ -74,3 +74,7 @@ export function formatearFechaLarga(iso: string): string {
     timeZone: 'UTC',
   })
 }
+
+export function nombrePropio(texto: string): string {
+  return texto.toLocaleLowerCase('es-PE').replace(/(^|[\s'-])(\p{L})/gu, (_, separador: string, letra: string) => separador + letra.toLocaleUpperCase('es-PE'))
+}

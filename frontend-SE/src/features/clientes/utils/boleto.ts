@@ -1,5 +1,5 @@
 import type { EstadoPasaje, ViajeHistorial } from '@/types/cliente'
-import { formatearFechaLarga } from '@/utils/formato'
+import { formatearFechaLarga, nombrePropio } from '@/utils/formato'
 
 export const ETIQUETA_ESTADO: Record<EstadoPasaje, string> = {
   CONFIRMADA: 'Confirmada',
@@ -59,7 +59,7 @@ export function contenidoDocumento(viaje: ViajeHistorial) {
     ] as [string, string][],
     boleto: {
       etiqueta: `Boleto · ${viaje.numeroBoleto}`,
-      pasajero: viaje.pasajero || '—',
+      pasajero: viaje.pasajero ? nombrePropio(viaje.pasajero) : '—',
       documento: viaje.documento || '—',
       asiento: `Asiento ${viaje.asiento ?? '—'}${viaje.piso ? ` · Piso ${viaje.piso}` : ''}`,
       precio: formatearPrecio(viaje.precio, viaje.moneda),

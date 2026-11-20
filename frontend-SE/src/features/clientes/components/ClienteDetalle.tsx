@@ -13,7 +13,7 @@ import { clientesService } from '@/services'
 import { useToastStore } from '@/stores/toastStore'
 import type { ViajeHistorial } from '@/types/cliente'
 import { cn } from '@/utils/cn'
-import { formatearFecha, formatearFechaHora } from '@/utils/formato'
+import { formatearFecha, formatearFechaHora, nombrePropio } from '@/utils/formato'
 import { ETIQUETA_ESTADO, formatearPrecio, textoLlegada, textoSalida } from '../utils/boleto'
 import { BoletoModal } from './BoletoModal'
 
@@ -80,38 +80,47 @@ function TarjetaViaje({ viaje, onBoleto }: { viaje: ViajeHistorial; onBoleto: ()
         </Badge>
       </div>
 
-      <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-[15px] font-semibold text-text-900">{viaje.origen}</p>
-          <p className="mt-0.5 text-xs tabular-nums text-text-500">{textoSalida(viaje)}</p>
+      <div className="mt-4 flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-base font-semibold leading-tight text-text-900">{viaje.origen}</p>
+          <p className="mt-1 text-xs tabular-nums text-text-500">{textoSalida(viaje)}</p>
         </div>
-        <div className="flex items-center gap-1.5 text-text-400" aria-hidden="true">
-          <span className="h-px w-6 bg-border-strong" />
-          <Bus className="h-4 w-4" />
-          <span className="h-px w-6 bg-border-strong" />
+        <div className="flex min-w-12 flex-1 items-center gap-1.5 pt-1 text-text-400" aria-hidden="true">
+          <span className="h-px flex-1 border-t border-dashed border-border-strong" />
+          <Bus className="h-4 w-4 shrink-0" />
+          <span className="h-px flex-1 border-t border-dashed border-border-strong" />
         </div>
-        <div className="min-w-0 text-right">
-          <p className="truncate text-[15px] font-semibold text-text-900">{viaje.destino}</p>
-          <p className="mt-0.5 text-xs tabular-nums text-text-500">{llegada ? `Llega ${llegada}` : 'Llegada sin registrar'}</p>
+        <div className="min-w-0 flex-1 text-right">
+          <p className="break-words text-base font-semibold leading-tight text-text-900">{viaje.destino}</p>
+          <p className="mt-1 text-xs tabular-nums text-text-500">{llegada ? `Llega ${llegada}` : 'Llegada sin registrar'}</p>
         </div>
       </div>
 
-      <dl className="mt-4 grid grid-cols-3 gap-2 rounded-lg bg-surface-sunken/60 px-3 py-2.5 text-xs">
-        <div className="min-w-0">
-          <dt className="text-text-500">Asiento</dt>
-          <dd className="mt-0.5 truncate font-medium text-text-900">{`${viaje.asiento ?? '—'}${viaje.piso ? ` · P${viaje.piso}` : ''}`}</dd>
+      <dl className="mt-4 grid grid-cols-3 divide-x divide-border-subtle rounded-lg bg-surface-sunken/60 py-2.5 text-xs">
+        <div className="flex min-w-0 items-center gap-2 px-3">
+          <Armchair className="h-4 w-4 shrink-0 text-text-400" aria-hidden="true" />
+          <div className="min-w-0">
+            <dt className="text-text-500">Asiento</dt>
+            <dd className="mt-0.5 truncate font-semibold text-text-900">{`${viaje.asiento ?? '—'}${viaje.piso ? ` · P${viaje.piso}` : ''}`}</dd>
+          </div>
         </div>
-        <div className="min-w-0">
-          <dt className="text-text-500">Bus</dt>
-          <dd className="mt-0.5 truncate font-medium text-text-900">{viaje.bus ?? '—'}</dd>
+        <div className="flex min-w-0 items-center gap-2 px-3">
+          <Bus className="h-4 w-4 shrink-0 text-text-400" aria-hidden="true" />
+          <div className="min-w-0">
+            <dt className="text-text-500">Bus</dt>
+            <dd className="mt-0.5 truncate font-semibold text-text-900">{viaje.bus ?? '—'}</dd>
+          </div>
         </div>
-        <div className="min-w-0">
-          <dt className="text-text-500">Precio</dt>
-          <dd className="mt-0.5 truncate font-medium tabular-nums text-text-900">{formatearPrecio(viaje.precio, viaje.moneda)}</dd>
+        <div className="flex min-w-0 items-center gap-2 px-3">
+          <Wallet className="h-4 w-4 shrink-0 text-text-400" aria-hidden="true" />
+          <div className="min-w-0">
+            <dt className="text-text-500">Precio</dt>
+            <dd className="mt-0.5 truncate font-semibold tabular-nums text-text-900">{formatearPrecio(viaje.precio, viaje.moneda)}</dd>
+          </div>
         </div>
       </dl>
 
-      <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+      <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-3">
         {viaje.fase === 'PROXIMO' && (
           <Button
             variant="outline"
@@ -172,7 +181,7 @@ export function ClienteDetalle({ idPasajero, onClose }: ClienteDetalleProps) {
     ...(grupos.otros.length > 0 ? [{ id: 'otros' as Pestana, label: 'Otros' }] : []),
   ]
   const lista = grupos[pestana]
-  const nombre = data ? `${data.nombres} ${data.apellidos}`.trim() : ''
+  const nombre = data ? nombrePropio(`${data.nombres} ${data.apellidos}`.trim()) : ''
   const edad = data?.fechaNacimiento ? edadDe(data.fechaNacimiento) : null
 
   return (
