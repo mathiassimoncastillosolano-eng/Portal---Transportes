@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, CalendarCheck, ChevronLeft, ChevronRight, ChevronsUpDown, Search, Ticket, UserCheck, Users, UsersRound, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { ErrorState } from '@/components/feedback/ErrorState'
 import { Skeleton } from '@/components/feedback/Skeleton'
@@ -10,7 +10,10 @@ import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
+import { useRetardo } from '@/hooks/useRetardo'
+import { useUIStore } from '@/stores/uiStore'
 import { clientesService } from '@/services'
+import type { ClienteFiltro } from '@/types/listadoPasajes'
 import type { ActividadCliente, ClienteResumen, ConsultaClientes, OrdenCliente } from '@/types/cliente'
 import { cn } from '@/utils/cn'
 import { formatearFechaHora, formatearNumero, nombrePropio } from '@/utils/formato'
@@ -41,15 +44,6 @@ const consultaInicial: ConsultaClientes = {
   direccion: 'asc',
   pagina: 0,
   tamano: 10,
-}
-
-function useRetardo<T>(valor: T, ms: number): T {
-  const [retardado, setRetardado] = useState(valor)
-  useEffect(() => {
-    const temporizador = window.setTimeout(() => setRetardado(valor), ms)
-    return () => window.clearTimeout(temporizador)
-  }, [valor, ms])
-  return retardado
 }
 
 function Indicador({ etiqueta, valor, icono: Icono, cargando }: { etiqueta: string; valor: number | undefined; icono: typeof Users; cargando: boolean }) {
@@ -149,6 +143,11 @@ export function ClientesView() {
   function restablecer() {
     setBusqueda('')
     setConsulta(consultaInicial)
+  }
+
+  function verPasajes(cliente: ClienteFiltro) {
+    useUIStore.getState().setFiltroPasajesCliente(cliente)
+    useUIStore.getState().setActiveSection('pasajes')
   }
 
   const tipos = [{ value: '', label: 'Todos los documentos' }, ...(indicadores?.tiposDocumento ?? []).map((t) => ({ value: t, label: t }))]
@@ -328,7 +327,7 @@ export function ClientesView() {
         </div>
       </Card>
 
-      <ClienteDetalle idPasajero={abierto} onClose={() => setAbierto(null)} />
+      <ClienteDetalle idPasajero={abierto} onClose={() => setAbierto(null)} onVerPasajes={verPasajes} />
     </PageContainer>
   )
 }

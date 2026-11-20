@@ -24,7 +24,7 @@ export const navigationConfig: NavEntry[] = [
       id: 'comercial',
       label: 'Comercial',
       items: [
-        { id: 'pasajes', title: 'Pasajes', sectionId: 'pasajes', icon: Receipt, requiredPermission: PERMISO_AGENCIA, soon: true },
+        { id: 'pasajes', title: 'Pasajes', sectionId: 'pasajes', icon: Receipt, requiredPermission: PERMISO_AGENCIA },
         { id: 'clientes', title: 'Clientes', sectionId: 'clientes', icon: Users, requiredPermission: PERMISO_AGENCIA },
       ],
     },

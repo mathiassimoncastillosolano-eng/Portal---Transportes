@@ -10,6 +10,7 @@ import type {
 } from '@/types/consultaViaje'
 import type { ClienteDetalle, ConsultaClientes, IndicadoresClientes, PaginaClientes } from '@/types/cliente'
 import type { ConsultaDashboard, DatosDashboard } from '@/types/dashboard'
+import type { ConsultaPasajes, OpcionesFiltroPasajes, PaginaPasajes } from '@/types/listadoPasajes'
 import type { MetodoPago } from '@/types/pago'
 import type { Servicio } from '@/types/servicio'
 import type { Ruta } from '@/types/viaje'
@@ -44,6 +45,11 @@ export interface ClientesService {
   listar(consulta: ConsultaClientes): Promise<PaginaClientes>
   indicadores(): Promise<IndicadoresClientes>
   detalle(idPasajero: number): Promise<ClienteDetalle>
+}
+
+export interface PasajesService {
+  listar(consulta: ConsultaPasajes): Promise<PaginaPasajes>
+  opciones(): Promise<OpcionesFiltroPasajes>
 }
 
 export interface AuthService {

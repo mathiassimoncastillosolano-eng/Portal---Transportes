@@ -112,6 +112,7 @@ public class ConfiguracionSeguridad {
                                                 // Panel de clientes del Sistema Empresarial: solo roles AGENCIA o
                                                 // GERENTE (datos personales).
                                                 .requestMatchers("/api/clientes/**").hasAnyRole("AGENCIA", "GERENTE")
+                                                .requestMatchers("/api/pasajes/**").hasAnyRole("AGENCIA", "GERENTE")
                                                 .requestMatchers(HttpMethod.GET, "/api/pagos/configuracion").permitAll()
                                                 // Pagos: piden sesión (la compra queda a nombre del usuario).
                                                 .requestMatchers("/api/pagos/**").authenticated()

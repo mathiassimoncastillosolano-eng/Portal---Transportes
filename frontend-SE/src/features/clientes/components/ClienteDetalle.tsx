@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Armchair, Bus, Cake, CalendarClock, CalendarDays, FileText, Fingerprint, Phone, Ticket, Wallet, X } from 'lucide-react'
+import { Armchair, Bus, ArrowRight, Cake, CalendarClock, CalendarDays, FileText, Fingerprint, Phone, Ticket, Wallet, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { ErrorState } from '@/components/feedback/ErrorState'
@@ -12,6 +12,7 @@ import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { clientesService } from '@/services'
 import { useToastStore } from '@/stores/toastStore'
 import type { ViajeHistorial } from '@/types/cliente'
+import type { ClienteFiltro } from '@/types/listadoPasajes'
 import { cn } from '@/utils/cn'
 import { formatearFecha, formatearFechaHora, nombrePropio } from '@/utils/formato'
 import { ETIQUETA_ESTADO, formatearPrecio, textoLlegada, textoSalida } from '../utils/boleto'
@@ -20,6 +21,7 @@ import { BoletoModal } from './BoletoModal'
 interface ClienteDetalleProps {
   idPasajero: number | null
   onClose: () => void
+  onVerPasajes?: (cliente: ClienteFiltro) => void
 }
 
 type Pestana = 'proximos' | 'realizados' | 'otros'
@@ -145,7 +147,7 @@ function TarjetaViaje({ viaje, onBoleto }: { viaje: ViajeHistorial; onBoleto: ()
   )
 }
 
-export function ClienteDetalle({ idPasajero, onClose }: ClienteDetalleProps) {
+export function ClienteDetalle({ idPasajero, onClose, onVerPasajes }: ClienteDetalleProps) {
   const { data, cargando, error, reintentar } = useAsyncResource(idPasajero === null ? null : `cliente-${idPasajero}`, () =>
     clientesService.detalle(idPasajero as number),
   )
@@ -261,6 +263,17 @@ export function ClienteDetalle({ idPasajero, onClose }: ClienteDetalleProps) {
                 <div className="mb-3 flex items-center gap-2">
                   <Ticket className="h-4 w-4 text-text-400" aria-hidden="true" />
                   <h3 className="text-sm font-semibold text-text-900">Historial de viajes</h3>
+                  {onVerPasajes && data.viajes > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto"
+                      onClick={() => onVerPasajes({ id: data.idPasajero, nombre })}
+                      iconRight={<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />}
+                    >
+                      Ver todos sus pasajes
+                    </Button>
+                  )}
                 </div>
 
                 <div role="tablist" aria-label="Historial de viajes" className="mb-3 inline-flex rounded-lg border border-border bg-surface-sunken p-0.5">

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { SECCION_INICIAL } from '@/config/navigation'
+import type { ClienteFiltro } from '@/types/listadoPasajes'
 
 /**
  * Estado global de interfaz.
@@ -33,6 +34,9 @@ interface UIState {
   activeSectionId: string
   setActiveSection: (id: string) => void
 
+  filtroPasajesCliente: ClienteFiltro | null
+  setFiltroPasajesCliente: (cliente: ClienteFiltro | null) => void
+
   // --- Command palette (Ctrl/⌘ + K). Estado efímero: nunca se persiste. ---
   commandPaletteOpen: boolean
   setCommandPaletteOpen: (open: boolean) => void
@@ -55,6 +59,9 @@ export const useUIStore = create<UIState>()(
 
       activeSectionId: SECCION_INICIAL,
       setActiveSection: (id) => set({ activeSectionId: id }),
+
+      filtroPasajesCliente: null,
+      setFiltroPasajesCliente: (cliente) => set({ filtroPasajesCliente: cliente }),
 
       commandPaletteOpen: false,
       setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
