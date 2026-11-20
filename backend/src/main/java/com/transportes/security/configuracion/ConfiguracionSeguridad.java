@@ -113,6 +113,9 @@ public class ConfiguracionSeguridad {
                                                 // GERENTE (datos personales).
                                                 .requestMatchers("/api/clientes/**").hasAnyRole("AGENCIA", "GERENTE")
                                                 .requestMatchers("/api/pasajes/**").hasAnyRole("AGENCIA", "GERENTE")
+                                                // Dashboard del Sistema Empresarial: solo el gerente (ventas e
+                                                // ingresos de toda la empresa).
+                                                .requestMatchers("/api/dashboard/**").hasRole("GERENTE")
                                                 .requestMatchers(HttpMethod.GET, "/api/pagos/configuracion").permitAll()
                                                 // Pagos: piden sesión (la compra queda a nombre del usuario).
                                                 .requestMatchers("/api/pagos/**").authenticated()

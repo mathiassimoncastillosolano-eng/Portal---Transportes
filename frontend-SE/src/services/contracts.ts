@@ -9,7 +9,7 @@ import type {
   ViajeConsulta,
 } from '@/types/consultaViaje'
 import type { ClienteDetalle, ConsultaClientes, IndicadoresClientes, PaginaClientes } from '@/types/cliente'
-import type { ConsultaDashboard, DatosDashboard } from '@/types/dashboard'
+import type { ConsultaDashboard, DatosDashboard, OpcionesDashboard } from '@/types/dashboard'
 import type { ConsultaPasajes, OpcionesFiltroPasajes, PaginaPasajes } from '@/types/listadoPasajes'
 import type { MetodoPago } from '@/types/pago'
 import type { Servicio } from '@/types/servicio'
@@ -39,6 +39,8 @@ export interface ConsultaViajesService {
 
 export interface DashboardService {
   obtenerDashboard(consulta: ConsultaDashboard): Promise<DatosDashboard>
+  /** Agencias, servicios y destinos para los filtros, y la fecha "hoy" del sistema. */
+  obtenerOpciones(): Promise<OpcionesDashboard>
 }
 
 export interface ClientesService {

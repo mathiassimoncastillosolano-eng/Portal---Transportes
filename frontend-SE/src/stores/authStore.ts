@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { authService } from '@/services'
 import { configurarAlSesionVencida, configurarProveedorToken, esApiError } from '@/services/api/httpClient'
 import type { AuthSession, AuthUser, Permission, RespuestaLogin, RolEmpresa, UserRole } from '@/types/auth'
+import { useDashboardFiltrosStore } from './dashboardFiltrosStore'
 
 /**
  * Store de sesión del Sistema Empresarial, conectado al backend.
@@ -101,6 +102,8 @@ export const useAuthStore = create<AuthStoreState>()((set, get) => ({
     // Se avisa al backend sin esperar la respuesta: la sesión local se cierra igual.
     if (get().token) authService.cerrarSesion().catch(() => undefined)
     window.sessionStorage.removeItem(SESSION_KEY)
+    // El siguiente usuario que entre empieza con los filtros del Dashboard limpios.
+    useDashboardFiltrosStore.getState().limpiar()
     set({ user: null, token: null, status: 'unauthenticated' })
   },
 }))

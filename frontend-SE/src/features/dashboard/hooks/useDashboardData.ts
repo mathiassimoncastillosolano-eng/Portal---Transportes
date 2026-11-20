@@ -1,9 +1,7 @@
 import { useMemo } from 'react'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { dashboardService } from '@/services'
-import type { Agencia } from '@/types/agency'
-import type { ConsultaDashboard } from '@/types/dashboard'
-import type { Servicio } from '@/types/servicio'
+import type { ConsultaDashboard, OpcionFiltro } from '@/types/dashboard'
 import {
   agruparPorAgencia,
   agruparPorRuta,
@@ -14,7 +12,7 @@ import {
 } from '../utils/agregaciones'
 
 /** Pide los hechos de venta al servicio y los agrega con funciones puras. Recalcula al cambiar cualquier filtro. */
-export function useDashboardData(consulta: ConsultaDashboard | null, agencias: Agencia[], servicios: Servicio[]) {
+export function useDashboardData(consulta: ConsultaDashboard | null, agencias: OpcionFiltro[], servicios: OpcionFiltro[]) {
   const clave = consulta ? JSON.stringify(consulta) : null
   const { data, cargando, error, reintentar } = useAsyncResource(clave, () =>
     consulta ? dashboardService.obtenerDashboard(consulta) : Promise.reject(new Error('Consulta inválida')),

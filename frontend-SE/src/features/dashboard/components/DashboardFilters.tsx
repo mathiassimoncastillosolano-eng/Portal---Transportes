@@ -5,24 +5,25 @@ import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
-import type { Catalogo } from '@/hooks/useCatalogo'
-import type { FiltrosDashboard } from '@/types/dashboard'
+import type { FiltrosDashboard, OpcionesDashboard } from '@/types/dashboard'
 import { cn } from '@/utils/cn'
 import { formatearFecha } from '@/utils/formato'
-import { FECHA_MAXIMA, FECHA_MINIMA, opcionesPeriodo } from '../utils/periodos'
+import { fechaMinima, opcionesPeriodo } from '../utils/periodos'
 
 interface DashboardFiltersProps {
   filtros: FiltrosDashboard
-  catalogo: Catalogo | null
+  /** Opciones de los filtros; `hoy` limita el rango personalizado. */
+  opciones: OpcionesDashboard
   errorRango: string | null
   hayCambios: boolean
   onChange: (parcial: Partial<FiltrosDashboard>) => void
   onClear: () => void
 }
 
-/** Barra de filtros combinables: período (7/30/90 días o rango), agencia, servicio y destino. Colapsable en pantallas estrechas. */
-export function DashboardFilters({ filtros, catalogo, errorRango, hayCambios, onChange, onClear }: DashboardFiltersProps) {
+/** Barra de filtros combinables: período (7/30/90 días o rango), agencia de salida, servicio y destino. Colapsable en pantallas estrechas. */
+export function DashboardFilters({ filtros, opciones, errorRango, hayCambios, onChange, onClear }: DashboardFiltersProps) {
   const [abierto, setAbierto] = useState(false)
+  const minimo = fechaMinima(opciones.hoy)
 
   return (
     <Card className="no-print p-4">
@@ -55,25 +56,25 @@ export function DashboardFilters({ filtros, catalogo, errorRango, hayCambios, on
           />
           <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
             <Select
-              label="Agencia"
+              label="Agencia de salida"
               icon={<Building2 className="h-4 w-4" />}
               value={filtros.agenciaId}
               onChange={(v) => onChange({ agenciaId: v })}
-              options={[{ value: 'todas', label: 'Todas las agencias' }, ...(catalogo?.agencias ?? []).map((a) => ({ value: a.id, label: a.name, description: a.location }))]}
+              options={[{ value: 'todas', label: 'Todas las agencias' }, ...opciones.agencias.map((a) => ({ value: a.id, label: a.nombre, description: a.detalle ?? undefined }))]}
             />
             <Select
               label="Servicio"
               icon={<Bus className="h-4 w-4" />}
               value={filtros.servicioId}
-              onChange={(v) => onChange({ servicioId: v as FiltrosDashboard['servicioId'] })}
-              options={[{ value: 'todos', label: 'Todos los servicios' }, ...(catalogo?.servicios ?? []).map((s) => ({ value: s.id, label: s.nombre, description: s.unidad }))]}
+              onChange={(v) => onChange({ servicioId: v })}
+              options={[{ value: 'todos', label: 'Todos los servicios' }, ...opciones.servicios.map((s) => ({ value: s.id, label: s.nombre, description: s.detalle ?? undefined }))]}
             />
             <Select
               label="Destino"
               icon={<Flag className="h-4 w-4" />}
               value={filtros.destino}
               onChange={(v) => onChange({ destino: v })}
-              options={[{ value: '', label: 'Todos los destinos' }, ...(catalogo?.ciudades ?? []).map((c) => ({ value: c, label: c }))]}
+              options={[{ value: '', label: 'Todos los destinos' }, ...opciones.destinos.map((c) => ({ value: c, label: c }))]}
             />
           </div>
           <Button
@@ -92,8 +93,8 @@ export function DashboardFilters({ filtros, catalogo, errorRango, hayCambios, on
             <Input
               label="Desde"
               type="date"
-              min={FECHA_MINIMA}
-              max={FECHA_MAXIMA}
+              min={minimo}
+              max={opciones.hoy}
               value={filtros.rango.desde}
               onChange={(e) => onChange({ rango: { ...filtros.rango, desde: e.target.value } })}
               error={errorRango ?? undefined}
@@ -101,11 +102,11 @@ export function DashboardFilters({ filtros, catalogo, errorRango, hayCambios, on
             <Input
               label="Hasta"
               type="date"
-              min={FECHA_MINIMA}
-              max={FECHA_MAXIMA}
+              min={minimo}
+              max={opciones.hoy}
               value={filtros.rango.hasta}
               onChange={(e) => onChange({ rango: { ...filtros.rango, hasta: e.target.value } })}
-              hint={`Datos desde ${formatearFecha(FECHA_MINIMA)}`}
+              hint={`Datos desde ${formatearFecha(minimo)}`}
             />
           </div>
         )}

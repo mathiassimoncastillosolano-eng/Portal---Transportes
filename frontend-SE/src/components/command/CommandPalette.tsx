@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   BookOpenCheck,
@@ -12,18 +12,12 @@ import {
 import { hasPermission, useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
 import { cn } from '@/utils/cn'
+import type { Comando } from './comando'
+import { useComandosDashboard } from './useComandosDashboard'
 
-interface Comando {
-  id: string
-  titulo: string
-  descripcion: string
-  icono: ReactNode
-  /** Sinónimos para el buscador (sin tildes). */
-  claves: string
-  permiso?: string
-  /** Aún no existe el módulo: se muestra deshabilitado con "Pronto". */
-  pronto?: boolean
-  ejecutar?: () => void
+/** Grupo en el que se lista un comando; si no indica uno, va en "Acciones". */
+function grupoDe(c: Comando) {
+  return c.grupo ?? 'Acciones'
 }
 
 function normalizar(t: string) {
@@ -34,7 +28,8 @@ function normalizar(t: string) {
  * Command palette global (Ctrl/⌘ + K). Lista acciones del sistema y permite
  * filtrarlas escribiendo; ↑ ↓ navegan, Enter ejecuta, Esc cierra. Las acciones
  * cuyo módulo aún no existe aparecen deshabilitadas con la etiqueta "Pronto":
- * la paleta nunca promete algo que el sistema no hace.
+ * la paleta nunca promete algo que el sistema no hace. Para el gerente, al escribir también aparecen
+ * atajos que filtran el Dashboard (por ejemplo "Lima" o "7 días").
  */
 export function CommandPalette() {
   const abierto = useUIStore((s) => s.commandPaletteOpen)
@@ -64,8 +59,10 @@ function PaletaAbierta() {
   const [activo, setActivo] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listaRef = useRef<HTMLUListElement>(null)
+  const puedeVerDashboard = hasPermission(user, 'dashboard:ver')
+  const comandosDashboard = useComandosDashboard(puedeVerDashboard)
 
-  const comandos: Comando[] = useMemo(() => {
+  const acciones: Comando[] = useMemo(() => {
     const ir = (id: string) => () => setActiveSection(id)
     const icono = 'h-4 w-4'
     return [
@@ -73,14 +70,16 @@ function PaletaAbierta() {
       { id: 'ventas', titulo: 'Ver ventas', descripcion: 'Ingresos y ocupación en el Dashboard', icono: <LayoutDashboard className={icono} />, claves: 'ingresos dashboard kpi', permiso: 'dashboard:ver', ejecutar: ir('dashboard') },
       { id: 'pasajero', titulo: 'Buscar pasajero', descripcion: 'Por documento o nombre', icono: <UserRoundSearch className={icono} />, claves: 'cliente dni documento', permiso: 'pasajes:registrar', ejecutar: ir('clientes') },
       { id: 'viaje', titulo: 'Consultar viaje', descripcion: 'Estado y manifiesto de un viaje', icono: <BookOpenCheck className={icono} />, claves: 'manifiesto codigo', pronto: true },
-    ].filter((c) => hasPermission(user, c.permiso))
-  }, [setActiveSection, user])
+    ]
+  }, [setActiveSection])
 
+  // Sin texto: solo las acciones principales. Con texto: todo lo que coincida, incluidos los filtros.
   const filtrados = useMemo(() => {
+    const permitidos = [...acciones, ...comandosDashboard].filter((c) => hasPermission(user, c.permiso))
     const q = normalizar(consulta.trim())
-    if (!q) return comandos
-    return comandos.filter((c) => normalizar(`${c.titulo} ${c.descripcion} ${c.claves}`).includes(q))
-  }, [comandos, consulta])
+    if (!q) return permitidos.filter((c) => !c.soloAlBuscar)
+    return permitidos.filter((c) => normalizar(`${c.titulo} ${c.descripcion} ${c.claves}`).includes(q))
+  }, [acciones, comandosDashboard, consulta, user])
 
   // Al montar (abrir): enfocar. Al desmontar (cerrar): devolver el foco al elemento previo.
   useEffect(() => {
@@ -133,7 +132,7 @@ function PaletaAbierta() {
               setConsulta(e.target.value)
               setActivo(0)
             }}
-            placeholder="¿Qué deseas hacer?"
+            placeholder={puedeVerDashboard ? 'Busca una acción, agencia, destino o "7 días"…' : '¿Qué deseas hacer?'}
             role="combobox"
             aria-expanded="true"
             aria-controls="command-list"
@@ -150,44 +149,48 @@ function PaletaAbierta() {
           </div>
         ) : (
           <ul id="command-list" ref={listaRef} role="listbox" className="scrollbar-thin max-h-[52vh] overflow-y-auto p-2">
-            <li role="presentation" className="px-2.5 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-400">
-              Acciones
-            </li>
             {filtrados.map((c, i) => (
-              <li
-                key={c.id}
-                id={`cmd-${c.id}`}
-                role="option"
-                aria-selected={i === activo}
-                aria-disabled={c.pronto || undefined}
-                data-index={i}
-                onMouseMove={() => setActivo(i)}
-                onClick={() => ejecutar(c)}
-                className={cn(
-                  'flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2.5 transition-colors duration-100',
-                  i === activo ? 'bg-surface-raised' : '',
-                  c.pronto && 'cursor-not-allowed opacity-55',
+              <Fragment key={c.id}>
+                {/* El título del grupo se muestra antes del primer comando de cada grupo. */}
+                {(i === 0 || grupoDe(filtrados[i - 1]) !== grupoDe(c)) && (
+                  <li role="presentation" className="px-2.5 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-400">
+                    {grupoDe(c)}
+                  </li>
                 )}
-              >
-                <span
+                <li
+                  id={`cmd-${c.id}`}
+                  role="option"
+                  aria-selected={i === activo}
+                  aria-disabled={c.pronto || undefined}
+                  data-index={i}
+                  onMouseMove={() => setActivo(i)}
+                  onClick={() => ejecutar(c)}
                   className={cn(
-                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border',
-                    i === activo && !c.pronto ? 'border-accent-line/40 bg-accent-line/10 text-accent-text' : 'border-border bg-surface-sunken text-text-500',
+                    'flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2.5 transition-colors duration-100',
+                    i === activo ? 'bg-surface-raised' : '',
+                    c.pronto && 'cursor-not-allowed opacity-55',
                   )}
-                  aria-hidden="true"
                 >
-                  {c.icono}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-text-900">{c.titulo}</span>
-                  <span className="block truncate text-xs text-text-500">{c.descripcion}</span>
-                </span>
-                {c.pronto ? (
-                  <span className="rounded-full border border-border px-2 py-px text-[10px] font-medium uppercase tracking-wide text-text-500">Pronto</span>
-                ) : (
-                  i === activo && <CornerDownLeft className="h-4 w-4 shrink-0 text-text-400" aria-hidden="true" />
-                )}
-              </li>
+                  <span
+                    className={cn(
+                      'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border',
+                      i === activo && !c.pronto ? 'border-accent-line/40 bg-accent-line/10 text-accent-text' : 'border-border bg-surface-sunken text-text-500',
+                    )}
+                    aria-hidden="true"
+                  >
+                    {c.icono}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-text-900">{c.titulo}</span>
+                    <span className="block truncate text-xs text-text-500">{c.descripcion}</span>
+                  </span>
+                  {c.pronto ? (
+                    <span className="rounded-full border border-border px-2 py-px text-[10px] font-medium uppercase tracking-wide text-text-500">Pronto</span>
+                  ) : (
+                    i === activo && <CornerDownLeft className="h-4 w-4 shrink-0 text-text-400" aria-hidden="true" />
+                  )}
+                </li>
+              </Fragment>
             ))}
           </ul>
         )}
