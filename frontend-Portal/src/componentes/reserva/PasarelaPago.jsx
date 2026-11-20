@@ -1,11 +1,23 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DATOS_PRUEBA, TARJETAS_PRUEBA, YAPE_PRUEBA } from '../../utilidades/pagoCulqi'
 import { formatearPrecio } from '../../utilidades/formato'
 import './pasarelaPago.css'
 
 export function PasarelaPago({ total, esPrueba, aceptaTerminos, alCambiarTerminos, bloqueado }) {
+  const raiz = useRef(null)
+  const [compacto, setCompacto] = useState(false)
+
+  useEffect(() => {
+    const elemento = raiz.current
+    if (!elemento || typeof ResizeObserver === 'undefined') return undefined
+    const observador = new ResizeObserver(([entrada]) => setCompacto(entrada.contentRect.width < 600))
+    observador.observe(elemento)
+    return () => observador.disconnect()
+  }, [])
+
   return (
-    <div className="pasarela-pago">
+    <div className="pasarela-pago" ref={raiz}>
       <div className="pasarela-pago__resumen">
         <svg width="22" height="18" viewBox="0 0 20 16" fill="none" aria-hidden="true">
           <rect x="1" y="1" width="18" height="14" rx="2.4" stroke="currentColor" strokeWidth="1.5" />
@@ -40,7 +52,7 @@ export function PasarelaPago({ total, esPrueba, aceptaTerminos, alCambiarTermino
           .
         </label>
       </div>
-      <div id="culqi-contenedor" className="pasarela-pago__culqi" />
+      <div id="culqi-contenedor" className={compacto ? 'pasarela-pago__culqi pasarela-pago__culqi--compacto' : 'pasarela-pago__culqi'} />
       {esPrueba && (
         <details className="pasarela-pago__prueba" open>
           <summary>Datos de prueba (entorno Sandbox de Culqi)</summary>
