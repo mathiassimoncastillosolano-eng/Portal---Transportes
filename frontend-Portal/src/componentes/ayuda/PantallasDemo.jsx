@@ -57,7 +57,7 @@ const DIAS_SEMANA = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do']
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 function textoFecha() {
-  return new Date(`T00:00:00`).toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(`${FECHA_VIAJE}T00:00:00`).toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function Campo({ nombre, e, previo, ...resto }) {
@@ -236,7 +236,9 @@ function Navegacion({ e }) {
                     </p>
                     <p className="barra-navegacion__menu-correo">{USUARIO_DEMO.correo}</p>
                     <hr className="barra-navegacion__menu-separador" />
-                    <div className="barra-navegacion__menu-item">Mi perfil</div>
+                    <div data-demo="menu-mi-perfil" className="barra-navegacion__menu-item">
+                      Mi perfil
+                    </div>
                     <div data-demo="menu-pasajes" className="barra-navegacion__menu-item">
                       Mis pasajes
                     </div>

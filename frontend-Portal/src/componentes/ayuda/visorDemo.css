@@ -41,7 +41,8 @@
 
 .visor-demo__marco {
   position: relative;
-  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
   overflow: hidden;
   background: var(--color-superficie-1);
   border: 1px solid var(--borde-intenso);
@@ -205,7 +206,6 @@
   pointer-events: none;
   border-radius: 12px;
   box-shadow: 0 0 0 2px var(--acento), 0 0 0 9999px rgba(3, 12, 16, 0.58);
-  transition: left 520ms ease, top 520ms ease, width 520ms ease, height 520ms ease;
   animation: visor-demo-pulso 1.8s ease-in-out infinite;
 }
 
@@ -270,18 +270,10 @@
 }
 
 .visor-demo__sello {
-  position: absolute;
-  z-index: 3;
-  right: 10px;
-  bottom: 8px;
-  padding: 3px 10px;
+  display: block;
+  margin-top: 2px;
   color: var(--color-texto-secundario);
-  font-size: 11px;
-  background: var(--color-superficie);
-  border: 1px solid var(--borde-defecto);
-  border-radius: var(--radio-pastilla);
-  opacity: 0.92;
-  pointer-events: none;
+  font-size: var(--tamano-xs);
 }
 
 .visor-demo__lector {
@@ -291,6 +283,17 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+.visor-demo__base {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  padding-top: var(--espacio-2);
+  background: var(--color-superficie);
 }
 
 .visor-demo__progreso {
@@ -411,6 +414,11 @@
   .visor-demo__cabecera {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .visor-demo__base {
+    position: static;
+    padding-top: 0;
   }
 }
 

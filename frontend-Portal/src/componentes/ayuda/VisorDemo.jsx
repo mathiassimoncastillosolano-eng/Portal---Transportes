@@ -6,6 +6,7 @@ import './visorDemo.css'
 const ALTO = 480
 const ANCHO_AMPLIO = 760
 const ANCHO_ESTRECHO = 520
+const RESERVA_VERTICAL = 410
 const MS_CAMARA = 720
 const MS_VIAJE = 900
 const MS_TECLA = 55
@@ -40,6 +41,27 @@ function resolver(raiz, pantalla, foco) {
   return raiz.querySelector(`[data-demo="${foco}"]`) ?? raiz.querySelector(SELECTORES[pantalla]?.[foco] ?? '[data-sin-objetivo]')
 }
 
+function cajaLogica(elemento, pantalla) {
+  let lx = 0
+  let ly = 0
+  for (let actual = elemento; actual && actual !== pantalla; actual = actual.offsetParent) {
+    lx += actual.offsetLeft
+    ly += actual.offsetTop
+  }
+  return { lx, ly, lw: elemento.offsetWidth, lh: elemento.offsetHeight }
+}
+
+function estadoInicial(clave, escena) {
+  return {
+    clave,
+    objetivo: null,
+    cursor: null,
+    aplicado: !escena.accion || escena.accion === 'ninguna',
+    escrito: escena.escribir ? '' : null,
+    fase: 'moviendo',
+  }
+}
+
 function limitar(valor, minimo, maximo) {
   return Math.min(Math.max(valor, minimo), maximo)
 }
@@ -60,36 +82,46 @@ export function VisorDemo({ tutorial, escenaInicial = 0, categoria, alCerrar, al
   const reducido = useMovimientoReducido()
   const [indice, setIndice] = useState(() => limitar(escenaInicial, 0, escenas.length - 1))
   const [reproduciendo, setReproduciendo] = useState(!reducido)
-  const [aplicado, setAplicado] = useState(false)
-  const [escrito, setEscrito] = useState(null)
-  const [fase, setFase] = useState('moviendo')
-  const [objetivo, setObjetivo] = useState(null)
-  const [cursor, setCursor] = useState(null)
   const [camara, setCamara] = useState({ z: 1, x: 0, y: 0, salto: true })
   const movimientoHasta = useRef(0)
   const [clics, setClics] = useState(0)
   const [reinicios, setReinicios] = useState(0)
   const [medidas, setMedidas] = useState({ ancho: 760, escala: 1, marco: 760 })
+  const zonaRef = useRef(null)
   const marcoRef = useRef(null)
   const pantallaRef = useRef(null)
   const camaraRef = useRef(camara)
   const anteriorRef = useRef(null)
 
   const escena = escenas[indice]
+  const clave = `${indice}-${reinicios}`
+  const [seguimiento, setSeguimiento] = useState({ clave: '' })
+  const vigente = seguimiento.clave === clave ? seguimiento : estadoInicial(clave, escena)
+  const { aplicado, escrito, fase, objetivo, cursor, sinObjetivo } = vigente
   const Pantalla = PANTALLAS[escena.pantalla]
   const estado = useMemo(() => estadoAcumulado(escenas, indice, aplicado, escrito), [escenas, indice, aplicado, escrito])
   const ultima = indice === escenas.length - 1
   const terminado = ultima && fase === 'listo'
 
   useLayoutEffect(() => {
-    const marco = marcoRef.current
-    const observador = new ResizeObserver(() => {
-      const ancho = marco.clientWidth
-      const logico = ancho < 560 ? ANCHO_ESTRECHO : ANCHO_AMPLIO
-      setMedidas({ ancho: logico, escala: ancho / logico, marco: ancho })
-    })
-    observador.observe(marco)
-    return () => observador.disconnect()
+    const zona = zonaRef.current
+    const calcular = () => {
+      const disponible = zona.clientWidth
+      const logico = disponible < 560 ? ANCHO_ESTRECHO : ANCHO_AMPLIO
+      const porAlto = Math.max(0.6, (window.innerHeight - RESERVA_VERTICAL) / ALTO)
+      const escala = Math.min(disponible / logico, porAlto)
+      setMedidas((previo) =>
+        previo.ancho === logico && Math.abs(previo.escala - escala) < 0.001 ? previo : { ancho: logico, escala, marco: logico * escala },
+      )
+    }
+    const observador = new ResizeObserver(calcular)
+    observador.observe(zona)
+    window.addEventListener('resize', calcular)
+    calcular()
+    return () => {
+      observador.disconnect()
+      window.removeEventListener('resize', calcular)
+    }
   }, [])
 
   useEffect(() => {
@@ -104,10 +136,15 @@ export function VisorDemo({ tutorial, escenaInicial = 0, categoria, alCerrar, al
     const marco = marcoRef.current
     const elemento = resolver(pantallaRef.current, escena.pantalla, escena.foco)
     if (!marco || !elemento) return null
-    const caja = elemento.getBoundingClientRect()
-    const base = marco.getBoundingClientRect()
-    return { x: caja.left - base.left, y: caja.top - base.top, w: caja.width, h: caja.height }
-  }, [escena])
+    const { lx, ly, lw, lh } = cajaLogica(elemento, pantallaRef.current)
+    const { z, x, y } = camaraRef.current
+    const { escala } = medidas
+    const izquierda = Math.max(0, (lx * z + x) * escala)
+    const arriba = Math.max(0, (ly * z + y) * escala)
+    const derecha = Math.min(marco.clientWidth, ((lx + lw) * z + x) * escala)
+    const abajo = Math.min(marco.clientHeight, ((ly + lh) * z + y) * escala)
+    return { x: izquierda, y: arriba, w: Math.max(0, derecha - izquierda), h: Math.max(0, abajo - arriba) }
+  }, [escena, medidas])
 
   useEffect(() => {
     const temporizadores = []
@@ -117,10 +154,8 @@ export function VisorDemo({ tutorial, escenaInicial = 0, categoria, alCerrar, al
     }
     const cambioPantalla = anteriorRef.current !== escena.pantalla
     anteriorRef.current = escena.pantalla
-    setFase('moviendo')
-    setAplicado(escena.accion === 'ninguna' || !escena.accion)
-    setEscrito(escena.escribir ? '' : null)
-    setObjetivo(null)
+    setSeguimiento(estadoInicial(clave, escena))
+    const poner = (cambio) => setSeguimiento((previo) => (previo.clave === clave ? { ...previo, ...cambio } : previo))
 
     const colocarCamara = () => {
       const marco = marcoRef.current
@@ -129,22 +164,18 @@ export function VisorDemo({ tutorial, escenaInicial = 0, categoria, alCerrar, al
       if (!marco || !pantalla || !elemento) return 80
       const { ancho } = medidas
       const actual = camaraRef.current
-      const caja = elemento.getBoundingClientRect()
-      const origen = pantalla.getBoundingClientRect()
-      const divisor = origen.width / pantalla.offsetWidth
-      const lx = (caja.left - origen.left) / divisor
-      const ly = (caja.top - origen.top) / divisor
-      const lw = caja.width / divisor
-      const lh = caja.height / divisor
+      const { lx, ly, lw, lh } = cajaLogica(elemento, pantalla)
       const z = escena.zoom ?? (lw < 190 && lh < 90 ? 1.3 : 1)
-      const total = pantalla.offsetHeight
+      const total = Math.max(pantalla.scrollHeight, ly + lh + 24)
       const cx = lx + lw / 2
       const cy = ly + lh / 2
       const x = z === 1 ? 0 : limitar(ancho / 2 - cx * z, ancho - ancho * z, 0)
       const visible = ly >= 0 && ly + lh <= ALTO - 16
-      const deseado = z === 1 && visible ? 0 : ALTO / 2 - cy * z
+      const alineadoArriba = lh * z > ALTO - 48
+      const deseado = z === 1 && visible ? 0 : alineadoArriba ? 24 - ly * z : ALTO / 2 - cy * z
       const y = limitar(deseado, Math.min(0, ALTO - total * z), 0)
       const cambio = Math.abs(actual.z - z) > 0.01 || Math.abs(actual.x - x) > 1 || Math.abs(actual.y - y) > 1
+      camaraRef.current = { z, x, y }
       setCamara({ z, x, y, salto: cambioPantalla })
       if (cambio && !cambioPantalla && !reducido) movimientoHasta.current = Date.now() + MS_CAMARA
       return Math.max(80, movimientoHasta.current - Date.now())
@@ -153,25 +184,30 @@ export function VisorDemo({ tutorial, escenaInicial = 0, categoria, alCerrar, al
     const mostrar = () => {
       const caja = medir()
       if (!caja) {
-        setFase('listo')
+        poner({ fase: 'listo' })
         return
       }
-      setObjetivo(caja)
-      setCursor((previo) => previo ?? { x: caja.x + caja.w * 0.3, y: caja.y + caja.h + 40 })
-      esperar(30, () => setCursor({ x: caja.x + caja.w * 0.55, y: caja.y + caja.h * 0.6 }))
+      poner({ objetivo: caja, cursor: { x: caja.x + caja.w * 0.3, y: caja.y + caja.h + 40 } })
+      esperar(30, () => poner({ cursor: { x: caja.x + caja.w * 0.55, y: caja.y + caja.h * 0.6 } }))
       esperar(MS_VIAJE, () => {
         if (escena.accion === 'clic') {
           setClics((n) => n + 1)
-          setAplicado(true)
-          esperar(450, () => setFase('listo'))
+          poner({ aplicado: true })
+          temporizadores.push(
+            setTimeout(() => {
+              const nueva = medir()
+              poner(nueva ? { objetivo: nueva } : { sinObjetivo: true })
+            }, 80),
+          )
+          esperar(450, () => poner({ fase: 'listo' }))
         } else if (escena.accion === 'escribir') {
           const texto = escena.escribir.texto
           for (let i = 1; i <= texto.length; i += 1) {
-            esperar(i * MS_TECLA, () => setEscrito(texto.slice(0, i)))
+            esperar(i * MS_TECLA, () => poner({ escrito: texto.slice(0, i) }))
           }
-          esperar(texto.length * MS_TECLA + 350, () => setFase('listo'))
+          esperar(texto.length * MS_TECLA + 350, () => poner({ fase: 'listo' }))
         } else {
-          esperar(350, () => setFase('listo'))
+          esperar(350, () => poner({ fase: 'listo' }))
         }
       })
     }
@@ -199,7 +235,6 @@ export function VisorDemo({ tutorial, escenaInicial = 0, categoria, alCerrar, al
   const reiniciar = () => {
     setIndice(0)
     setReinicios((n) => n + 1)
-    setCursor(null)
     setReproduciendo(!reducido)
   }
 
@@ -238,11 +273,12 @@ export function VisorDemo({ tutorial, escenaInicial = 0, categoria, alCerrar, al
   const progreso = ((indice + 1) / escenas.length) * 100
 
   return (
-    <div className="visor-demo" onKeyDown={manejarTecla}>
+    <div className="visor-demo" ref={zonaRef} onKeyDown={manejarTecla}>
       <div className="visor-demo__cabecera">
         <div className="visor-demo__titulos">
           <span className="visor-demo__migas">{categoria?.etiqueta}</span>
           <h3 className="visor-demo__titulo" tabIndex={-1}>{tutorial.titulo}</h3>
+          <span className="visor-demo__sello">Simulación: no se realiza ninguna operación real</span>
         </div>
         <span className="visor-demo__insignia">Demostración</span>
       </div>
@@ -250,7 +286,7 @@ export function VisorDemo({ tutorial, escenaInicial = 0, categoria, alCerrar, al
       <div
         className={`visor-demo__marco${reducido ? ' visor-demo__marco--quieto' : ''}`}
         ref={marcoRef}
-        style={{ height: ALTO * escala }}
+        style={{ height: ALTO * escala, width: marco }}
       >
         <div className="visor-demo__escenario" style={{ width: ancho, height: ALTO, transform: `scale(${escala})` }}>
           <div
@@ -271,70 +307,74 @@ export function VisorDemo({ tutorial, escenaInicial = 0, categoria, alCerrar, al
 
         {objetivo && (
           <>
-            <div
-              className="visor-demo__foco"
-              style={{ left: objetivo.x - 6, top: objetivo.y - 6, width: objetivo.w + 12, height: objetivo.h + 12 }}
-            />
-            <div className="visor-demo__etiqueta" style={estiloEtiqueta} key={indice}>
+            {!sinObjetivo && (
+              <div
+                className="visor-demo__foco"
+                key={`foco-${clave}`}
+                style={{ left: objetivo.x - 6, top: objetivo.y - 6, width: objetivo.w + 12, height: objetivo.h + 12 }}
+              />
+            )}
+            <div className="visor-demo__etiqueta" style={estiloEtiqueta} key={`etiqueta-${clave}`}>
               <span className="visor-demo__numero">{indice + 1}</span>
               <p className="visor-demo__texto">{escena.texto}</p>
             </div>
           </>
         )}
         {cursor && (
-          <span className="visor-demo__cursor" style={{ left: cursor.x, top: cursor.y }}>
+          <span className="visor-demo__cursor" key={`cursor-${clave}`} style={{ left: cursor.x, top: cursor.y }}>
             <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M5 3l14 8-6 1.8L10.5 19 5 3z" fill="#fff" stroke="#0b2a33" strokeWidth="1.4" strokeLinejoin="round" />
             </svg>
             {clics > 0 && <span key={clics} className="visor-demo__ondas" />}
           </span>
         )}
-        <span className="visor-demo__sello">Simulación · no se realiza ninguna operación real</span>
       </div>
 
       <p className="visor-demo__lector" role="status" aria-live="polite">
         Paso {indice + 1} de {escenas.length}: {escena.texto}
       </p>
 
-      <div className="visor-demo__progreso" role="progressbar" aria-valuemin={1} aria-valuemax={escenas.length} aria-valuenow={indice + 1} aria-label="Progreso de la demostración">
-        <span style={{ width: `${progreso}%` }} />
-      </div>
-
-      <div className="visor-demo__controles">
-        <span className="visor-demo__paso">
-          Paso {indice + 1} de {escenas.length}
-        </span>
-        <div className="visor-demo__botones">
-          <button type="button" className="visor-demo__boton" onClick={anterior} disabled={indice === 0}>
-            <IconoAyuda nombre="atras" tamano={18} />
-            Anterior
-          </button>
-          <button type="button" className="visor-demo__boton visor-demo__boton--principal" onClick={alternar}>
-            <IconoAyuda nombre={terminado ? 'reiniciar' : reproduciendo ? 'pausa' : 'reproducir'} tamano={18} />
-            {terminado ? 'Repetir' : reproduciendo ? 'Pausar' : 'Reproducir'}
-          </button>
-          <button type="button" className="visor-demo__boton" onClick={siguiente} disabled={ultima}>
-            Siguiente
-            <IconoAyuda nombre="siguiente" tamano={18} />
-          </button>
-          <button type="button" className="visor-demo__boton" onClick={reiniciar}>
-            <IconoAyuda nombre="reiniciar" tamano={18} />
-            Reiniciar
-          </button>
+      <div className="visor-demo__base">
+        <div className="visor-demo__progreso" role="progressbar" aria-valuemin={1} aria-valuemax={escenas.length} aria-valuenow={indice + 1} aria-label="Progreso de la demostración">
+          <span style={{ width: `${progreso}%` }} />
         </div>
-      </div>
 
-      <div className="visor-demo__pie">
-        <button type="button" className="visor-demo__cerrar" onClick={alCerrar}>
-          <IconoAyuda nombre="cerrar" tamano={16} />
-          Cerrar demostración
-        </button>
-        {tutorial.accion && (
-          <button type="button" className="visor-demo__accion" onClick={() => alEjecutarAccion(tutorial.accion)}>
-            {tutorial.accion.etiqueta}
-            <IconoAyuda nombre="siguiente" tamano={16} />
+        <div className="visor-demo__controles">
+          <span className="visor-demo__paso">
+            Paso {indice + 1} de {escenas.length}
+          </span>
+          <div className="visor-demo__botones">
+            <button type="button" className="visor-demo__boton" onClick={anterior} disabled={indice === 0}>
+              <IconoAyuda nombre="atras" tamano={18} />
+              Anterior
+            </button>
+            <button type="button" className="visor-demo__boton visor-demo__boton--principal" onClick={alternar}>
+              <IconoAyuda nombre={terminado ? 'reiniciar' : reproduciendo ? 'pausa' : 'reproducir'} tamano={18} />
+              {terminado ? 'Repetir' : reproduciendo ? 'Pausar' : 'Reproducir'}
+            </button>
+            <button type="button" className="visor-demo__boton" onClick={siguiente} disabled={ultima}>
+              Siguiente
+              <IconoAyuda nombre="siguiente" tamano={18} />
+            </button>
+            <button type="button" className="visor-demo__boton" onClick={reiniciar}>
+              <IconoAyuda nombre="reiniciar" tamano={18} />
+              Reiniciar
+            </button>
+          </div>
+        </div>
+
+        <div className="visor-demo__pie">
+          <button type="button" className="visor-demo__cerrar" onClick={alCerrar}>
+            <IconoAyuda nombre="cerrar" tamano={16} />
+            Cerrar demostración
           </button>
-        )}
+          {tutorial.accion && (
+            <button type="button" className="visor-demo__accion" onClick={() => alEjecutarAccion(tutorial.accion)}>
+              {tutorial.accion.etiqueta}
+              <IconoAyuda nombre="siguiente" tamano={16} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

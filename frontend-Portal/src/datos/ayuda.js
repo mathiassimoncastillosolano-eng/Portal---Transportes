@@ -210,7 +210,7 @@ export const TUTORIALES = [
     accion: { etiqueta: 'Abrir mi perfil', ruta: '/perfil', requiereSesion: true },
     escenas: [
       escena('navegacion', 'perfil', 'Abre «Mi perfil» en la barra superior.', { ...clic({ menuPerfil: true }), inicial: { sesion: true } }),
-      escena('navegacion', 'menu-perfil', 'Elige «Mi perfil».', clic({ menuPerfil: false })),
+      escena('navegacion', 'menu-mi-perfil', 'Elige «Mi perfil».', clic({ menuPerfil: false })),
       escena('perfil', 'tarjeta', 'Aquí están tus datos.', { accion: 'ninguna' }),
       escena('perfil', 'estadisticas', 'Resumen de tus pasajes, viajes y tickets.', { accion: 'ninguna' }),
       escena('perfil', 'accesos', 'Accesos rápidos a tus pasajes y tu historial.', { accion: 'ninguna' }),
@@ -330,7 +330,7 @@ export const TUTORIALES = [
     accion: { etiqueta: 'Ver destinos', ruta: '/destinos' },
     escenas: [
       escena('navegacion', 'enlace-destinos', 'Pulsa «Destinos» en la barra.', clic({ activo: 'destinos' })),
-      escena('navegacion', 'enlace-destinos', 'Verás las ciudades disponibles y su detalle.', { accion: 'ninguna' }),
+      escena('navegacion', 'css:.demo-navegacion__titulo', 'Verás las ciudades disponibles y su detalle.', { accion: 'ninguna' }),
     ],
   },
   {
@@ -343,7 +343,7 @@ export const TUTORIALES = [
     accion: { etiqueta: 'Ver servicios', ruta: '/servicios' },
     escenas: [
       escena('navegacion', 'enlace-servicios', 'Pulsa «Servicios» en la barra.', clic({ activo: 'servicios' })),
-      escena('navegacion', 'enlace-servicios', 'Verás los tipos de servicio disponibles.', { accion: 'ninguna' }),
+      escena('navegacion', 'css:.demo-navegacion__titulo', 'Verás los tipos de servicio disponibles.', { accion: 'ninguna' }),
     ],
   },
   {
