@@ -76,8 +76,10 @@ class CambioViajeAgenciaIntegracionTest {
         jdbc.update("INSERT INTO bus(id_bus,id_tipo_bus,activo) VALUES(1,1,true)");
         insertarViaje(5, "2026-10-19", "PROGRAMADO");
         insertarViaje(7, "2026-10-25", "CANCELADO");
+        insertarViaje(8, "2026-10-21", "PROGRAMADO");
         insertarAsiento(1, "12A", 5);
         insertarAsiento(2, "05A", 7);
+        insertarAsiento(3, "14A", 8, "55.00");
         jdbc.update("INSERT INTO pasajero(id_pasajero,tipo_documento,numero_documento,nombres,apellidos) OVERRIDING SYSTEM VALUE "
                 + "VALUES(1,'DNI','11111111','ANA','LOPEZ')");
 
@@ -156,6 +158,24 @@ class CambioViajeAgenciaIntegracionTest {
         assertEquals("ANTICIPACION_INSUFICIENTE", cuerpo(r).get("detalles").get(0).asText());
     }
 
+    // ---------- cotización ----------
+
+    @Test
+    void elAgenteCotizaUnViajeMasCaro() throws Exception {
+        // Pasaje de S/ 43.00 → asiento 3 del viaje 8, que cuesta S/ 55.00.
+        var r = get("/api/pasajes/" + pasajeVigente + "/cambio-viaje/cotizacion?idViajeNuevo=8&idAsiento=3", jwtAgencia);
+        assertEquals(200, r.statusCode(), r.body());
+        assertEquals("SUPERIOR", cuerpo(r).get("escenario").asText());
+        assertEquals(12.00, cuerpo(r).get("montoAPagar").asDouble());
+        assertTrue(cuerpo(r).get("requierePago").asBoolean());
+    }
+
+    @Test
+    void elGerenteNoPuedeCotizar() throws Exception {
+        var r = get("/api/pasajes/" + pasajeVigente + "/cambio-viaje/cotizacion?idViajeNuevo=8&idAsiento=3", jwtGerente);
+        assertEquals(403, r.statusCode());
+    }
+
     // ---------- datos de prueba ----------
 
     String elegibilidad(int idPasaje) {
@@ -172,9 +192,13 @@ class CambioViajeAgenciaIntegracionTest {
     }
 
     void insertarAsiento(int id, String numero, int viaje) {
+        insertarAsiento(id, numero, viaje, "43.00");
+    }
+
+    void insertarAsiento(int id, String numero, int viaje, String precio) {
         jdbc.update("INSERT INTO asiento(id_asiento,id_bus,numero_asiento) VALUES(?,1,?)", id, numero);
         jdbc.update("INSERT INTO viaje_asiento(id_viaje_asiento,id_viaje,precio,estado_viaje_asiento,id_asiento) "
-                + "VALUES(?,?,43,'OCUPADO',?)", id, viaje, id);
+                + "VALUES(?,?,?,'OCUPADO',?)", id, viaje, new BigDecimal(precio), id);
     }
 
     int insertarVenta(int idUsuario) {

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,11 +24,14 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.transportes.compras.repositorios.CompraRepositorio;
 import com.transportes.postergacion.dto.ConsultaPostergacionDto;
+import com.transportes.postergacion.dto.CotizacionCambioDto;
 import com.transportes.postergacion.dto.ElegibilidadCambioDto;
 import com.transportes.postergacion.excepciones.PostergacionRechazadaException;
 import com.transportes.postergacion.servicios.CambioViajeAgenciaServicio;
 import com.transportes.postergacion.servicios.PostergacionServicio;
+import com.transportes.viajes.entidades.ViajeAsiento;
 import com.transportes.viajes.reglas.PoliticaReservaViaje;
+import com.transportes.viajes.repositorios.ViajeAsientoRepositorio;
 import com.transportes.viajes.servicios.ViajeService;
 
 /**
@@ -40,17 +44,30 @@ class CambioViajeAgenciaServicioTest {
     static final LocalDateTime AHORA = PostergacionServicioTest.AHORA;
     static final LocalDate FECHA_NUEVA = PostergacionServicioTest.FECHA_NUEVA;
 
+    static final long VIAJE_NUEVO = 600L;
+    static final int ASIENTO_NUEVO = 14;
+
     CompraRepositorio compras;
     ViajeService viajes;
+    ViajeAsientoRepositorio asientos;
     CambioViajeAgenciaServicio servicio;
 
     @BeforeEach
     void preparar() {
         compras = mock(CompraRepositorio.class);
         viajes = mock(ViajeService.class);
+        asientos = mock(ViajeAsientoRepositorio.class);
         Clock reloj = Clock.fixed(AHORA.atZone(PoliticaReservaViaje.ZONA_NEGOCIO).toInstant(),
                 PoliticaReservaViaje.ZONA_NEGOCIO);
-        servicio = new CambioViajeAgenciaServicio(compras, new PostergacionServicio(compras, viajes, reloj));
+        servicio = new CambioViajeAgenciaServicio(compras, new PostergacionServicio(compras, viajes, reloj), asientos);
+    }
+
+    void asientoNuevoConPrecio(String precio) {
+        ViajeAsiento asiento = new ViajeAsiento();
+        asiento.setIdViaje((int) VIAJE_NUEVO);
+        asiento.setIdAsiento(ASIENTO_NUEVO);
+        asiento.setPrecio(new BigDecimal(precio));
+        when(asientos.findByIdViajeAndIdAsiento((int) VIAJE_NUEVO, ASIENTO_NUEVO)).thenReturn(Optional.of(asiento));
     }
 
     // ---------- elegibilidad ----------
@@ -123,5 +140,77 @@ class CambioViajeAgenciaServicioTest {
                 () -> servicio.consultarViajes(PASAJE, "Trujillo", "Lima", FECHA_NUEVA));
         assertEquals(PostergacionRechazadaException.ANTICIPACION_INSUFICIENTE, error.getCodigo());
         verify(viajes, never()).buscar(any(), any(), any(), any());
+    }
+
+    // ---------- cotización (el pasaje de prueba costó S/ 43.00) ----------
+
+    @Test
+    void cotizarUnViajeMasCaroDiceCuantoPagar() {
+        when(compras.filaDelPasaje(PASAJE)).thenReturn(Optional.of(
+                PostergacionServicioTest.pasajeVigente(AHORA.plusDays(2))));
+        asientoNuevoConPrecio("55.00");
+
+        CotizacionCambioDto cotizacion = servicio.cotizar(PASAJE, VIAJE_NUEVO, ASIENTO_NUEVO);
+
+        assertEquals("SUPERIOR", cotizacion.escenario());
+        assertEquals(new BigDecimal("43.00"), cotizacion.importePagado());
+        assertEquals(new BigDecimal("12.00"), cotizacion.montoAPagar());
+        assertTrue(cotizacion.requierePago());
+        assertTrue(cotizacion.mensajeParaAgente().contains("S/ 12.00"));
+    }
+
+    @Test
+    void cotizarUnViajeMasBaratoAvisaQueNoSeDevuelve() {
+        when(compras.filaDelPasaje(PASAJE)).thenReturn(Optional.of(
+                PostergacionServicioTest.pasajeVigente(AHORA.plusDays(2))));
+        asientoNuevoConPrecio("35.00");
+
+        CotizacionCambioDto cotizacion = servicio.cotizar(PASAJE, VIAJE_NUEVO, ASIENTO_NUEVO);
+
+        assertEquals("INFERIOR", cotizacion.escenario());
+        assertEquals(new BigDecimal("8.00"), cotizacion.montoNoDevuelto());
+        assertTrue(cotizacion.requiereAceptacion());
+        assertTrue(cotizacion.mensajeParaAgente().contains("no se devuelve"));
+    }
+
+    @Test
+    void cotizarConLaMismaTarifaNoTieneCosto() {
+        when(compras.filaDelPasaje(PASAJE)).thenReturn(Optional.of(
+                PostergacionServicioTest.pasajeVigente(AHORA.plusDays(2))));
+        asientoNuevoConPrecio("43.00");
+
+        CotizacionCambioDto cotizacion = servicio.cotizar(PASAJE, VIAJE_NUEVO, ASIENTO_NUEVO);
+
+        assertEquals("IGUAL", cotizacion.escenario());
+        assertFalse(cotizacion.requierePago());
+        assertFalse(cotizacion.requiereAceptacion());
+    }
+
+    @Test
+    void noSePuedeCotizarElMismoViajeDelPasaje() {
+        when(compras.filaDelPasaje(PASAJE)).thenReturn(Optional.of(
+                PostergacionServicioTest.pasajeVigente(AHORA.plusDays(2))));
+        PostergacionRechazadaException error = assertThrows(PostergacionRechazadaException.class,
+                () -> servicio.cotizar(PASAJE, PostergacionServicioTest.VIAJE_ORIGINAL, ASIENTO_NUEVO));
+        assertEquals(PostergacionRechazadaException.MISMO_VIAJE, error.getCodigo());
+    }
+
+    @Test
+    void unAsientoQueNoEstaEnElViajeSeRechaza() {
+        when(compras.filaDelPasaje(PASAJE)).thenReturn(Optional.of(
+                PostergacionServicioTest.pasajeVigente(AHORA.plusDays(2))));
+        when(asientos.findByIdViajeAndIdAsiento((int) VIAJE_NUEVO, 99)).thenReturn(Optional.empty());
+        PostergacionRechazadaException error = assertThrows(PostergacionRechazadaException.class,
+                () -> servicio.cotizar(PASAJE, VIAJE_NUEVO, 99));
+        assertEquals(PostergacionRechazadaException.ASIENTO_NO_DISPONIBLE, error.getCodigo());
+    }
+
+    @Test
+    void conMenosDe6HorasNoSeCotiza() {
+        when(compras.filaDelPasaje(PASAJE)).thenReturn(Optional.of(
+                PostergacionServicioTest.pasajeVigente(AHORA.plusHours(2))));
+        assertThrows(PostergacionRechazadaException.class,
+                () -> servicio.cotizar(PASAJE, VIAJE_NUEVO, ASIENTO_NUEVO));
+        verify(asientos, never()).findByIdViajeAndIdAsiento(any(), any());
     }
 }
