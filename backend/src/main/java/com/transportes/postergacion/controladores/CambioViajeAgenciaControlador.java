@@ -1,6 +1,7 @@
 package com.transportes.postergacion.controladores;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -19,7 +20,11 @@ import com.transportes.postergacion.dto.ConfirmarCambioAgenciaRequest;
 import com.transportes.postergacion.dto.ConsultaPostergacionDto;
 import com.transportes.postergacion.dto.CotizacionCambioDto;
 import com.transportes.postergacion.dto.ElegibilidadCambioDto;
+import com.transportes.postergacion.dto.IntentoPagoCambioDto;
+import com.transportes.postergacion.dto.RegistrarPagoCambioRequest;
+import com.transportes.postergacion.dto.ResultadoPagoCambioDto;
 import com.transportes.postergacion.servicios.CambioViajeAgenciaServicio;
+import com.transportes.postergacion.servicios.PagoDiferenciaCambioServicio;
 import com.transportes.security.servicios.UsuarioAutenticado;
 
 import jakarta.validation.Valid;
@@ -30,9 +35,11 @@ import jakarta.validation.Valid;
 public class CambioViajeAgenciaControlador {
 
     private final CambioViajeAgenciaServicio cambios;
+    private final PagoDiferenciaCambioServicio pagos;
 
-    public CambioViajeAgenciaControlador(CambioViajeAgenciaServicio cambios) {
+    public CambioViajeAgenciaControlador(CambioViajeAgenciaServicio cambios, PagoDiferenciaCambioServicio pagos) {
         this.cambios = cambios;
+        this.pagos = pagos;
     }
 
     @GetMapping("/elegibilidad")
@@ -60,6 +67,18 @@ public class CambioViajeAgenciaControlador {
                                                  @PathVariable int idPasaje,
                                                  @Valid @RequestBody ConfirmarCambioAgenciaRequest solicitud) {
         return cambios.confirmarSinCobro(idUsuarioDe(agente), idPasaje, solicitud);
+    }
+
+    @PostMapping("/pagos")
+    public ResultadoPagoCambioDto registrarPago(@AuthenticationPrincipal UsuarioAutenticado agente,
+                                                @PathVariable int idPasaje,
+                                                @Valid @RequestBody RegistrarPagoCambioRequest solicitud) {
+        return pagos.registrarPago(idUsuarioDe(agente), idPasaje, solicitud);
+    }
+
+    @GetMapping("/pagos")
+    public List<IntentoPagoCambioDto> intentosDePago(@PathVariable int idPasaje) {
+        return pagos.listarIntentos(idPasaje);
     }
 
     private static int idUsuarioDe(UsuarioAutenticado agente) {

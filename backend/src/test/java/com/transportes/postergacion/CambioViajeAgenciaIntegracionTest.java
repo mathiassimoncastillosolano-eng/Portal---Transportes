@@ -2,6 +2,7 @@ package com.transportes.postergacion;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
@@ -66,7 +67,7 @@ class CambioViajeAgenciaIntegracionTest {
     void preparar() throws Exception {
         // Hoy es 12/10/2026 a las 10:00 (hora de Perú).
         reloj.fijar(LocalDateTime.of(2026, 10, 12, 10, 0));
-        for (String tabla : List.of("postergacion", "comprobante", "pasaje", "pago", "operacion_pago", "venta", "empleado",
+        for (String tabla : List.of("auditoria_pago", "postergacion", "comprobante", "pasaje", "pago", "operacion_pago", "venta", "empleado",
                 "usuario", "viaje_asiento", "pasajero", "asiento", "viaje", "bus", "programacion_viaje", "ruta",
                 "agencia", "tipo_bus", "ubicacion")) {
             jdbc.update("DELETE FROM " + tabla);
@@ -87,6 +88,12 @@ class CambioViajeAgenciaIntegracionTest {
         // El agente ya eligió el asiento 4 del viaje 8 (misma tarifa, S/ 43.00): está bloqueado por su sesión.
         sesion = tokens.crear(8L);
         insertarAsientoBloqueado(4, "15A", 8, "43.00", sesion.idSesion());
+        // Otro asiento del mismo viaje, más caro (S/ 55.00 → diferencia de S/ 12.00), también reservado.
+        insertarAsientoBloqueado(5, "16A", 8, "55.00", sesion.idSesion());
+        for (String metodo : List.of("Efectivo", "Yape", "Tarjeta")) {
+            jdbc.update("INSERT INTO metodo_pago(nombre_metodo) SELECT ? WHERE NOT EXISTS "
+                    + "(SELECT 1 FROM metodo_pago WHERE nombre_metodo = ?)", metodo, metodo);
+        }
         jdbc.update("INSERT INTO pasajero(id_pasajero,tipo_documento,numero_documento,nombres,apellidos) OVERRIDING SYSTEM VALUE "
                 + "VALUES(1,'DNI','11111111','ANA','LOPEZ')");
 
@@ -221,7 +228,122 @@ class CambioViajeAgenciaIntegracionTest {
         assertEquals(1, idAsientoDelPasaje(pasajeVigente));
     }
 
+    // ---------- pago de la diferencia ----------
+
+    @Test
+    void enEfectivoSeApruebaSeAplicaElCambioYQuedaElIntento() throws Exception {
+        var r = pagar(jwtAgencia, 5, "EFECTIVO", null, null, "clave-efectivo-1");
+        assertEquals(200, r.statusCode(), r.body());
+        assertTrue(cuerpo(r).get("cambioAplicado").asBoolean());
+        assertEquals("APROBADO", cuerpo(r).get("resultado").asText());
+        assertEquals(12.00, cuerpo(r).get("monto").asDouble());
+        assertEquals("16A", cuerpo(r).get("confirmacion").get("asientoNuevo").asText());
+
+        assertEquals(5, idAsientoDelPasaje(pasajeVigente));
+        var cambio = jdbc.queryForMap("SELECT * FROM postergacion WHERE id_pasaje = ?", pasajeVigente);
+        assertEquals(0, new BigDecimal("12.00").compareTo((BigDecimal) cambio.get("importe_adicional")));
+        var intento = jdbc.queryForMap("SELECT * FROM auditoria_pago");
+        assertEquals("CAMBIO_VIAJE", intento.get("concepto"));
+        assertEquals("APROBADO", intento.get("resultado"));
+        assertEquals(((Number) cambio.get("id_postergacion")).intValue(),
+                ((Number) intento.get("id_postergacion")).intValue());
+        // La venta y su pago original no se tocan.
+        assertEquals(1, contar("SELECT COUNT(*) FROM pago WHERE id_venta = (SELECT id_venta FROM pasaje WHERE id_pasaje = "
+                + pasajeVigente + ")"));
+    }
+
+    @Test
+    void unYapeRechazadoNoCambiaNadaYSePuedeReintentarConTarjeta() throws Exception {
+        var rechazado = pagar(jwtAgencia, 5, "YAPE", "RECHAZADO", "P51", "clave-yape-1");
+        assertEquals(200, rechazado.statusCode(), rechazado.body());
+        assertFalse(cuerpo(rechazado).get("cambioAplicado").asBoolean());
+        assertEquals(1, idAsientoDelPasaje(pasajeVigente));
+        assertEquals("BLOQUEADO_TEMPORAL", estadoAsiento(5));
+        assertEquals(0, contar("SELECT COUNT(*) FROM postergacion"));
+
+        var aprobado = pagar(jwtAgencia, 5, "TARJETA", "APROBADO", "458921", "clave-tarjeta-2");
+        assertEquals(200, aprobado.statusCode(), aprobado.body());
+        assertTrue(cuerpo(aprobado).get("cambioAplicado").asBoolean());
+        assertEquals(5, idAsientoDelPasaje(pasajeVigente));
+
+        // Los dos intentos quedan registrados, en orden.
+        var intentos = cuerpo(get("/api/pasajes/" + pasajeVigente + "/cambio-viaje/pagos", jwtAgencia));
+        assertEquals(2, intentos.size());
+        assertEquals("RECHAZADO", intentos.get(0).get("resultado").asText());
+        assertEquals("Yape", intentos.get(0).get("metodo").asText());
+        assertEquals("P51", intentos.get(0).get("numeroOperacion").asText());
+        assertEquals("APROBADO", intentos.get(1).get("resultado").asText());
+        assertEquals("458921", intentos.get(1).get("numeroOperacion").asText());
+    }
+
+    @Test
+    void unaTarjetaAprobadaSinCodigoDeOperacionNoSeRegistra() throws Exception {
+        var r = pagar(jwtAgencia, 5, "TARJETA", "APROBADO", null, "clave-sin-codigo-1");
+        assertEquals(409, r.statusCode(), r.body());
+        assertEquals("FALTA_CODIGO_POS", cuerpo(r).get("detalles").get(0).asText());
+        assertEquals("Ingrese el código de operación que muestra el POS.", cuerpo(r).get("mensaje").asText());
+        assertEquals(0, contar("SELECT COUNT(*) FROM auditoria_pago"));
+        assertEquals(1, idAsientoDelPasaje(pasajeVigente));
+    }
+
+    @Test
+    void unRechazoSinCodigoDeErrorNoSeRegistra() throws Exception {
+        var r = pagar(jwtAgencia, 5, "YAPE", "RECHAZADO", "  ", "clave-sin-codigo-2");
+        assertEquals(409, r.statusCode(), r.body());
+        assertEquals("Ingrese el código de error que muestra el POS.", cuerpo(r).get("mensaje").asText());
+        assertEquals(0, contar("SELECT COUNT(*) FROM auditoria_pago"));
+    }
+
+    @Test
+    void enEfectivoNoSeGuardaCodigoDelPos() throws Exception {
+        var r = pagar(jwtAgencia, 5, "EFECTIVO", null, "ABC123", "clave-efectivo-2");
+        assertEquals(200, r.statusCode(), r.body());
+        assertNull(jdbc.queryForObject("SELECT numero_operacion FROM auditoria_pago", String.class));
+    }
+
+    @Test
+    void elMismoIntentoEnviadoDosVecesNoCobraDosVeces() throws Exception {
+        var primero = pagar(jwtAgencia, 5, "EFECTIVO", null, null, "clave-repetida");
+        var segundo = pagar(jwtAgencia, 5, "EFECTIVO", null, null, "clave-repetida");
+        assertEquals(200, primero.statusCode(), primero.body());
+        assertEquals(200, segundo.statusCode(), segundo.body());
+        assertTrue(cuerpo(segundo).get("cambioAplicado").asBoolean());
+        assertEquals(1, contar("SELECT COUNT(*) FROM auditoria_pago"));
+        assertEquals(1, contar("SELECT COUNT(*) FROM postergacion"));
+    }
+
+    @Test
+    void siNoHayDiferenciaNoSeRegistraUnPago() throws Exception {
+        var r = pagar(jwtAgencia, 4, "EFECTIVO", null, null, "clave-sin-diferencia");
+        assertEquals(409, r.statusCode(), r.body());
+        assertEquals("SIN_DIFERENCIA", cuerpo(r).get("detalles").get(0).asText());
+        assertEquals(0, contar("SELECT COUNT(*) FROM auditoria_pago"));
+    }
+
+    @Test
+    void elGerenteNoPuedeRegistrarPagos() throws Exception {
+        assertEquals(403, pagar(jwtGerente, 5, "EFECTIVO", null, null, "clave-gerente").statusCode());
+    }
+
     // ---------- datos de prueba ----------
+
+    HttpResponse<String> pagar(String jwt, int idAsiento, String metodo, String resultado, String codigoPos,
+                               String clave) throws Exception {
+        Map<String, Object> datos = new java.util.HashMap<>(Map.of("idViajeNuevo", 8, "idAsiento", idAsiento,
+                "tokenSesion", sesion.tokenSesion(), "metodo", metodo, "claveIdempotencia", clave));
+        if (resultado != null) datos.put("resultado", resultado);
+        if (codigoPos != null) datos.put("numeroOperacion", codigoPos);
+        return http.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port
+                        + "/api/pasajes/" + pasajeVigente + "/cambio-viaje/pagos"))
+                .timeout(Duration.ofSeconds(20)).header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + jwt)
+                .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(datos))).build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    int contar(String sql) {
+        return jdbc.queryForObject(sql, Integer.class);
+    }
 
     HttpResponse<String> confirmar(String jwt, int idViajeNuevo, int idAsiento, boolean aceptaSinDevolucion)
             throws Exception {

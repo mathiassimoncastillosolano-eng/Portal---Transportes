@@ -124,6 +124,20 @@ public class AplicacionCambioViaje {
                 despues.numeroAsiento(), importeAdicional, fila.getReferenciaPago(), ahora);
     }
 
+    // Vuelve a armar la respuesta de un cambio que ya se aplicó (por ejemplo, si el mismo pago llega dos veces).
+    @Transactional(readOnly = true)
+    public ConfirmacionPostergacionDto confirmacionGuardada(int idPostergacion) {
+        Postergacion fila = historial.findById(idPostergacion)
+                .orElseThrow(() -> rechazo(CAMBIO_NO_APLICADO, "No se encontró el cambio de este pago."));
+        FilaCompra despues = compras.filaDelPasaje(fila.getIdPasaje())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No encontramos este pasaje."));
+        return new ConfirmacionPostergacionDto(true, fila.getIdPostergacion(), fila.getIdPasaje(), fila.getIdVenta(),
+                fila.getIdViajeAnterior(), null,
+                despues.idViaje(), despues.origen(), despues.destino(), despues.fechaSalida(), despues.horaSalida(),
+                despues.numeroAsiento(), fila.getImporteAdicional(), fila.getReferenciaPago(),
+                fila.getFechaPostergacion());
+    }
+
     private void exigirViajeReservable(long idViajeNuevo) {
         try {
             validadorReserva.exigirReservable(idViajeNuevo);

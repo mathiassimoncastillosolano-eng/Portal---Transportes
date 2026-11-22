@@ -83,19 +83,39 @@ public class CambioViajeAgenciaServicio {
         return CotizacionCambioDto.desde(compararTarifa(pasaje, idViajeNuevo, idAsiento));
     }
 
-    // Cambio cuando la tarifa nueva es igual o menor. Si es mayor, primero se registra el pago (otro endpoint).
+    // Todo lo que se revisa antes de aplicar un cambio, con o sin cobro.
+    public record CambioPreparado(FilaCompra pasaje, SesionReserva sesion,
+                                  ComparacionTarifaCambio.Resultado tarifa, int idEmpleado) {
+    }
+
+    // Mismo candado que usa el Portal: si el cliente y un agente cambian el mismo pasaje a la vez, van en fila.
+    // Se libera solo al terminar la transacción.
+    public void bloquearPasaje(int idPasaje) {
+        asientos.bloquearSesion("postergacion:" + idPasaje);
+    }
+
+    @Transactional
+    public CambioPreparado prepararCambio(int idUsuarioAgente, int idPasaje, long idViajeNuevo, int idAsiento,
+                                          String tokenSesion) {
+        int idEmpleado = idEmpleadoActivo(idUsuarioAgente);
+        FilaCompra pasaje = buscarPasaje(idPasaje);
+        postergaciones.exigirCambiable(pasaje);
+        SesionReserva sesion = validarSesion(tokenSesion, idViajeNuevo);
+        return new CambioPreparado(pasaje, sesion, compararTarifa(pasaje, idViajeNuevo, idAsiento), idEmpleado);
+    }
+
+    // Cambio cuando la tarifa nueva es igual o menor. Si es mayor, primero se registra el pago (PagoDiferenciaCambioServicio).
     @Transactional
     public ConfirmacionPostergacionDto confirmarSinCobro(int idUsuarioAgente, int idPasaje,
                                                          ConfirmarCambioAgenciaRequest solicitud) {
-        int idEmpleado = idEmpleadoActivo(idUsuarioAgente);
-        // Mismo candado que usa el Portal: si el cliente y un agente cambian el mismo pasaje a la vez, van en fila.
-        asientos.bloquearSesion("postergacion:" + idPasaje);
-
-        FilaCompra pasaje = buscarPasaje(idPasaje);
-        postergaciones.exigirCambiable(pasaje);
-        SesionReserva sesion = validarSesion(solicitud.tokenSesion(), solicitud.idViajeNuevo());
-        ComparacionTarifaCambio.Resultado tarifa =
-                compararTarifa(pasaje, solicitud.idViajeNuevo(), solicitud.idAsiento());
+        idEmpleadoActivo(idUsuarioAgente); // quien no es agente activo no llega a bloquear el pasaje
+        bloquearPasaje(idPasaje);
+        CambioPreparado cambio = prepararCambio(idUsuarioAgente, idPasaje, solicitud.idViajeNuevo(),
+                solicitud.idAsiento(), solicitud.tokenSesion());
+        FilaCompra pasaje = cambio.pasaje();
+        SesionReserva sesion = cambio.sesion();
+        ComparacionTarifaCambio.Resultado tarifa = cambio.tarifa();
+        int idEmpleado = cambio.idEmpleado();
 
         if (tarifa.requierePago()) {
             throw new PostergacionRechazadaException(PAGO_REQUERIDO,
