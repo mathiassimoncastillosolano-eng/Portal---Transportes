@@ -55,7 +55,12 @@ public class PostergacionServicio {
             throw rechazo(resultado.mensaje());
         }
 
-        // Busca los viajes de esa ruta y fecha.
+        return listarViajesSinElOriginal(pasaje, origen, destino, fecha);
+    }
+
+    /** Busca los viajes de la ruta y fecha elegidas y quita el viaje original del pasaje. */
+    public ConsultaPostergacionDto listarViajesSinElOriginal(FilaCompra pasaje,
+                                                             String origen, String destino, LocalDate fecha) {
         List<ViajeResumenDto> encontrados = viajes.buscar(origen, destino, fecha, "cualquiera");
         List<ViajeResumenDto> mostrados = encontrados.stream()
                 .filter(viaje -> esOtroViaje(viaje, pasaje.idViaje()))
@@ -65,8 +70,18 @@ public class PostergacionServicio {
 
     /** Revisa que el pasaje todavía se pueda cambiar y lo devuelve. */
     public FilaCompra exigirPasajeCambiable(int idUsuario, int idPasaje) {
-        LocalDateTime ahora = LocalDateTime.now(reloj);
         FilaCompra pasaje = buscarPasajePropio(idUsuario, idPasaje);
+        exigirCambiable(pasaje);
+        return pasaje;
+    }
+
+    /**
+     * Revisa las reglas del cambio sobre un pasaje ya encontrado: que esté vigente y que falten 6 h o más.
+     * Si no se cumple, lanza PostergacionRechazadaException con el código del motivo.
+     * La usan el Portal (pasaje del cliente) y el Sistema Empresarial (pasaje buscado por el agente).
+     */
+    public void exigirCambiable(FilaCompra pasaje) {
+        LocalDateTime ahora = LocalDateTime.now(reloj);
         if (!estaVigente(pasaje, ahora)) {
             throw new PostergacionRechazadaException(PostergacionRechazadaException.PASAJE_NO_VIGENTE,
                     "Este pasaje no está vigente, por eso no se puede cambiar.");
@@ -79,7 +94,6 @@ public class PostergacionServicio {
                     : PostergacionRechazadaException.ANTICIPACION_INSUFICIENTE;
             throw new PostergacionRechazadaException(codigo, resultado.mensaje());
         }
-        return pasaje;
     }
 
     /** Busca el pasaje entre las compras del usuario. Si es de otra cuenta no aparece y se responde 404. */

@@ -10,12 +10,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.transportes.configuracion.excepciones.RespuestaError;
+import com.transportes.postergacion.controladores.CambioViajeAgenciaControlador;
 import com.transportes.postergacion.controladores.PostergacionControlador;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-/** Convierte el rechazo de un cambio de pasaje en una respuesta 409. */
-@RestControllerAdvice(assignableTypes = PostergacionControlador.class)
+/** Convierte el rechazo de un cambio de pasaje (Portal o Sistema Empresarial) en una respuesta 409. */
+@RestControllerAdvice(assignableTypes = {PostergacionControlador.class, CambioViajeAgenciaControlador.class})
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ManejadorPostergacion {
 

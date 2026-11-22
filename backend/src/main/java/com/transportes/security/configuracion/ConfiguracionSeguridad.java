@@ -112,6 +112,9 @@ public class ConfiguracionSeguridad {
                                                 // Panel de clientes del Sistema Empresarial: solo roles AGENCIA o
                                                 // GERENTE (datos personales).
                                                 .requestMatchers("/api/clientes/**").hasAnyRole("AGENCIA", "GERENTE")
+                                                // Cambio de viajes: solo el personal de agencia (el gerente no).
+                                                // Va antes de /api/pasajes/** porque gana la primera regla que coincide.
+                                                .requestMatchers("/api/pasajes/*/cambio-viaje/**").hasRole("AGENCIA")
                                                 .requestMatchers("/api/pasajes/**").hasAnyRole("AGENCIA", "GERENTE")
                                                 // Dashboard del Sistema Empresarial: solo el gerente (ventas e
                                                 // ingresos de toda la empresa).
