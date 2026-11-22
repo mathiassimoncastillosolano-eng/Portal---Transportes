@@ -5,6 +5,7 @@ import { PieDePagina } from '../componentes/navegacion/PieDePagina'
 import { ModalInicioSesion } from '../componentes/autenticacion/ModalInicioSesion'
 import { FormularioRegistro } from '../componentes/autenticacion/FormularioRegistro'
 import { ModalRecuperarContrasena } from '../componentes/autenticacion/ModalRecuperarContrasena'
+import { ProveedorAyuda } from '../contexto/ContextoAyuda'
 
 export function LayoutPrincipal() {
   const [modalActivo, setModalActivo] = useState(null) // 'iniciar-sesion' | 'crear-cuenta' | 'recuperar-contrasena' | null
@@ -32,34 +33,36 @@ export function LayoutPrincipal() {
   }, [pathname])
 
   return (
-    <div className="diseno-principal">
-      <BarraNavegacion alAbrirInicioSesion={abrirInicioSesion} />
+    <ProveedorAyuda alAbrirInicioSesion={abrirInicioSesion} alAbrirCrearCuenta={abrirCrearCuenta}>
+      <div className="diseno-principal">
+        <BarraNavegacion alAbrirInicioSesion={abrirInicioSesion} />
 
-      <main>
-        <Outlet context={{ abrirInicioSesion, abrirCrearCuenta, abrirRecuperarContrasena }} />
-      </main>
+        <main>
+          <Outlet context={{ abrirInicioSesion, abrirCrearCuenta, abrirRecuperarContrasena }} />
+        </main>
 
-      <PieDePagina />
+        <PieDePagina />
 
-      <ModalInicioSesion
-        abierto={modalActivo === 'iniciar-sesion'}
-        alCerrar={cerrarModales}
-        alIrACrearCuenta={abrirCrearCuenta}
-        alOlvidoContrasena={abrirRecuperarContrasena}
-        correoInicial={correoRecuperacion}
-      />
-      <FormularioRegistro
-        abierto={modalActivo === 'crear-cuenta'}
-        alCerrar={cerrarModales}
-        alIrAIniciarSesion={abrirInicioSesion}
-      />
-      <ModalRecuperarContrasena
-        abierto={modalActivo === 'recuperar-contrasena'}
-        alCerrar={cerrarModales}
-        alVolverAIniciarSesion={volverAIniciarSesionTrasRecuperar}
-        correoInicial={correoRecuperacion}
-      />
-    </div>
+        <ModalInicioSesion
+          abierto={modalActivo === 'iniciar-sesion'}
+          alCerrar={cerrarModales}
+          alIrACrearCuenta={abrirCrearCuenta}
+          alOlvidoContrasena={abrirRecuperarContrasena}
+          correoInicial={correoRecuperacion}
+        />
+        <FormularioRegistro
+          abierto={modalActivo === 'crear-cuenta'}
+          alCerrar={cerrarModales}
+          alIrAIniciarSesion={abrirInicioSesion}
+        />
+        <ModalRecuperarContrasena
+          abierto={modalActivo === 'recuperar-contrasena'}
+          alCerrar={cerrarModales}
+          alVolverAIniciarSesion={volverAIniciarSesionTrasRecuperar}
+          correoInicial={correoRecuperacion}
+        />
+      </div>
+    </ProveedorAyuda>
   )
 }
 

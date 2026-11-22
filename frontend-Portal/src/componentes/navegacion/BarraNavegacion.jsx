@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAutenticacion } from '../../hooks/useAutenticacion'
 import { iniciales } from '../../utilidades/formato'
 import { useClicFuera } from '../../hooks/useClicFuera'
+import { useAyuda } from '../../hooks/useAyuda'
 import { BotonTema } from '../comunes/BotonTema'
 import './barraNavegacion.css'
 import { LogoMarca } from '../comunes/LogoMarca'
@@ -11,11 +12,11 @@ const ENLACES = [
   { ruta: '/', etiqueta: 'Inicio' },
   { ruta: '/destinos', etiqueta: 'Destinos' },
   { ruta: '/servicios', etiqueta: 'Servicios' },
-  { ruta: '/ayuda', etiqueta: 'Ayuda' },
 ]
 
 export function BarraNavegacion({ alAbrirInicioSesion }) {
   const { usuario, estaAutenticado, cerrarSesion } = useAutenticacion()
+  const { abrirAyuda } = useAyuda()
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false)
   const [menuPerfilAbierto, setMenuPerfilAbierto] = useState(false)
   const [conFondo, setConFondo] = useState(false)
@@ -69,6 +70,9 @@ export function BarraNavegacion({ alAbrirInicioSesion }) {
               {enlace.etiqueta}
             </NavLink>
           ))}
+          <button type="button" className="barra-navegacion__enlace barra-navegacion__enlace--boton" onClick={() => abrirAyuda()}>
+            Ayuda
+          </button>
         </nav>
 
         <div className="barra-navegacion__acciones">
@@ -153,6 +157,16 @@ export function BarraNavegacion({ alAbrirInicioSesion }) {
               {enlace.etiqueta}
             </NavLink>
           ))}
+          <button
+            type="button"
+            className="barra-navegacion__enlace-movil barra-navegacion__enlace-movil--ayuda"
+            onClick={() => {
+              setMenuMovilAbierto(false)
+              abrirAyuda()
+            }}
+          >
+            Ayuda
+          </button>
           <div className="barra-navegacion__fila-tema">
             <span>Modo oscuro</span>
             <BotonTema />
