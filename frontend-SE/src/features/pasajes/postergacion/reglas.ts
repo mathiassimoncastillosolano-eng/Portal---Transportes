@@ -35,6 +35,16 @@ export function plazoPostergacionMs(pasaje: Pick<ViajeHistorial, 'fechaSalida' |
   return salidaMs(pasaje.fechaSalida, pasaje.horaSalida) - HORAS_MINIMAS * MS_HORA
 }
 
+/** true si el viaje todavía no sale pero faltan menos de 6 h: el pasaje ya no se puede cambiar. */
+export function estaFueraDePlazoDeCambio(
+  pasaje: Pick<ViajeHistorial, 'fechaSalida' | 'horaSalida'>,
+  ahoraMs: number,
+): boolean {
+  const salida = salidaMs(pasaje.fechaSalida, pasaje.horaSalida)
+  if (!Number.isFinite(salida)) return false
+  return salida > ahoraMs && salida - ahoraMs < HORAS_MINIMAS * MS_HORA
+}
+
 export function formatearMomento(ms: number): string {
   if (!Number.isFinite(ms)) return '—'
   return new Date(ms).toLocaleString('es-PE', {

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Armchair, Bus, CalendarClock, FileText, Hash, UserRound } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
@@ -7,6 +8,8 @@ import type { Pasaje } from '@/types/listadoPasajes'
 import { cn } from '@/utils/cn'
 import { nombrePropio } from '@/utils/formato'
 import { ETIQUETA_ESTADO, formatearPrecio, textoLlegada, textoSalida } from '@/features/clientes/utils/boleto'
+import { AvisoPlazoCambio } from '../postergacion/components/AvisoPlazoCambio'
+import { estaFueraDePlazoDeCambio } from '../postergacion/reglas'
 
 const FASE: Record<FaseViaje, { etiqueta: string; franja: string }> = {
   PROXIMO: { etiqueta: 'Próximo', franja: 'bg-accent-line' },
@@ -27,6 +30,9 @@ export function TarjetaPasaje({ pasaje, onBoleto, onCliente, onPostergar }: Tarj
   const llegada = textoLlegada(pasaje)
   const pasajero = nombrePropio(pasaje.pasajero)
   const tono = pasaje.estadoPasaje === 'CONFIRMADA' ? 'success' : pasaje.estadoPasaje === 'REEMBOLSADA' ? 'warning' : 'neutral'
+  // Hora tomada una sola vez, al mostrar la tarjeta.
+  const [ahoraMs] = useState(Date.now)
+  const fueraDePlazo = estaFueraDePlazoDeCambio(pasaje, ahoraMs)
 
   return (
     <li className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-card shadow-panel transition-all duration-200 hover:-translate-y-0.5 hover:shadow-panel-hover">
@@ -107,8 +113,15 @@ export function TarjetaPasaje({ pasaje, onBoleto, onCliente, onPostergar }: Tarj
             <p className="font-display text-xl font-semibold tabular-nums text-text-900">{formatearPrecio(pasaje.precio, pasaje.moneda)}</p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            {pasaje.fase === 'PROXIMO' && fueraDePlazo && <AvisoPlazoCambio />}
             {pasaje.fase === 'PROXIMO' && (
-              <Button variant="outline" size="sm" onClick={onPostergar} iconLeft={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={fueraDePlazo}
+                onClick={onPostergar}
+                iconLeft={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
+              >
                 Postergar
               </Button>
             )}

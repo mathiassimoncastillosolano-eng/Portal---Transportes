@@ -16,6 +16,8 @@ import { cn } from '@/utils/cn'
 import { formatearFecha, formatearFechaHora, nombrePropio } from '@/utils/formato'
 import { ETIQUETA_ESTADO, formatearPrecio, textoLlegada, textoSalida } from '../utils/boleto'
 import { PostergarPasajeDialog } from '@/features/pasajes/postergacion/PostergarPasajeDialog'
+import { AvisoPlazoCambio } from '@/features/pasajes/postergacion/components/AvisoPlazoCambio'
+import { estaFueraDePlazoDeCambio } from '@/features/pasajes/postergacion/reglas'
 import { BoletoModal } from './BoletoModal'
 
 interface ClienteDetalleProps {
@@ -72,6 +74,9 @@ function Dato({ etiqueta, valor, icono: Icono }: { etiqueta: string; valor: stri
 
 function TarjetaViaje({ viaje, onBoleto, onPostergar }: { viaje: ViajeHistorial; onBoleto: () => void; onPostergar: () => void }) {
   const llegada = textoLlegada(viaje)
+  // Hora tomada una sola vez, al mostrar la tarjeta.
+  const [ahoraMs] = useState(Date.now)
+  const fueraDePlazo = estaFueraDePlazoDeCambio(viaje, ahoraMs)
   return (
     <li className={cn('rounded-xl border border-l-4 border-border bg-surface-card p-4', BORDE_FASE[viaje.fase])}>
       <div className="flex items-center justify-between gap-3">
@@ -122,10 +127,12 @@ function TarjetaViaje({ viaje, onBoleto, onPostergar }: { viaje: ViajeHistorial;
       </dl>
 
       <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-3">
+        {viaje.fase === 'PROXIMO' && fueraDePlazo && <AvisoPlazoCambio />}
         {viaje.fase === 'PROXIMO' && (
           <Button
             variant="outline"
             size="sm"
+            disabled={fueraDePlazo}
             onClick={onPostergar}
             iconLeft={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
           >
