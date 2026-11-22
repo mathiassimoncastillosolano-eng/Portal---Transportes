@@ -6,6 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -23,15 +27,20 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.transportes.compras.repositorios.CompraRepositorio;
+import com.transportes.empleados.entidades.Empleado;
+import com.transportes.empleados.servicios.EmpleadoService;
+import com.transportes.postergacion.dto.ConfirmarCambioAgenciaRequest;
 import com.transportes.postergacion.dto.ConsultaPostergacionDto;
 import com.transportes.postergacion.dto.CotizacionCambioDto;
 import com.transportes.postergacion.dto.ElegibilidadCambioDto;
 import com.transportes.postergacion.excepciones.PostergacionRechazadaException;
+import com.transportes.postergacion.servicios.AplicacionCambioViaje;
 import com.transportes.postergacion.servicios.CambioViajeAgenciaServicio;
 import com.transportes.postergacion.servicios.PostergacionServicio;
 import com.transportes.viajes.entidades.ViajeAsiento;
 import com.transportes.viajes.reglas.PoliticaReservaViaje;
 import com.transportes.viajes.repositorios.ViajeAsientoRepositorio;
+import com.transportes.viajes.servicios.TokenSesionServicio;
 import com.transportes.viajes.servicios.ViajeService;
 
 /**
@@ -46,10 +55,16 @@ class CambioViajeAgenciaServicioTest {
 
     static final long VIAJE_NUEVO = 600L;
     static final int ASIENTO_NUEVO = 14;
+    static final int USUARIO_AGENTE = 50;
+    static final int EMPLEADO_AGENTE = 3;
+    static final String TOKEN = "token-de-la-sesion";
 
     CompraRepositorio compras;
     ViajeService viajes;
     ViajeAsientoRepositorio asientos;
+    TokenSesionServicio tokens;
+    EmpleadoService empleados;
+    AplicacionCambioViaje aplicacion;
     CambioViajeAgenciaServicio servicio;
 
     @BeforeEach
@@ -57,9 +72,29 @@ class CambioViajeAgenciaServicioTest {
         compras = mock(CompraRepositorio.class);
         viajes = mock(ViajeService.class);
         asientos = mock(ViajeAsientoRepositorio.class);
+        tokens = mock(TokenSesionServicio.class);
+        empleados = mock(EmpleadoService.class);
+        aplicacion = mock(AplicacionCambioViaje.class);
         Clock reloj = Clock.fixed(AHORA.atZone(PoliticaReservaViaje.ZONA_NEGOCIO).toInstant(),
                 PoliticaReservaViaje.ZONA_NEGOCIO);
-        servicio = new CambioViajeAgenciaServicio(compras, new PostergacionServicio(compras, viajes, reloj), asientos);
+        servicio = new CambioViajeAgenciaServicio(compras, new PostergacionServicio(compras, viajes, reloj), asientos,
+                tokens, empleados, aplicacion);
+    }
+
+    /** Agente activo, pasaje vigente de S/ 43.00 y sesión válida del viaje nuevo. Solo falta el precio del asiento. */
+    void prepararConfirmacion(String precioAsientoNuevo) {
+        Empleado agente = new Empleado();
+        agente.setIdEmpleado(EMPLEADO_AGENTE);
+        when(empleados.buscarEmpleadoActivo(USUARIO_AGENTE)).thenReturn(Optional.of(agente));
+        when(compras.filaDelPasaje(PASAJE)).thenReturn(Optional.of(
+                PostergacionServicioTest.pasajeVigente(AHORA.plusDays(2))));
+        when(tokens.validar(TOKEN, VIAJE_NUEVO)).thenReturn(
+                new TokenSesionServicio.SesionReserva(TOKEN, "sesion-1", VIAJE_NUEVO, AHORA.plusMinutes(10)));
+        asientoNuevoConPrecio(precioAsientoNuevo);
+    }
+
+    ConfirmarCambioAgenciaRequest solicitud(boolean aceptaSinDevolucion) {
+        return new ConfirmarCambioAgenciaRequest(VIAJE_NUEVO, ASIENTO_NUEVO, TOKEN, aceptaSinDevolucion);
     }
 
     void asientoNuevoConPrecio(String precio) {
@@ -212,5 +247,51 @@ class CambioViajeAgenciaServicioTest {
         assertThrows(PostergacionRechazadaException.class,
                 () -> servicio.cotizar(PASAJE, VIAJE_NUEVO, ASIENTO_NUEVO));
         verify(asientos, never()).findByIdViajeAndIdAsiento(any(), any());
+    }
+
+    // ---------- confirmación sin cobro ----------
+
+    @Test
+    void conLaMismaTarifaSeAplicaSinCobroYGuardaAlAgente() {
+        prepararConfirmacion("43.00");
+        servicio.confirmarSinCobro(USUARIO_AGENTE, PASAJE, solicitud(false));
+        verify(aplicacion).aplicar(any(), eq(VIAJE_NUEVO), eq(ASIENTO_NUEVO), eq("sesion-1"),
+                eq(new BigDecimal("0.00")), isNull(), eq(EMPLEADO_AGENTE));
+    }
+
+    @Test
+    void siElViajeEsMasBaratoYNoSeMarcoLaAceptacionNoSeAplica() {
+        prepararConfirmacion("35.00");
+        PostergacionRechazadaException error = assertThrows(PostergacionRechazadaException.class,
+                () -> servicio.confirmarSinCobro(USUARIO_AGENTE, PASAJE, solicitud(false)));
+        assertEquals(CambioViajeAgenciaServicio.ACEPTACION_REQUERIDA, error.getCodigo());
+        assertTrue(error.getReason().contains("S/ 8.00"));
+        verify(aplicacion, never()).aplicar(any(), anyLong(), anyInt(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void siElViajeEsMasBaratoYElPasajeroAceptoSeAplicaSinCobro() {
+        prepararConfirmacion("35.00");
+        servicio.confirmarSinCobro(USUARIO_AGENTE, PASAJE, solicitud(true));
+        verify(aplicacion).aplicar(any(), eq(VIAJE_NUEVO), eq(ASIENTO_NUEVO), eq("sesion-1"),
+                eq(new BigDecimal("0.00")), isNull(), eq(EMPLEADO_AGENTE));
+    }
+
+    @Test
+    void siElViajeEsMasCaroPidePrimeroElPago() {
+        prepararConfirmacion("55.00");
+        PostergacionRechazadaException error = assertThrows(PostergacionRechazadaException.class,
+                () -> servicio.confirmarSinCobro(USUARIO_AGENTE, PASAJE, solicitud(true)));
+        assertEquals(CambioViajeAgenciaServicio.PAGO_REQUERIDO, error.getCodigo());
+        assertTrue(error.getReason().contains("S/ 12.00"));
+        verify(aplicacion, never()).aplicar(any(), anyLong(), anyInt(), any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void unaCuentaQueNoEsEmpleadoActivoNoPuedeConfirmar() {
+        when(empleados.buscarEmpleadoActivo(USUARIO_AGENTE)).thenReturn(Optional.empty());
+        ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                () -> servicio.confirmarSinCobro(USUARIO_AGENTE, PASAJE, solicitud(false)));
+        assertEquals(403, error.getStatusCode().value());
     }
 }

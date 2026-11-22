@@ -26,6 +26,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import com.transportes.RelojPruebaConfiguracion;
 import com.transportes.RelojPruebaConfiguracion.RelojPrueba;
+import com.transportes.viajes.servicios.TokenSesionServicio;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -50,7 +51,10 @@ class CambioViajeAgenciaIntegracionTest {
     @Autowired ObjectMapper json;
     @Autowired RelojPrueba reloj;
     @Autowired PasswordEncoder encoder;
+    @Autowired TokenSesionServicio tokens;
     final HttpClient http = HttpClient.newHttpClient();
+
+    TokenSesionServicio.SesionReserva sesion;
 
     int pasajeVigente;   // viaje 19/10 a las 08:00, compra de un cliente
     int pasajeCancelado; // viaje 25/10 cancelado
@@ -62,7 +66,7 @@ class CambioViajeAgenciaIntegracionTest {
     void preparar() throws Exception {
         // Hoy es 12/10/2026 a las 10:00 (hora de Perú).
         reloj.fijar(LocalDateTime.of(2026, 10, 12, 10, 0));
-        for (String tabla : List.of("comprobante", "pasaje", "pago", "operacion_pago", "venta", "empleado",
+        for (String tabla : List.of("postergacion", "comprobante", "pasaje", "pago", "operacion_pago", "venta", "empleado",
                 "usuario", "viaje_asiento", "pasajero", "asiento", "viaje", "bus", "programacion_viaje", "ruta",
                 "agencia", "tipo_bus", "ubicacion")) {
             jdbc.update("DELETE FROM " + tabla);
@@ -80,6 +84,9 @@ class CambioViajeAgenciaIntegracionTest {
         insertarAsiento(1, "12A", 5);
         insertarAsiento(2, "05A", 7);
         insertarAsiento(3, "14A", 8, "55.00");
+        // El agente ya eligió el asiento 4 del viaje 8 (misma tarifa, S/ 43.00): está bloqueado por su sesión.
+        sesion = tokens.crear(8L);
+        insertarAsientoBloqueado(4, "15A", 8, "43.00", sesion.idSesion());
         jdbc.update("INSERT INTO pasajero(id_pasajero,tipo_documento,numero_documento,nombres,apellidos) OVERRIDING SYSTEM VALUE "
                 + "VALUES(1,'DNI','11111111','ANA','LOPEZ')");
 
@@ -176,7 +183,72 @@ class CambioViajeAgenciaIntegracionTest {
         assertEquals(403, r.statusCode());
     }
 
+    // ---------- confirmación sin cobro ----------
+
+    @Test
+    void elAgenteConfirmaElCambioYQuedaRegistradoQuienLoHizo() throws Exception {
+        var r = confirmar(jwtAgencia, 8, 4, false);
+        assertEquals(200, r.statusCode(), r.body());
+        assertEquals("15A", cuerpo(r).get("asientoNuevo").asText());
+        assertEquals("2026-10-21", cuerpo(r).get("fechaSalida").asText());
+
+        // El pasaje pasó al asiento nuevo (OCUPADO) y el anterior quedó DISPONIBLE.
+        assertEquals(4, idAsientoDelPasaje(pasajeVigente));
+        assertEquals("OCUPADO", estadoAsiento(4));
+        assertEquals("DISPONIBLE", estadoAsiento(1));
+
+        // Misma venta, sin cobro, y con el agente en el historial.
+        var fila = jdbc.queryForMap("SELECT * FROM postergacion WHERE id_pasaje = ?", pasajeVigente);
+        assertEquals(0, BigDecimal.ZERO.compareTo((BigDecimal) fila.get("importe_adicional")));
+        int idEmpleadoAgencia = jdbc.queryForObject("SELECT id_empleado FROM empleado WHERE rol = 'AGENCIA'", Integer.class);
+        assertEquals(idEmpleadoAgencia, ((Number) fila.get("id_empleado")).intValue());
+    }
+
+    @Test
+    void siElAsientoYaSeVendioElPasajeNoCambia() throws Exception {
+        jdbc.update("UPDATE viaje_asiento SET estado_viaje_asiento = 'OCUPADO' WHERE id_viaje_asiento = 4");
+        var r = confirmar(jwtAgencia, 8, 4, false);
+        assertEquals(409, r.statusCode(), r.body());
+        assertEquals("ASIENTO_NO_DISPONIBLE", cuerpo(r).get("detalles").get(0).asText());
+        assertEquals(1, idAsientoDelPasaje(pasajeVigente));
+        assertEquals("OCUPADO", estadoAsiento(1));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM postergacion", Integer.class));
+    }
+
+    @Test
+    void elGerenteNoPuedeConfirmar() throws Exception {
+        assertEquals(403, confirmar(jwtGerente, 8, 4, false).statusCode());
+        assertEquals(1, idAsientoDelPasaje(pasajeVigente));
+    }
+
     // ---------- datos de prueba ----------
+
+    HttpResponse<String> confirmar(String jwt, int idViajeNuevo, int idAsiento, boolean aceptaSinDevolucion)
+            throws Exception {
+        String cuerpo = json.writeValueAsString(Map.of("idViajeNuevo", idViajeNuevo, "idAsiento", idAsiento,
+                "tokenSesion", sesion.tokenSesion(), "aceptaSinDevolucion", aceptaSinDevolucion));
+        return http.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port
+                        + "/api/pasajes/" + pasajeVigente + "/cambio-viaje/confirmar"))
+                .timeout(Duration.ofSeconds(20)).header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + jwt)
+                .POST(HttpRequest.BodyPublishers.ofString(cuerpo)).build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    int idAsientoDelPasaje(int idPasaje) {
+        return jdbc.queryForObject("SELECT id_viaje_asiento FROM pasaje WHERE id_pasaje = ?", Integer.class, idPasaje);
+    }
+
+    String estadoAsiento(int idViajeAsiento) {
+        return jdbc.queryForObject("SELECT estado_viaje_asiento FROM viaje_asiento WHERE id_viaje_asiento = ?",
+                String.class, idViajeAsiento);
+    }
+
+    void insertarAsientoBloqueado(int id, String numero, int viaje, String precio, String idSesion) {
+        jdbc.update("INSERT INTO asiento(id_asiento,id_bus,numero_asiento) VALUES(?,1,?)", id, numero);
+        jdbc.update("INSERT INTO viaje_asiento(id_viaje_asiento,id_viaje,precio,estado_viaje_asiento,id_asiento,"
+                + "token_bloqueo,fecha_expiracion_bloqueo) VALUES(?,?,?,'BLOQUEADO_TEMPORAL',?,?,?)",
+                id, viaje, new BigDecimal(precio), id, idSesion, LocalDateTime.now().plusMinutes(10));
+    }
 
     String elegibilidad(int idPasaje) {
         return "/api/pasajes/" + idPasaje + "/cambio-viaje/elegibilidad";
