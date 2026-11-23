@@ -95,6 +95,8 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
           </div>
         </div>
 
+        <p className="rounded-xl border border-warning-500/30 bg-warning-50 px-4 py-3 text-sm font-medium text-warning-text">Vista de ejemplo: estas cifras son ficticias y no representan ventas reales.</p>
+
         <section aria-label="Filtros del canal" className="grid gap-4 rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:grid-cols-2 sm:p-6">
           {canal === 'agencia' && <label className="space-y-2 text-sm font-semibold text-text-700">Ciudad de salida
             <select value={ciudadSalida} onChange={(evento) => setCiudadSalida(evento.target.value)} className="block w-full rounded-xl border border-border bg-surface-card px-3 py-2.5 font-normal text-text-900 outline-none focus:border-accent-500">
