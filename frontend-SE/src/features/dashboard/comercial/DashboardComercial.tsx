@@ -17,6 +17,7 @@ interface Props {
   dias: VentasDia[]
   fechaCorte: string
   modoEjemplo?: boolean
+  integrado?: boolean
 }
 
 const moneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 })
@@ -124,7 +125,7 @@ function CanalCard({ nombre, icono, color, valor, total, anterior, metrica, onVe
   )
 }
 
-export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false }: Props) {
+export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, integrado = false }: Props) {
   const [periodo, setPeriodo] = useState<Periodo>(30)
   const [metrica, setMetrica] = useState<MetricaCanal>('pasajes')
   const [canalAbierto, setCanalAbierto] = useState<'web' | 'agencia' | null>(null)
@@ -144,14 +145,15 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false }: Pr
   const participacionLider = participacion(Math.max(hoy.web[metrica], hoy.agencia[metrica]), hoy.total[metrica])
   const diferenciaCanales = Math.abs(hoy.web[metrica] - hoy.agencia[metrica])
   const inicio = actual[0]?.fecha ?? fechaCorte
+  const Contenedor = integrado ? 'div' : 'main'
 
   if (canalAbierto) {
-    return <DetalleCanal canal={canalAbierto} onClose={() => setCanalAbierto(null)} periodo={periodo} onPeriodoChange={setPeriodo} totales={canalAbierto === 'web' ? hoy.web : hoy.agencia} />
+    return <DetalleCanal canal={canalAbierto} onClose={() => setCanalAbierto(null)} periodo={periodo} onPeriodoChange={setPeriodo} totales={canalAbierto === 'web' ? hoy.web : hoy.agencia} integrado={integrado} />
   }
 
   return (
-    <div className="min-h-screen bg-surface text-text-900">
-      <header className="border-b border-border bg-surface-card">
+    <div className={integrado ? 'text-text-900' : 'min-h-screen bg-surface text-text-900'}>
+      {!integrado && <header className="border-b border-border bg-surface-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <span className="flex size-10 items-center justify-center rounded-xl bg-ink-950 font-display text-sm font-bold text-accent-400">RL</span>
@@ -162,9 +164,9 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false }: Pr
             <TemaComercial />
           </div>
         </div>
-      </header>
+      </header>}
 
-      <main className="mx-auto max-w-7xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
+      <Contenedor className={integrado ? 'mx-auto w-full max-w-[1400px] space-y-7' : 'mx-auto max-w-7xl space-y-7 px-4 py-8 sm:px-6 lg:px-8'}>
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">Resumen de ventas</p>
@@ -224,7 +226,7 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false }: Pr
         <OperacionDashboard datos={operacion} periodo={periodo} />
 
         <p className="text-xs text-text-500">{modoEjemplo ? 'Esta vista usa cifras simuladas para revisar el diseño. No representa ventas registradas en la base de datos.' : 'Los resultados se calculan con ventas confirmadas de ambos canales.'}</p>
-      </main>
+      </Contenedor>
     </div>
   )
 }

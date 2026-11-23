@@ -10,6 +10,7 @@ interface Props {
   periodo: 7 | 30 | 90
   onPeriodoChange: (periodo: 7 | 30 | 90) => void
   totales: Totales
+  integrado?: boolean
 }
 
 interface RutaResumen {
@@ -33,7 +34,7 @@ function Indicador({ titulo, valor, descripcion }: { titulo: string; valor: stri
   )
 }
 
-export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales }: Props) {
+export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales, integrado = false }: Props) {
   useEffect(() => { window.scrollTo(0, 0) }, [])
   const [servicio, setServicio] = useState('todos')
   const [ciudadSalida, setCiudadSalida] = useState('todas')
@@ -61,10 +62,11 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
   const esWeb = canal === 'web'
   const nombreCanal = esWeb ? 'Web' : 'Agencia'
   const color = esWeb ? 'var(--color-accent-500)' : 'var(--color-route-500)'
+  const Contenedor = integrado ? 'div' : 'main'
 
   return (
-    <div className="min-h-screen bg-surface text-text-900">
-      <header className="border-b border-border bg-surface-card">
+    <div className={integrado ? 'text-text-900' : 'min-h-screen bg-surface text-text-900'}>
+      {!integrado && <header className="border-b border-border bg-surface-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <span className="flex size-10 items-center justify-center rounded-xl bg-ink-950 font-display text-sm font-bold text-accent-400">RL</span>
@@ -72,9 +74,9 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
           </div>
           <TemaComercial />
         </div>
-      </header>
+      </header>}
 
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+      <Contenedor className={integrado ? 'mx-auto w-full max-w-[1400px] space-y-6' : 'mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8'}>
         <button type="button" onClick={onClose} className="inline-flex items-center gap-2 text-sm font-semibold text-accent-text hover:underline"><ArrowLeft size={17} aria-hidden="true" />Volver al resumen</button>
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
@@ -119,7 +121,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
             <div><h2 id="rutas-canal-titulo" className="font-display text-xl font-bold">Ranking de rutas</h2><p className="mt-1 text-sm text-text-500">Ordenado por ingresos netos · {nombreCanal}</p></div>
             <p className="text-sm text-text-700">Ingresos del filtro: <strong className="tabular-nums text-text-900">{moneda.format(ingresos)}</strong></p>
           </div>
-          {rutas.length === 0 ? <p className="mt-6 rounded-xl bg-surface-sunken p-4 text-sm text-text-500">No hay ventas simuladas para esta ciudad y servicio.</p> : <>
+          {rutas.length === 0 ? <p className="mt-6 rounded-xl bg-surface-sunken p-4 text-sm text-text-500">{esWeb ? 'No hay ventas simuladas para este servicio.' : 'No hay ventas simuladas para esta ciudad y servicio.'}</p> : <>
             <ol className="mt-6 grid gap-5 lg:grid-cols-2">
               {destacadas.map((ruta, indice) => (
                 <li key={ruta.nombre}>
@@ -147,7 +149,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
           </>}
         </section>
         <p className="text-xs text-text-500">Los viajes con ventas son simulados en esta vista; se calcularán por salida al conectar los registros reales.</p>
-      </main>
+      </Contenedor>
     </div>
   )
 }
