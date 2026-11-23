@@ -185,6 +185,8 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, inte
           </div>
         </div>
 
+        {modoEjemplo && <p className="rounded-xl border border-warning-500/30 bg-warning-50 px-4 py-3 text-sm font-medium text-warning-text">Vista de ejemplo: estas cifras son ficticias y no representan ventas reales.</p>}
+
         <section aria-label="Indicadores comerciales" className="grid gap-4 md:grid-cols-3">
           <Indicador titulo="Ingresos netos" valor={moneda.format(hoy.total.ingresos)} cambio={variacion(hoy.total.ingresos, antes.total.ingresos)} icono={<Wallet size={19} />} principal />
           <Indicador titulo="Pasajes vendidos" valor={numero.format(hoy.total.pasajes)} cambio={variacion(hoy.total.pasajes, antes.total.pasajes)} icono={<Ticket size={19} />} />
