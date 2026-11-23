@@ -5,14 +5,14 @@ import { ScheduleFilter } from '@/features/ticketing/components/ScheduleFilter'
 import { TravelFilters } from '@/features/ticketing/components/TravelFilters'
 import { TravelList } from '@/features/ticketing/components/TravelList'
 import { TripResultsBar } from '@/features/ticketing/components/TripResultsBar'
+import { useRutasCiudad } from '@/features/ticketing/hooks/useRutasCiudad'
 import { vistaViajesInicial, type FiltrosViajeForm, type VistaViajes } from '@/features/ticketing/types'
 import { ordenarViajes } from '@/features/ticketing/utils/viajes'
+import { cambioViajeService } from '@/services/api/cambioViajeService'
 import type { ViajeHistorial } from '@/types/cliente'
 import type { FranjaId, ViajeConsulta } from '@/types/consultaViaje'
 import { fechaHoyLima } from '@/utils/fechas'
-import { buscarViajesMock, rutasMock } from '../datosMock'
-import { esMismoViaje } from '../reglas'
-import { filtrosIniciales } from '../usePostergacion'
+import { filtrosIniciales } from '../useCambioViaje'
 
 interface PasoViajeProps {
   pasaje: ViajeHistorial
@@ -35,14 +35,18 @@ function franjaDe(hora: string): FranjaId {
 
 export function PasoViaje({ pasaje, filtros, vista, viaje, onFiltros, onVista, onRestablecer, onElegir }: PasoViajeProps) {
   const hoy = useMemo(() => fechaHoyLima(), [])
-  const rutas = useMemo(() => rutasMock(pasaje), [pasaje])
+  const { rutas } = useRutasCiudad()
   const errorFecha = !filtros.fecha ? 'Selecciona una fecha.' : filtros.fecha < hoy ? 'Los viajes anteriores a hoy ya salieron.' : undefined
-  const clave = errorFecha ? null : `${filtros.origen}|${filtros.destino}|${filtros.fecha}`
+  const listo = !errorFecha && filtros.origen.trim() !== '' && filtros.destino.trim() !== ''
+  const clave = listo ? `cambio-${pasaje.idPasaje}|${filtros.origen}|${filtros.destino}|${filtros.fecha}` : null
 
-  const { data, cargando, error, reintentar } = useAsyncResource(clave, () => buscarViajesMock(pasaje, filtros))
+  // El backend ya quita el viaje original y devuelve cuántos ocultó.
+  const { data, cargando, error, reintentar } = useAsyncResource(clave, () =>
+    cambioViajeService.buscarViajes(pasaje.idPasaje, filtros),
+  )
 
   const visibles = useMemo(() => {
-    const base = (data ?? []).filter((v) => vista.franjas.length === 0 || vista.franjas.includes(franjaDe(v.horaSalida)))
+    const base = (data?.viajes ?? []).filter((v) => vista.franjas.length === 0 || vista.franjas.includes(franjaDe(v.horaSalida)))
     return ordenarViajes(base, vista.orden)
   }, [data, vista])
 
@@ -54,16 +58,12 @@ export function PasoViaje({ pasaje, filtros, vista, viaje, onFiltros, onVista, o
     vista.franjas.length > 0 ||
     vista.orden !== vistaViajesInicial.orden
 
-  const originalOculto =
-    !errorFecha &&
-    esMismoViaje(pasaje, { origen: filtros.origen, destino: filtros.destino, fechaSalida: filtros.fecha, horaSalida: pasaje.horaSalida ?? '' })
-
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h3 className="font-display text-lg font-semibold text-text-900">¿A qué viaje se posterga?</h3>
+        <h3 className="font-display text-lg font-semibold text-text-900">¿A qué viaje se cambia?</h3>
         <p className="mt-0.5 text-sm text-text-500">
-          Mantén la ruta o cámbiala, y elige la nueva fecha. Solo se pueden elegir viajes con salida futura y asientos disponibles.
+          Puede mantener la ruta o cambiarla, y elegir otra fecha u horario. Solo se pueden elegir viajes con salida futura y asientos disponibles.
         </p>
       </div>
 
@@ -74,14 +74,14 @@ export function PasoViaje({ pasaje, filtros, vista, viaje, onFiltros, onVista, o
         </div>
       </section>
 
-      {!errorFecha && (
+      {listo && (
         <>
           <TripResultsBar total={visibles.length} orden={vista.orden} hayFiltros={hayFiltros} onOrden={(orden) => onVista({ orden })} onReset={onRestablecer} />
 
-          {originalOculto && (
+          {(data?.ocultos ?? 0) > 0 && (
             <p className="flex items-center gap-2 rounded-lg border border-border-subtle bg-surface-sunken/60 px-3 py-2 text-xs text-text-500">
               <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              El viaje original de las {pasaje.horaSalida?.slice(0, 5)} no aparece en la lista: el nuevo viaje debe ser distinto.
+              El viaje actual del pasaje no aparece en la lista: el nuevo viaje debe ser distinto.
             </p>
           )}
 

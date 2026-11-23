@@ -1,20 +1,21 @@
 import { Armchair, ArrowDown, Bus, Clock, Hash, Wallet } from 'lucide-react'
 import { formatearPrecio, textoSalida } from '@/features/clientes/utils/boleto'
 import type { AsientoElegido } from '@/features/ticketing/types'
+import type { CotizacionCambio, EscenarioTarifa } from '@/types/cambioViaje'
 import type { ViajeHistorial } from '@/types/cliente'
 import type { ViajeConsulta } from '@/types/consultaViaje'
 import { cn } from '@/utils/cn'
 import { formatearFechaLarga, nombrePropio } from '@/utils/formato'
-import { formatearMomento, plazoPostergacionMs, type ComparacionTarifa, type EscenarioTarifa } from '../reglas'
+import { formatearMomento, plazoCambioMs } from '../reglas'
 
 interface PanelCambioProps {
   pasaje: ViajeHistorial
   viaje: ViajeConsulta | null
   asiento: AsientoElegido | null
-  comparacion: ComparacionTarifa | null
+  cotizacion: CotizacionCambio | null
 }
 
-const ETIQUETA_ESCENARIO: Record<EscenarioTarifa, { texto: (c: ComparacionTarifa, moneda: string) => string; clase: string }> = {
+const ETIQUETA_ESCENARIO: Record<EscenarioTarifa, { texto: (c: CotizacionCambio, moneda: string) => string; clase: string }> = {
   IGUAL: { texto: () => 'Misma tarifa · sin cobro', clase: 'bg-surface-sunken text-text-700' },
   SUPERIOR: { texto: (c, m) => `Por cobrar ${formatearPrecio(c.montoAPagar, m)}`, clase: 'bg-status-low/15 text-warning-text' },
   INFERIOR: { texto: (c, m) => `${formatearPrecio(c.montoNoDevuelto, m)} no se devuelve`, clase: 'bg-accent-50 text-accent-text' },
@@ -45,7 +46,7 @@ function Ruta({ origen, destino }: { origen: string; destino: string }) {
   )
 }
 
-export function PanelCambio({ pasaje, viaje, asiento, comparacion }: PanelCambioProps) {
+export function PanelCambio({ pasaje, viaje, asiento, cotizacion }: PanelCambioProps) {
   const moneda = pasaje.moneda
   const pasajero = nombrePropio(pasaje.pasajero)
 
@@ -72,7 +73,7 @@ export function PanelCambio({ pasaje, viaje, asiento, comparacion }: PanelCambio
         </dl>
         <p className="mt-3 flex items-center gap-1.5 pl-1 text-xs text-text-500">
           <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          Postergable hasta el <span className="font-medium tabular-nums text-text-700">{formatearMomento(plazoPostergacionMs(pasaje))}</span>
+          Cambiable hasta el <span className="font-medium tabular-nums text-text-700">{formatearMomento(plazoCambioMs(pasaje))}</span>
         </p>
       </section>
 
@@ -104,14 +105,14 @@ export function PanelCambio({ pasaje, viaje, asiento, comparacion }: PanelCambio
               <Dato icono={Bus} etiqueta="Servicio" valor={viaje.tipoBus} />
               <Dato icono={Wallet} etiqueta="Tarifa" valor={asiento ? formatearPrecio(asiento.precio, moneda) : 'Pendiente'} />
             </dl>
-            {comparacion && (
-              <p className={cn('mt-3 rounded-lg px-3 py-2 text-center text-xs font-semibold', ETIQUETA_ESCENARIO[comparacion.escenario].clase)}>
-                {ETIQUETA_ESCENARIO[comparacion.escenario].texto(comparacion, moneda)}
+            {cotizacion && (
+              <p className={cn('mt-3 rounded-lg px-3 py-2 text-center text-xs font-semibold', ETIQUETA_ESCENARIO[cotizacion.escenario].clase)}>
+                {ETIQUETA_ESCENARIO[cotizacion.escenario].texto(cotizacion, moneda)}
               </p>
             )}
           </div>
         ) : (
-          <p className="mt-3 pl-1 text-sm text-text-500">Elige el viaje al que se postergará el pasaje.</p>
+          <p className="mt-3 pl-1 text-sm text-text-500">Elija el viaje al que se cambiará el pasaje.</p>
         )}
       </section>
     </div>

@@ -314,7 +314,7 @@ export function PasajesView() {
         cambiar({ cliente })
       }} />
       <BoletoModal viaje={boleto} onClose={() => setBoleto(null)} />
-      <PostergarPasajeDialog pasaje={postergar} onClose={() => setPostergar(null)} />
+      <PostergarPasajeDialog pasaje={postergar} onClose={() => setPostergar(null)} onCambiado={reintentar} />
     </PageContainer>
   )
 }

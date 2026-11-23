@@ -1,37 +1,30 @@
+import type { AsientoElegido } from '@/features/ticketing/types'
+import type { ConfirmacionCambio, MetodoPagoAgencia } from '@/types/cambioViaje'
 import type { ViajeHistorial } from '@/types/cliente'
+import type { ViajeConsulta } from '@/types/consultaViaje'
+
+// Reglas del cambio de viajes que usa la pantalla. Las mismas reglas las vuelve a revisar el backend.
 
 export const HORAS_MINIMAS = 6
 const MS_HORA = 3_600_000
 
-export type EscenarioTarifa = 'IGUAL' | 'SUPERIOR' | 'INFERIOR'
-export type MetodoCambio = 'EFECTIVO' | 'YAPE' | 'TARJETA'
-export type ResultadoTerminal = 'APROBADO' | 'RECHAZADO'
+// Minutos que el asiento nuevo queda reservado mientras el agente verifica, cobra y confirma.
+export const MINUTOS_RESERVA_CAMBIO = 10
 
-export interface ComparacionTarifa {
-  escenario: EscenarioTarifa
-  original: number
-  nueva: number
-  diferencia: number
-  montoAPagar: number
-  montoNoDevuelto: number
-}
-
-export type Elegibilidad =
-  | { elegible: true }
-  | { elegible: false; codigo: 'PASAJE_NO_VIGENTE' | 'VIAJE_INICIADO' | 'ANTICIPACION_INSUFICIENTE'; mensaje: string }
-
-export const ETIQUETA_METODO: Record<MetodoCambio, string> = {
+export const ETIQUETA_METODO: Record<MetodoPagoAgencia, string> = {
   EFECTIVO: 'Efectivo',
   YAPE: 'Yape',
   TARJETA: 'Tarjeta',
 }
+
+// ---------- plazo de 6 horas ----------
 
 export function salidaMs(fecha: string | null, hora: string | null): number {
   if (!fecha || !hora) return Number.NaN
   return Date.parse(`${fecha}T${hora.slice(0, 5)}:00-05:00`)
 }
 
-export function plazoPostergacionMs(pasaje: Pick<ViajeHistorial, 'fechaSalida' | 'horaSalida'>): number {
+export function plazoCambioMs(pasaje: Pick<ViajeHistorial, 'fechaSalida' | 'horaSalida'>): number {
   return salidaMs(pasaje.fechaSalida, pasaje.horaSalida) - HORAS_MINIMAS * MS_HORA
 }
 
@@ -57,60 +50,93 @@ export function formatearMomento(ms: number): string {
   })
 }
 
-export function validarElegibilidad(pasaje: ViajeHistorial, ahoraMs: number): Elegibilidad {
-  if (pasaje.estadoPasaje !== 'CONFIRMADA' || pasaje.fase !== 'PROXIMO') {
-    return {
-      elegible: false,
-      codigo: 'PASAJE_NO_VIGENTE',
-      mensaje: 'Solo se pueden postergar pasajes vigentes. Este pasaje ya fue utilizado, reembolsado o no está confirmado.',
-    }
-  }
-  const salida = salidaMs(pasaje.fechaSalida, pasaje.horaSalida)
-  if (!Number.isFinite(salida) || salida <= ahoraMs) {
-    return { elegible: false, codigo: 'VIAJE_INICIADO', mensaje: 'El viaje original ya salió, por lo que no se puede postergar.' }
-  }
-  if (salida - ahoraMs < HORAS_MINIMAS * MS_HORA) {
-    return {
-      elegible: false,
-      codigo: 'ANTICIPACION_INSUFICIENTE',
-      mensaje: `La postergación requiere al menos ${HORAS_MINIMAS} horas de anticipación respecto a la salida original.`,
-    }
-  }
-  return { elegible: true }
+// ---------- mensajes para el agente según el código que manda el backend ----------
+
+const MENSAJES_RECHAZO: Record<string, string> = {
+  PASAJE_NO_VIGENTE: 'Este pasaje no se puede cambiar: ya fue usado, se reembolsó o su pago no está confirmado.',
+  VIAJE_INICIADO: 'El viaje original ya salió, por eso el pasaje ya no se puede cambiar.',
+  ANTICIPACION_INSUFICIENTE: `Faltan menos de ${HORAS_MINIMAS} horas para la salida. Ya no se puede cambiar este pasaje.`,
 }
 
-function normalizar(texto: string): string {
-  return texto.trim().toLowerCase()
+export function mensajeDeRechazo(codigo: string | null, motivoDelServidor: string | null): string {
+  if (codigo && MENSAJES_RECHAZO[codigo]) return MENSAJES_RECHAZO[codigo]
+  return motivoDelServidor ?? 'Este pasaje no se puede cambiar.'
 }
 
-export function esMismaRuta(pasaje: Pick<ViajeHistorial, 'origen' | 'destino'>, origen: string, destino: string): boolean {
-  const o = normalizar(origen)
-  const d = normalizar(destino)
-  const po = normalizar(pasaje.origen)
-  const pd = normalizar(pasaje.destino)
-  return (o === po && d === pd) || (o === pd && d === po)
+// Si el backend responde con uno de estos códigos, el asiento ya no está reservado y hay que elegir otro.
+export const CODIGOS_ASIENTO_PERDIDO = ['SESION_VENCIDA', 'ASIENTO_NO_DISPONIBLE']
+
+// Si responde con uno de estos, el pasaje ya no se puede cambiar.
+export const CODIGOS_PASAJE_NO_CAMBIABLE = Object.keys(MENSAJES_RECHAZO)
+
+// ---------- política de identidad (solo se verifica, no se guarda) ----------
+
+export type Solicitante = 'TITULAR' | 'TERCERO'
+
+export interface DocumentoRequerido {
+  id: string
+  texto: string
 }
 
-export function esMismoViaje(
-  pasaje: Pick<ViajeHistorial, 'origen' | 'destino' | 'fechaSalida' | 'horaSalida'>,
-  viaje: { origen: string; destino: string; fechaSalida: string; horaSalida: string },
+export function documentosRequeridos(
+  solicitante: Solicitante,
+  pasaje: Pick<ViajeHistorial, 'documento' | 'numeroBoleto'>,
+): DocumentoRequerido[] {
+  const boleto = { id: 'boleto', texto: `Boleto ${pasaje.numeroBoleto}, impreso o en el celular` }
+  if (solicitante === 'TITULAR') {
+    return [{ id: 'dni-titular', texto: `DNI original del pasajero (${pasaje.documento}), coincide con el boleto` }, boleto]
+  }
+  return [
+    { id: 'dni-tercero', texto: 'DNI original de la persona que realiza el trámite' },
+    { id: 'copia-dni-titular', texto: `Copia del DNI del pasajero (${pasaje.documento})` },
+    boleto,
+    { id: 'carta-poder', texto: 'Carta poder simple firmada por el pasajero' },
+  ]
+}
+
+// ---------- efectivo: vuelto (solo en pantalla, no se guarda) ----------
+
+export const BILLETES_RAPIDOS = [10, 20, 50, 100, 200]
+
+// Se calcula en céntimos para que 20 - 12.30 dé exactamente 7.70.
+export function calcularVuelto(montoAPagar: number, montoRecibido: number): number | null {
+  if (!Number.isFinite(montoRecibido)) return null
+  const vuelto = Math.round(montoRecibido * 100) - Math.round(montoAPagar * 100)
+  return vuelto < 0 ? null : vuelto / 100
+}
+
+// Efectivo: debe haber un monto recibido que cubra la diferencia.
+// Yape o tarjeta: siempre el código del POS (de operación si se aprobó, de error si se rechazó).
+export function pagoListoParaRegistrar(
+  pago: { metodo: MetodoPagoAgencia; recibido: string; codigo: string },
+  montoAPagar: number,
 ): boolean {
-  return (
-    normalizar(pasaje.origen) === normalizar(viaje.origen) &&
-    normalizar(pasaje.destino) === normalizar(viaje.destino) &&
-    pasaje.fechaSalida === viaje.fechaSalida &&
-    (pasaje.horaSalida ?? '').slice(0, 5) === viaje.horaSalida.slice(0, 5)
-  )
+  if (pago.metodo === 'EFECTIVO') return pago.recibido !== '' && calcularVuelto(montoAPagar, Number(pago.recibido)) !== null
+  return pago.codigo.trim() !== ''
 }
 
-export function compararTarifas(original: number, nueva: number): ComparacionTarifa {
-  const delta = Math.round(nueva * 100) - Math.round(original * 100)
+export function nuevaClaveDeIntento(): string {
+  return crypto.randomUUID()
+}
+
+// El mismo pasaje con los datos del viaje nuevo, para mostrar el boleto actualizado.
+// El precio no cambia: el pasaje conserva su compra y su pago original.
+export function pasajeDespuesDelCambio(
+  pasaje: ViajeHistorial,
+  confirmacion: ConfirmacionCambio,
+  viaje: ViajeConsulta,
+  asiento: AsientoElegido,
+): ViajeHistorial {
   return {
-    escenario: delta === 0 ? 'IGUAL' : delta > 0 ? 'SUPERIOR' : 'INFERIOR',
-    original,
-    nueva,
-    diferencia: Math.abs(delta) / 100,
-    montoAPagar: delta > 0 ? delta / 100 : 0,
-    montoNoDevuelto: delta < 0 ? -delta / 100 : 0,
+    ...pasaje,
+    origen: confirmacion.origen,
+    destino: confirmacion.destino,
+    fechaSalida: confirmacion.fechaSalida,
+    horaSalida: confirmacion.horaSalida,
+    fechaLlegada: viaje.fechaLlegada,
+    horaLlegada: viaje.horaLlegada,
+    asiento: confirmacion.asientoNuevo,
+    piso: asiento.piso,
+    bus: viaje.tipoBus,
   }
 }
