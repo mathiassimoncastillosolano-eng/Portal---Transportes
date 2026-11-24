@@ -397,3 +397,21 @@
     gap: var(--espacio-2);
   }
 }
+
+.barra-navegacion__enlace--boton {
+  font-family: inherit;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+.barra-navegacion__enlace-movil--ayuda {
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+}

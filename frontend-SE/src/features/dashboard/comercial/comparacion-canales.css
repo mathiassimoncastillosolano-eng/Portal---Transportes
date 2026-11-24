@@ -1,0 +1,53 @@
+.comercial-indicador-principal {
+  border-color: #087b42;
+  background: linear-gradient(135deg, #087b42, #0ba75a);
+}
+
+:root.dark .comercial-indicador-principal {
+  border-color: #0b8064;
+  background: linear-gradient(135deg, #075842, #0b8064);
+}
+
+.comparacion-canal-pista {
+  height: 24px;
+  overflow: hidden;
+  border-radius: 7px;
+  background: var(--color-surface-card);
+  box-shadow: inset 0 2px 4px rgb(15 38 45 / 12%);
+}
+
+.comparacion-canal-barra {
+  position: relative;
+  height: 100%;
+  min-width: 0;
+  border-radius: 7px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--barra-color), white 26%),
+    var(--barra-color) 45%,
+    color-mix(in srgb, var(--barra-color), black 20%)
+  );
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 48%), inset 0 -2px 0 rgb(0 0 0 / 12%);
+  transform-origin: left center;
+  animation: comparacion-entrada 550ms ease-out both;
+}
+
+.comparacion-canal-barra::after {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  bottom: 2px;
+  width: 6px;
+  border-radius: 0 5px 5px 0;
+  background: rgb(0 0 0 / 16%);
+  content: '';
+}
+
+@keyframes comparacion-entrada {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comparacion-canal-barra { animation: none; }
+}

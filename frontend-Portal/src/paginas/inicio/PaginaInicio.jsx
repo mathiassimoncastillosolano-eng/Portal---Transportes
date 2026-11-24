@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { BuscadorViajes } from '../../componentes/viajes/BuscadorViajes'
 import { CarruselDestinos } from '../../componentes/destinos/CarruselDestinos'
 import { CarruselServicios } from '../../componentes/servicios/CarruselServicios'
+import { useAyuda } from '../../hooks/useAyuda'
 import { useBusqueda } from '../../hooks/useBusqueda'
 import { obtenerDestinos } from '../../servicios/destinosServicio'
 import { obtenerServicios } from '../../servicios/serviciosServicio'
@@ -11,6 +12,7 @@ import './paginaInicio.css'
 export function PaginaInicio() {
   const { buscando, ejecutarBusqueda } = useBusqueda()
   const navegar = useNavigate()
+  const { abrirAyuda } = useAyuda()
   const referenciaCarruselDestinos = useRef(null)
   const [estadoCarruselDestinos, setEstadoCarruselDestinos] = useState({
     puedeIrAtras: false,
@@ -105,6 +107,17 @@ export function PaginaInicio() {
               <span className="hero-inicio__estadistica-etiqueta">Calificación</span>
             </div>
           </div>
+          <button type="button" className="hero-inicio__ayuda" onClick={() => abrirAyuda()}>
+            <span className="hero-inicio__ayuda-icono" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 21a9 9 0 100-18 9 9 0 000 18zM9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1.2-1.5 2.2M12 17h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <span className="hero-inicio__ayuda-texto">
+              <strong>¿Necesitas ayuda?</strong>
+              <span>Aprende a utilizar RutaLibre paso a paso</span>
+            </span>
+          </button>
         </div>
 
         <div className="contenedor hero-inicio__buscador">

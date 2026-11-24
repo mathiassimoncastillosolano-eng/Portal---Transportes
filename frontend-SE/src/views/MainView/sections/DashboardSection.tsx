@@ -1,6 +1,6 @@
-import { DashboardView } from '@/features/dashboard/DashboardView'
+import { DashboardComercial } from '@/features/dashboard/comercial/DashboardComercial'
+import { DATOS_EJEMPLO, FECHA_CORTE } from '@/features/dashboard/comercial/datosEjemplo'
 
-/** Sección "Dashboard": monta el feature de Sprint 4. */
 export function DashboardSection() {
-  return <DashboardView />
+  return <DashboardComercial dias={DATOS_EJEMPLO} fechaCorte={FECHA_CORTE} modoEjemplo integrado />
 }

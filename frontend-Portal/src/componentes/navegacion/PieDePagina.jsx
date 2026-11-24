@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { ciudades } from '../../datos/ciudades'
 import { CONTACTO } from '../../datos/contacto'
+import { useAyuda } from '../../hooks/useAyuda'
 import './pieDePagina.css'
 import { LogoMarca } from '../comunes/LogoMarca'
 
@@ -33,6 +34,7 @@ const redesSociales = [
 ]
 
 export function PieDePagina() {
+  const { abrirAyuda } = useAyuda()
   const anioActual = new Date().getFullYear()
 
   return (
@@ -71,7 +73,9 @@ export function PieDePagina() {
           <h3 className="pie-de-pagina__titulo">Empresa</h3>
           <NavLink to="/" className="pie-de-pagina__enlace">Inicio</NavLink>
           <NavLink to="/servicios" className="pie-de-pagina__enlace">Servicios</NavLink>
-          <NavLink to="/ayuda" className="pie-de-pagina__enlace">Ayuda</NavLink>
+          <button type="button" className="pie-de-pagina__enlace pie-de-pagina__enlace--boton" onClick={() => abrirAyuda()}>
+            Ayuda
+          </button>
           <NavLink to="/libro-reclamaciones" className="pie-de-pagina__enlace">Libro de Reclamaciones</NavLink>
           <NavLink to="/terminos-y-condiciones" className="pie-de-pagina__enlace">Términos y Condiciones</NavLink>
           <NavLink to="/politica-cambios-devoluciones" className="pie-de-pagina__enlace">Cambios y Devoluciones</NavLink>

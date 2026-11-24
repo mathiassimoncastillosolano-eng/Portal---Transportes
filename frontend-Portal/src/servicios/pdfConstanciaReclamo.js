@@ -1,5 +1,4 @@
 import { formatearFechaLarga, formatearPrecio } from '../utilidades/formato.js'
-import logoClaro from '../assets/logo/logo-claro.png?inline'
 
 const AZUL = [11, 53, 64]
 const VERDE = [16, 185, 129]
@@ -86,6 +85,7 @@ export function contenidoConstancia(constancia, proveedor = {}) {
 export async function descargarConstanciaPdf(constancia, proveedor) {
   const doc = contenidoConstancia(constancia, proveedor)
   const { jsPDF } = await import('jspdf')
+  const { default: logoClaro } = await import('../assets/logo/logo-claro.png?inline')
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
   let y = 0
 
