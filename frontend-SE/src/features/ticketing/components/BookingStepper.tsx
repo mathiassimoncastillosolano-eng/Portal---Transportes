@@ -18,6 +18,9 @@ export function BookingStepper() {
       description: 'Datos de viaje',
       summary: cantidadPasajes ? `${cantidadCompletados} de ${cantidadPasajes} completos` : undefined,
     },
+    pago: {
+      description: 'Forma de pago',
+    },
   }
 
   const pasos: StepperStep[] = PASOS.map((p) => ({ id: p.id, label: p.label, ...detalle[p.id] }))

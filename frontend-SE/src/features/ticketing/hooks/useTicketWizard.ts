@@ -164,7 +164,7 @@ export const useTicketWizardStore = create<WizardState>()((set, get) => {
       delete pasajerosPorAsiento[idAsiento]
       notificar({ tone: 'info', title: 'Un asiento seleccionado fue liberado', description: 'Su reserva temporal ya no está vigente.' })
       if (asientos.length === 0) {
-        set({ sesion: null, asientos: [], asientoActivo: null, pasajerosPorAsiento: {}, paso: actual.paso === 'pasajeros' ? 'asientos' : actual.paso })
+        set({ sesion: null, asientos: [], asientoActivo: null, pasajerosPorAsiento: {}, paso: actual.paso === 'pasajeros' || actual.paso === 'pago' ? 'asientos' : actual.paso })
         return
       }
       set({
@@ -184,7 +184,7 @@ export const useTicketWizardStore = create<WizardState>()((set, get) => {
         asientoActivo: null,
         pasajerosPorAsiento: {},
         procesando: null,
-        paso: actual.paso === 'pasajeros' ? 'asientos' : actual.paso,
+        paso: actual.paso === 'pasajeros' || actual.paso === 'pago' ? 'asientos' : actual.paso,
       })
       notificar({
         tone: 'danger',
@@ -197,7 +197,8 @@ export const useTicketWizardStore = create<WizardState>()((set, get) => {
 
     setDatosPasajero: (idAsiento, parcial) => {
       const actual = get()
-      const previo = actual.pasajerosPorAsiento[idAsiento] ?? { ...pasajeroFormVacio }
+      const previo = actual.pasajerosPorAsiento[idAsiento]
+      if (!previo) return
       set({ pasajerosPorAsiento: { ...actual.pasajerosPorAsiento, [idAsiento]: { ...previo, ...parcial } } })
     },
 
@@ -220,7 +221,7 @@ export const useTicketWizardStore = create<WizardState>()((set, get) => {
 
 function tieneDatosForm(form: PasajeroForm | undefined): boolean {
   if (!form) return false
-  return Object.entries(form).some(([campo, valor]) => campo !== 'tipoDocumento' && valor !== '')
+  return form.dni !== '' || form.nombres !== '' || form.apellidos !== '' || form.fechaNacimiento !== '' || form.celular !== ''
 }
 
 export function useTicketWizard() {

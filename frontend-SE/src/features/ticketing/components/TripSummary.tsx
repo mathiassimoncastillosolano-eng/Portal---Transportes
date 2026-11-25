@@ -71,7 +71,7 @@ function ResumenDetalle() {
           <div>
             <div className="mb-2 flex items-center justify-between">
               <p className={etiquetaSeccion}>Asientos ({cantidadPasajes})</p>
-              {paso === 'pasajeros' && (
+              {(paso === 'pasajeros' || paso === 'pago') && (
                 <button
                   type="button"
                   onClick={() => irA('asientos')}
@@ -92,7 +92,7 @@ function ResumenDetalle() {
               ))}
             </ul>
 
-            {paso === 'pasajeros' && (
+            {(paso === 'pasajeros' || paso === 'pago') && (
               <ul className="mt-3 flex flex-col gap-1.5">
                 {asientos.map((a) => {
                   const p = pasajerosPorAsiento[a.idAsiento]

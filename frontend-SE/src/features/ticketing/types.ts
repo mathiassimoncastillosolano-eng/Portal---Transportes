@@ -1,33 +1,37 @@
 import type { FranjaId } from '@/types/consultaViaje'
-import type { TipoDocumento } from '@/types/pasajero'
 
-export type PasoId = 'viaje' | 'asientos' | 'pasajeros'
+export type PasoId = 'viaje' | 'asientos' | 'pasajeros' | 'pago'
 
 export const PASOS: { id: PasoId; label: string }[] = [
   { id: 'viaje', label: 'Viaje' },
   { id: 'asientos', label: 'Asientos' },
   { id: 'pasajeros', label: 'Pasajeros' },
+  { id: 'pago', label: 'Pago' },
 ]
 
 export const MAX_ASIENTOS = 6
 export const MINUTOS_BLOQUEO = 3
 
+export type OrigenDni = '' | 'BD' | 'APIPERU' | 'MANUAL'
+
 export interface PasajeroForm {
-  tipoDocumento: TipoDocumento
-  numeroDocumento: string
+  dni: string
   nombres: string
   apellidos: string
-  telefono: string
-  email: string
+  fechaNacimiento: string
+  celular: string
+  origenDni: OrigenDni
+  fechaBloqueada: boolean
 }
 
 export const pasajeroFormVacio: PasajeroForm = {
-  tipoDocumento: 'DNI',
-  numeroDocumento: '',
+  dni: '',
   nombres: '',
   apellidos: '',
-  telefono: '',
-  email: '',
+  fechaNacimiento: '',
+  celular: '',
+  origenDni: '',
+  fechaBloqueada: false,
 }
 
 export interface FiltrosViajeForm {

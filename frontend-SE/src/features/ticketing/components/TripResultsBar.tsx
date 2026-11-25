@@ -5,20 +5,30 @@ import { SortControl } from './SortControl'
 
 interface TripResultsBarProps {
   total: number
+  cargando?: boolean
   orden: OrdenViajes
   hayFiltros: boolean
   onOrden: (o: OrdenViajes) => void
   onReset: () => void
 }
 
-export function TripResultsBar({ total, orden, hayFiltros, onOrden, onReset }: TripResultsBarProps) {
+export function TripResultsBar({ total, cargando, orden, hayFiltros, onOrden, onReset }: TripResultsBarProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <p className="text-sm text-text-700" aria-live="polite">
-        <span key={total} className="animate-step-swap inline-block font-semibold tabular-nums text-text-900">
-          {total}
-        </span>{' '}
-        {total === 1 ? 'viaje encontrado' : 'viajes encontrados'}
+        {cargando ? (
+          <span className="inline-flex items-center gap-2 text-text-500">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-line" aria-hidden="true" />
+            Buscando viajes…
+          </span>
+        ) : (
+          <>
+            <span key={total} className="animate-step-swap inline-block font-semibold tabular-nums text-text-900">
+              {total}
+            </span>{' '}
+            {total === 1 ? 'viaje encontrado' : 'viajes encontrados'}
+          </>
+        )}
       </p>
 
       <button

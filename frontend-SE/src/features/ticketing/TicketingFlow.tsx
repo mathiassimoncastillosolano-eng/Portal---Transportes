@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useToastStore } from '@/stores/toastStore'
 import { AsientoStep } from './components/AsientoStep'
 import { BookingStepper } from './components/BookingStepper'
+import { PagoStep } from './components/PagoStep'
 import { PasajerosStep } from './components/PasajerosStep'
 import { TripPicker } from './components/TripPicker'
 import { TripSummary, TripSummaryBar } from './components/TripSummary'
@@ -17,6 +18,7 @@ const descripciones: Record<PasoId, string> = {
   viaje: 'Selecciona el horario que deseas registrar.',
   asientos: 'Selecciona los asientos disponibles.',
   pasajeros: 'Registra la información de los pasajeros.',
+  pago: 'Revisa el total y elige la forma de pago.',
 }
 
 const descripcionInicial = 'Selecciona un viaje, horario y completa la información del pasajero.'
@@ -63,6 +65,7 @@ export function TicketingFlow() {
             <div className="rounded-2xl border border-border bg-surface-card p-5 shadow-panel sm:p-6">
               {paso === 'asientos' && <AsientoStep />}
               {paso === 'pasajeros' && <PasajerosStep />}
+              {paso === 'pago' && <PagoStep />}
             </div>
           )}
         </div>

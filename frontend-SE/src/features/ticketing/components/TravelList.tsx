@@ -2,11 +2,11 @@ import { SearchX } from 'lucide-react'
 import { useEffect, useState, type KeyboardEvent } from 'react'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { ErrorState } from '@/components/feedback/ErrorState'
-import { Skeleton } from '@/components/feedback/Skeleton'
 import { Button } from '@/components/ui/Button'
 import type { ViajeConsulta } from '@/types/consultaViaje'
 import { calcularDesfaseServidor, estadoReservaActual } from '../utils/viajes'
 import { TravelCard } from './TravelCard'
+import { TravelCardSkeleton } from './TravelCardSkeleton'
 
 interface TravelListProps {
   viajes: ViajeConsulta[]
@@ -42,7 +42,9 @@ export function TravelList({ viajes, cargando, error, seleccionadoId, hayFiltros
     return (
       <div role="status" aria-label="Cargando viajes" className="flex flex-col gap-3">
         {Array.from({ length: 3 }, (_, i) => (
-          <Skeleton key={i} className="h-[176px] w-full rounded-2xl" />
+          <div key={i} className="animate-fade-slide-up-sm" style={{ animationDelay: `${i * 70}ms` }}>
+            <TravelCardSkeleton />
+          </div>
         ))}
       </div>
     )

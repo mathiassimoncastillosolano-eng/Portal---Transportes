@@ -83,6 +83,7 @@ export function TripPicker() {
 
       <TripResultsBar
         total={visibles.length}
+        cargando={cargando}
         orden={vista.orden}
         hayFiltros={hayFiltros}
         onOrden={(orden) => setVista({ orden })}
