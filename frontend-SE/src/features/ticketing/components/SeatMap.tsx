@@ -1,4 +1,4 @@
-import { Bus, Check, Lock, X } from 'lucide-react'
+import { Bus, Check, LoaderCircle, Lock, X } from 'lucide-react'
 import { useMemo, type ReactNode } from 'react'
 import type { AsientoConsulta, PisoConsulta } from '@/types/consultaViaje'
 import { cn } from '@/utils/cn'
@@ -76,7 +76,9 @@ export function SeatMap({ pisos, elegidos, procesando, puedeSeleccionarMas, onTo
     const orden = ordenPorId.get(asiento.idAsiento)
     const visual: EstadoVisual = orden ? 'seleccionado' : asiento.estado
     const sinCupo = visual === 'disponible' && !puedeSeleccionarMas
-    const inactivo = visual === 'bloqueado' || visual === 'ocupado' || sinCupo || (procesando !== null && procesando !== asiento.idAsiento)
+    const esteProcesa = procesando === asiento.idAsiento
+    const otroProcesa = procesando !== null && !esteProcesa
+    const inactivo = visual === 'bloqueado' || visual === 'ocupado' || sinCupo || otroProcesa
     const precio = asiento.precio != null ? `, S/ ${asiento.precio.toFixed(2)}` : ''
     const etiqueta = sinCupo
       ? 'no disponible: ya elegiste el máximo de asientos'
@@ -88,7 +90,8 @@ export function SeatMap({ pisos, elegidos, procesando, puedeSeleccionarMas, onTo
         type="button"
         disabled={inactivo}
         aria-pressed={visual === 'ocupado' || visual === 'bloqueado' ? undefined : visual === 'seleccionado'}
-        aria-label={`Asiento ${asiento.numero}, ${etiqueta}`}
+        aria-label={esteProcesa ? `Asiento ${asiento.numero}, procesando` : `Asiento ${asiento.numero}, ${etiqueta}`}
+        aria-busy={esteProcesa || undefined}
         title={`Asiento ${asiento.numero} · ${DESCRIPCION[visual]}`}
         data-estado={visual}
         onClick={() => onToggle(asiento)}
@@ -96,10 +99,17 @@ export function SeatMap({ pisos, elegidos, procesando, puedeSeleccionarMas, onTo
           base,
           estilos[visual],
           sinCupo && 'cursor-not-allowed border-border-subtle bg-transparent text-text-400 opacity-50 hover:translate-y-0 hover:border-border-subtle hover:bg-transparent',
-          procesando === asiento.idAsiento && 'animate-pulse',
+          otroProcesa && 'cursor-wait opacity-55',
+          esteProcesa &&
+            'cursor-wait -translate-y-0.5 border-accent-line bg-accent-line/10 text-accent-text shadow-[0_4px_14px_-6px_var(--color-accent-line)]',
         )}
       >
-        {visual === 'ocupado' ? (
+        {esteProcesa ? (
+          <>
+            <LoaderCircle className="h-4 w-4 animate-spin" strokeWidth={2.5} aria-hidden="true" />
+            <span className="mt-0.5 text-[9px] font-bold opacity-80">{asiento.numero}</span>
+          </>
+        ) : visual === 'ocupado' ? (
           <X className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
         ) : (
           <>

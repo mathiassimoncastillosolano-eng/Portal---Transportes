@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import { ArrowLeft, ArrowLeftRight, IdCard, LoaderCircle, Phone, UserRound } from 'lucide-react'
+import { ArrowLeft, ArrowLeftRight, IdCard, LoaderCircle, UserRound } from 'lucide-react'
 import type { FocusEvent, ReactNode } from 'react'
 import { Button } from '@/components/ui/Button'
+import { DatePicker } from '@/components/ui/DatePicker'
 import { Input } from '@/components/ui/Input'
 import { useToastStore } from '@/stores/toastStore'
 import { fechaHoyLima } from '@/utils/fechas'
@@ -34,10 +35,10 @@ function nombreCompleto(f: PasajeroForm | undefined) {
 
 function SeccionForm({ icono, titulo, descripcion, children }: { icono: ReactNode; titulo: string; descripcion: string; children: ReactNode }) {
   return (
-    <fieldset className="rounded-xl border border-border-subtle bg-surface-sunken/50 p-4">
+    <fieldset className="border-t border-border-subtle pt-5 first:border-t-0 first:pt-0">
       <legend className="sr-only">{titulo}</legend>
-      <div className="mb-3 flex items-center gap-2.5" aria-hidden="true">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-card text-text-500 shadow-sm">{icono}</span>
+      <div className="mb-3.5 flex items-center gap-3" aria-hidden="true">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-line/10 text-accent-text">{icono}</span>
         <div className="leading-tight">
           <p className="text-[13px] font-semibold text-text-900">{titulo}</p>
           <p className="text-[11px] text-text-500">{descripcion}</p>
@@ -256,7 +257,7 @@ export function PasajerosStep() {
           </div>
         )}
 
-        <div key={activo} className="animate-step-swap flex flex-col gap-3">
+        <div key={activo} className="animate-step-swap flex flex-col gap-5">
           <SeccionForm icono={<IdCard className="h-4 w-4" />} titulo="Identificación" descripcion="Al completar el DNI se buscan sus datos">
             <Input
               id={idCampo('dni')}
@@ -304,17 +305,31 @@ export function PasajerosStep() {
                 error={errores.apellidos}
                 onChange={(e) => actualizar({ apellidos: e.target.value })}
               />
-              <Input
+              <DatePicker
                 id={idCampo('fechaNacimiento')}
                 label="Fecha de nacimiento"
                 required
-                type="date"
+                nacimiento
                 min={fechaMinimaNacimiento()}
                 max={fechaHoyLima()}
                 disabled={bloqueadoPorBd && form.fechaBloqueada}
                 value={form.fechaNacimiento}
                 error={errores.fechaNacimiento}
-                onChange={(e) => actualizar({ fechaNacimiento: e.target.value })}
+                containerClassName="gap-1.5"
+                onChange={(fechaNacimiento) => actualizar({ fechaNacimiento })}
+              />
+              <Input
+                id={idCampo('celular')}
+                label="Celular"
+                required
+                type="tel"
+                inputMode="numeric"
+                maxLength={9}
+                autoComplete="off"
+                placeholder="9XXXXXXXX"
+                value={form.celular}
+                error={errores.celular}
+                onChange={(e) => actualizar({ celular: e.target.value.replace(/\D/g, '').slice(0, 9) })}
               />
             </div>
             {esMenorDeEdad(form.fechaNacimiento) && (
@@ -322,23 +337,6 @@ export function PasajerosStep() {
                 {AVISO_MENORES.join(' ')}
               </p>
             )}
-          </SeccionForm>
-
-          <SeccionForm icono={<Phone className="h-4 w-4" />} titulo="Datos de contacto" descripcion="Para avisos del viaje">
-            <Input
-              id={idCampo('celular')}
-              label="Celular"
-              required
-              type="tel"
-              inputMode="numeric"
-              maxLength={9}
-              autoComplete="off"
-              placeholder="9XXXXXXXX"
-              value={form.celular}
-              error={errores.celular}
-              containerClassName="sm:max-w-[calc(50%-0.5rem)]"
-              onChange={(e) => actualizar({ celular: e.target.value.replace(/\D/g, '').slice(0, 9) })}
-            />
           </SeccionForm>
         </div>
       </form>
