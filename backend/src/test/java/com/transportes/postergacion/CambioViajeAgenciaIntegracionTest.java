@@ -212,6 +212,25 @@ class CambioViajeAgenciaIntegracionTest {
     }
 
     @Test
+    void elHistorialDelClienteMarcaElPasajeComoCambiado() throws Exception {
+        assertFalse(pasajeEnHistorial().get("cambiado").asBoolean());
+        assertEquals(200, confirmar(jwtAgencia, 8, 4, false).statusCode());
+        JsonNode pasaje = pasajeEnHistorial();
+        assertTrue(pasaje.get("cambiado").asBoolean());
+        assertEquals("2026-10-21", pasaje.get("fechaSalida").asText());
+        assertEquals("15A", pasaje.get("asiento").asText());
+    }
+
+    JsonNode pasajeEnHistorial() throws Exception {
+        var r = get("/api/clientes/1", jwtAgencia);
+        assertEquals(200, r.statusCode(), r.body());
+        for (JsonNode pasaje : cuerpo(r).get("historial")) {
+            if (pasaje.get("idPasaje").asInt() == pasajeVigente) return pasaje;
+        }
+        throw new AssertionError("El pasaje no está en el historial");
+    }
+
+    @Test
     void siElAsientoYaSeVendioElPasajeNoCambia() throws Exception {
         jdbc.update("UPDATE viaje_asiento SET estado_viaje_asiento = 'OCUPADO' WHERE id_viaje_asiento = 4");
         var r = confirmar(jwtAgencia, 8, 4, false);
@@ -232,6 +251,7 @@ class CambioViajeAgenciaIntegracionTest {
 
     @Test
     void enEfectivoSeApruebaSeAplicaElCambioYQuedaElIntento() throws Exception {
+        double precioAntes = pasajeEnHistorial().get("precio").asDouble();
         var r = pagar(jwtAgencia, 5, "EFECTIVO", null, null, "clave-efectivo-1");
         assertEquals(200, r.statusCode(), r.body());
         assertTrue(cuerpo(r).get("cambioAplicado").asBoolean());
@@ -250,6 +270,8 @@ class CambioViajeAgenciaIntegracionTest {
         // La venta y su pago original no se tocan.
         assertEquals(1, contar("SELECT COUNT(*) FROM pago WHERE id_venta = (SELECT id_venta FROM pasaje WHERE id_pasaje = "
                 + pasajeVigente + ")"));
+        // El historial muestra lo pagado en total: precio original + 12.00.
+        assertEquals(precioAntes + 12.00, pasajeEnHistorial().get("precio").asDouble());
     }
 
     @Test

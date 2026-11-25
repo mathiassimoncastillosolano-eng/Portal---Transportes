@@ -77,7 +77,7 @@ public class AplicacionCambioViaje {
                 .orElseThrow(() -> rechazo(ASIENTO_NO_DISPONIBLE, ASIENTO_TOMADO));
 
         if (Objects.equals(nuevo.getIdViaje(), original.getIdViaje())) {
-            throw rechazo(MISMO_VIAJE, "Elija un viaje distinto al original.");
+            throw rechazo(MISMO_VIAJE, "El pasaje ya está en ese viaje. Revise si el cambio ya se registró o elija otro viaje.");
         }
         exigirViajeReservable(idViajeNuevo);
 

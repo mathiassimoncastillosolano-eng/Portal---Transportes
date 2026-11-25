@@ -135,7 +135,7 @@ public class CambioViajeAgenciaServicio {
     private ComparacionTarifaCambio.Resultado compararTarifa(FilaCompra pasaje, long idViajeNuevo, int idAsiento) {
         if (Objects.equals(pasaje.idViaje(), idViajeNuevo)) {
             throw new PostergacionRechazadaException(PostergacionRechazadaException.MISMO_VIAJE,
-                    "Elija un viaje distinto al original.");
+                    "El pasaje ya está en ese viaje. Revise si el cambio ya se registró o elija otro viaje.");
         }
         ViajeAsiento asientoNuevo = buscarAsiento(idViajeNuevo, idAsiento);
         BigDecimal importePagado = ComparacionTarifaCambio.importePagado(pasaje.precioPasaje(), pasaje.adicionalPagado());
