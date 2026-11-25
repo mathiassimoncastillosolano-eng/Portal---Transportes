@@ -28,6 +28,14 @@ export function PaginaCambiosDevoluciones() {
           </li>
           <li>Si el nuevo viaje cuesta más, pagas solo la diferencia. Si cuesta menos, no se devuelve la diferencia.</li>
           <li>Pasadas las {CONTACTO.horasLimiteCambio} horas previas a la salida, o si el pasajero no se presenta, el pasaje no puede cambiarse.</li>
+          <li>
+            En agencia puede pedir el cambio el pasajero titular, con su DNI original y su boleto (impreso o en el
+            celular).
+          </li>
+          <li>
+            También puede pedirlo un tercero, con su DNI original, copia del DNI del pasajero, el boleto y una carta
+            poder simple firmada por el pasajero.
+          </li>
         </ul>
       </section>
 
