@@ -134,6 +134,10 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Solo para spring-boot:run: misma hora que Render (UTC) para no vencer reservas de la base compartida. -->
+                    <jvmArguments>-Duser.timezone=UTC</jvmArguments>
+                </configuration>
             </plugin>
 
         </plugins>
