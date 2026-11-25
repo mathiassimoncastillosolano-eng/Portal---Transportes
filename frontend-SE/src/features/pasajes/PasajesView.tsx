@@ -309,12 +309,12 @@ export function PasajesView() {
         </div>
       </div>
 
-      <ClienteDetalle idPasajero={clienteAbierto} onClose={() => setClienteAbierto(null)} onVerPasajes={(cliente) => {
+      <ClienteDetalle idPasajero={clienteAbierto} onCambiado={reintentar} onClose={() => setClienteAbierto(null)} onVerPasajes={(cliente) => {
         setClienteAbierto(null)
         cambiar({ cliente })
       }} />
       <BoletoModal viaje={boleto} onClose={() => setBoleto(null)} />
-      <PostergarPasajeDialog pasaje={postergar} onClose={() => setPostergar(null)} />
+      <PostergarPasajeDialog pasaje={postergar} onClose={() => setPostergar(null)} onCambiado={reintentar} />
     </PageContainer>
   )
 }

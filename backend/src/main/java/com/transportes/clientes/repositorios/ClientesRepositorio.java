@@ -33,7 +33,7 @@ public class ClientesRepositorio {
             int idPasaje, BigDecimal precio, int idVenta, String estadoVenta, String estadoPago,
             String estadoOperacion, String moneda, String serie, String numero, String asiento, Short piso,
             LocalDate fechaSalida, LocalTime horaSalida, String estadoViaje, String origen, String destino,
-            String tipoBus, Integer duracionMin) {
+            String tipoBus, Integer duracionMin, boolean cambiado) {
     }
 
     private static final String CONFIRMADO = """
@@ -68,10 +68,14 @@ public class ClientesRepositorio {
             """;
 
     private static final String HISTORIAL = """
-            SELECT pa.id_pasaje, pa.precio AS precio_pasaje, ve.id_venta, ve.estado_venta, pg.estado_pago,
+            SELECT pa.id_pasaje,
+                   pa.precio + COALESCE((SELECT SUM(po.importe_adicional) FROM postergacion po
+                                         WHERE po.id_pasaje = pa.id_pasaje), 0) AS precio_pasaje,
+                   ve.id_venta, ve.estado_venta, pg.estado_pago,
                    op.estado AS estado_operacion, op.moneda, cp.serie, cp.numero,
                    a.numero_asiento, a.piso, v.fecha_salida, v.hora_salida, v.estado_viaje,
-                   uo.nombre AS origen, ud.nombre AS destino, tb.nombre_tipo, r.duracion_estimada_min
+                   uo.nombre AS origen, ud.nombre AS destino, tb.nombre_tipo, r.duracion_estimada_min,
+                   EXISTS (SELECT 1 FROM postergacion po WHERE po.id_pasaje = pa.id_pasaje) AS cambiado
             FROM pasaje pa
             JOIN venta ve ON ve.id_venta = pa.id_venta
             LEFT JOIN pago pg ON pg.id_venta = ve.id_venta
@@ -182,7 +186,8 @@ public class ClientesRepositorio {
                 rs.getString("numero_asiento"), rs.getObject("piso", Short.class),
                 rs.getObject("fecha_salida", LocalDate.class), rs.getObject("hora_salida", LocalTime.class),
                 rs.getString("estado_viaje"), rs.getString("origen"), rs.getString("destino"),
-                rs.getString("nombre_tipo"), rs.getObject("duracion_estimada_min", Integer.class));
+                rs.getString("nombre_tipo"), rs.getObject("duracion_estimada_min", Integer.class),
+                rs.getBoolean("cambiado"));
     }
 
     private static String condiciones(FiltroClientes filtro, Map<String, Object> parametros) {

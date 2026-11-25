@@ -2,6 +2,7 @@ package com.transportes.compras.repositorios;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -58,9 +59,13 @@ public class CompraRepositorio {
                 SELECT MIN(x.id_postergacion) FROM postergacion x WHERE x.id_pasaje = p.id_pasaje)
             LEFT JOIN viaje_asiento va_ant ON va_ant.id_viaje_asiento = pu.id_viaje_asiento_anterior
             LEFT JOIN asiento a_ant ON a_ant.id_asiento = va_ant.id_asiento
-            """ + unirViaje("_ant", "pu.id_viaje_anterior") + unirViaje("_orig", "pp.id_viaje_anterior") + """
-            WHERE ve.id_usuario = :idUsuario
-            """;
+            """ + unirViaje("_ant", "pu.id_viaje_anterior") + unirViaje("_orig", "pp.id_viaje_anterior");
+
+    /** Filtro del Portal: solo las compras del usuario que inició sesión. */
+    private static final String DEL_USUARIO = " WHERE ve.id_usuario = :idUsuario";
+
+    /** Filtro del Sistema Empresarial: un pasaje por su id, sin importar quién lo compró. */
+    private static final String DEL_PASAJE = " WHERE p.id_pasaje = :idPasaje";
 
     /* Une los cambios de viaje del pasaje: el último y el primero. */
 
@@ -118,13 +123,20 @@ public class CompraRepositorio {
 
     /** Todas las compras del usuario (una fila por pasaje). */
     public List<FilaCompra> filasDelUsuario(int idUsuario) {
-        return jdbc.query(SELECT_COMPRAS + ORDEN_COMPRAS, Map.of("idUsuario", idUsuario), MAPA_COMPRA);
+        return jdbc.query(SELECT_COMPRAS + DEL_USUARIO + ORDEN_COMPRAS, Map.of("idUsuario", idUsuario), MAPA_COMPRA);
     }
 
     /** Devuelve una compra solo si es del usuario. */
     public List<FilaCompra> filasDeCompra(int idUsuario, int idVenta) {
-        return jdbc.query(SELECT_COMPRAS + " AND ve.id_venta = :idVenta" + ORDEN_COMPRAS,
+        return jdbc.query(SELECT_COMPRAS + DEL_USUARIO + " AND ve.id_venta = :idVenta" + ORDEN_COMPRAS,
                 Map.of("idUsuario", idUsuario, "idVenta", idVenta), MAPA_COMPRA);
+    }
+
+    /** Un pasaje por su id, sin importar quién lo compró (lo usa el personal de agencia en el Sistema Empresarial). */
+    public Optional<FilaCompra> filaDelPasaje(int idPasaje) {
+        return jdbc.query(SELECT_COMPRAS + DEL_PASAJE, Map.of("idPasaje", idPasaje), MAPA_COMPRA)
+                .stream()
+                .findFirst();
     }
 
     /** Datos mínimos para los contadores del perfil. */

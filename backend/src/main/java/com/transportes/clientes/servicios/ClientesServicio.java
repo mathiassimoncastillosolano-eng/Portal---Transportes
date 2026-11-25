@@ -108,7 +108,7 @@ public class ClientesServicio {
                 fila.moneda() == null ? ConstructorCompras.MONEDA_POR_DEFECTO : fila.moneda(), estado.name(),
                 fase.name(), ReglasCompra.documentoDisponible(estado, fase),
                 (pasajero.nombres() + " " + pasajero.apellidos()).trim(),
-                pasajero.tipoDocumento() + " " + pasajero.numeroDocumento());
+                pasajero.tipoDocumento() + " " + pasajero.numeroDocumento(), fila.cambiado());
     }
 
     private static List<String> terminos(String q) {

@@ -63,6 +63,8 @@ export interface ViajeHistorial {
   estadoPasaje: EstadoPasaje
   fase: FaseViaje
   documentoDisponible: boolean
+  /** true si el pasaje tuvo al menos un cambio de viaje. */
+  cambiado?: boolean
   pasajero: string
   documento: string
 }

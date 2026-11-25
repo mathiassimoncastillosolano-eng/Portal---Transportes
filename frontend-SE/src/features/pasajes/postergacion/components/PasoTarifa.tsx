@@ -1,186 +1,141 @@
-import { ArrowRight, Banknote, CircleAlert, CreditCard, Equal, MoveDown, MoveUp, Smartphone } from 'lucide-react'
+import { Check, Equal, Megaphone, MoveDown, MoveUp } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { Checkbox } from '@/components/ui/Checkbox'
-import { RadioCardGroup } from '@/components/ui/RadioCardGroup'
-import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { formatearPrecio } from '@/features/clientes/utils/boleto'
+import type { CotizacionCambio, EscenarioTarifa, IntentoPagoCambio } from '@/types/cambioViaje'
 import type { ViajeHistorial } from '@/types/cliente'
-import type { ViajeConsulta } from '@/types/consultaViaje'
 import { cn } from '@/utils/cn'
-import type { IntentoPago } from '../usePostergacion'
-import { ETIQUETA_METODO, type ComparacionTarifa, type EscenarioTarifa, type MetodoCambio, type ResultadoTerminal } from '../reglas'
+import type { DatosPago } from '../useCambioViaje'
+import { ContadorReserva } from './ContadorReserva'
+import { EncabezadoPaso } from './EncabezadoPaso'
+import { FormularioPago } from './FormularioPago'
 
 interface PasoTarifaProps {
   pasaje: ViajeHistorial
-  viaje: ViajeConsulta
-  comparacion: ComparacionTarifa
+  cotizacion: CotizacionCambio
+  expiraEn: number | null
   acepta: boolean
-  metodo: MetodoCambio
-  terminal: ResultadoTerminal
-  intentos: IntentoPago[]
-  aviso: string | null
+  pago: DatosPago
+  intentos: IntentoPagoCambio[]
   onAceptar: (valor: boolean) => void
-  onMetodo: (metodo: MetodoCambio) => void
-  onTerminal: (terminal: ResultadoTerminal) => void
+  onPago: (parcial: Partial<DatosPago>) => void
 }
 
-const ESCENARIOS: Record<EscenarioTarifa, { titulo: string; texto: string; icono: LucideIcon; clase: string }> = {
-  IGUAL: {
-    titulo: 'Sin diferencia por pagar',
-    texto: 'Ambas tarifas son iguales: la postergación no genera ningún cobro.',
-    icono: Equal,
-    clase: 'border-border bg-surface-sunken/60 text-text-700',
-  },
-  SUPERIOR: {
-    titulo: 'El cliente debe pagar la diferencia',
-    texto: 'La nueva tarifa es mayor a lo pagado. La postergación solo se aplica cuando el pago es aprobado.',
-    icono: MoveUp,
-    clase: 'border-status-low/50 bg-status-low/10 text-warning-text',
-  },
-  INFERIOR: {
-    titulo: 'La nueva tarifa es menor',
-    texto: 'La diferencia no se devuelve ni queda como saldo a favor. El cliente debe aceptarlo expresamente.',
-    icono: MoveDown,
-    clase: 'border-accent-line/40 bg-accent-50 text-accent-text',
-  },
+const ESCENARIOS: Record<EscenarioTarifa, { titulo: string; icono: LucideIcon; insignia: string }> = {
+  IGUAL: { titulo: 'Sin cobro', icono: Equal, insignia: 'bg-surface-card text-text-700 ring-1 ring-border' },
+  SUPERIOR: { titulo: 'Cobrar diferencia', icono: MoveUp, insignia: 'bg-gradient-to-br from-status-low to-warning-500 text-white' },
+  INFERIOR: { titulo: 'No se devuelve', icono: MoveDown, insignia: 'bg-gradient-to-br from-ink-700 to-accent-500 text-white' },
 }
 
-const METODOS = [
-  { value: 'EFECTIVO' as const, label: 'Efectivo', description: 'Se registra como aprobado', icono: Banknote },
-  { value: 'YAPE' as const, label: 'Yape', description: 'Según el resultado de la operación', icono: Smartphone },
-  { value: 'TARJETA' as const, label: 'Tarjeta', description: 'Según el resultado del terminal', icono: CreditCard },
-]
+function Monto({ titulo, valor, destacado }: { titulo: string; valor: string; destacado?: boolean }) {
+  return (
+    <div className={cn('rounded-2xl p-4 text-center', destacado ? 'bg-surface-selected ring-1 ring-accent-line/40' : 'bg-surface-sunken')}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-500">{titulo}</p>
+      <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-text-900">{valor}</p>
+    </div>
+  )
+}
 
-export function PasoTarifa({ pasaje, viaje, comparacion, acepta, metodo, terminal, intentos, aviso, onAceptar, onMetodo, onTerminal }: PasoTarifaProps) {
+export function PasoTarifa({ pasaje, cotizacion, expiraEn, acepta, pago, intentos, onAceptar, onPago }: PasoTarifaProps) {
   const moneda = pasaje.moneda
-  const escenario = ESCENARIOS[comparacion.escenario]
+  const escenario = ESCENARIOS[cotizacion.escenario]
   const Icono = escenario.icono
-  const importe =
-    comparacion.escenario === 'SUPERIOR' ? comparacion.montoAPagar : comparacion.escenario === 'INFERIOR' ? comparacion.montoNoDevuelto : 0
+  const diferencia = cotizacion.requierePago ? cotizacion.montoAPagar : cotizacion.montoNoDevuelto
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h3 className="font-display text-lg font-semibold text-text-900">Tarifa y pago</h3>
-        <p className="mt-0.5 text-sm text-text-500">Comparamos lo pagado por el pasaje original con la tarifa del asiento elegido.</p>
-      </div>
+    <div className="flex flex-col gap-4">
+      <EncabezadoPaso paso={4} titulo="Tarifa y confirmación" extra={<ContadorReserva expiraEn={expiraEn} />} />
 
-      <div className="rounded-2xl border border-border bg-surface-card p-5 shadow-panel">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-500">Pagado</p>
-            <p className="mt-1 font-display text-[28px] font-semibold leading-none tabular-nums text-text-900">{formatearPrecio(comparacion.original, moneda)}</p>
-            <p className="mt-1.5 truncate text-xs text-text-500">
-              {pasaje.origen} → {pasaje.destino}
-            </p>
+      <div className="rounded-2xl bg-surface-card p-4 shadow-panel ring-1 ring-border">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <Monto titulo="Ya pagó" valor={formatearPrecio(cotizacion.importePagado, moneda)} />
+          <div className="flex flex-col items-center gap-1">
+            <span className={cn('flex h-11 w-11 items-center justify-center rounded-full shadow-panel', escenario.insignia)}>
+              <Icono className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <span className="text-[11px] font-semibold text-text-700">{escenario.titulo}</span>
+            {cotizacion.escenario !== 'IGUAL' && (
+              <span className="font-display text-sm font-semibold tabular-nums text-text-900">{formatearPrecio(diferencia, moneda)}</span>
+            )}
           </div>
-          <ArrowRight className="h-5 w-5 text-text-400" aria-hidden="true" />
-          <div className="min-w-0 text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-500">Nueva tarifa</p>
-            <p className="mt-1 font-display text-[28px] font-semibold leading-none tabular-nums text-text-900">{formatearPrecio(comparacion.nueva, moneda)}</p>
-            <p className="mt-1.5 truncate text-xs text-text-500">
-              {viaje.origen} → {viaje.destino}
-            </p>
-          </div>
+          <Monto titulo="Nueva tarifa" valor={formatearPrecio(cotizacion.tarifaNueva, moneda)} destacado />
         </div>
 
-        <div className={cn('mt-5 flex items-center gap-4 rounded-xl border p-4', escenario.clase)} role="status">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-card/80">
-            <Icono className="h-5 w-5" aria-hidden="true" />
+        {/* Lo que el agente debe decirle al pasajero (texto que arma el backend). */}
+        <p className="mt-4 flex items-start gap-2.5 rounded-xl border-l-4 border-accent-line bg-accent-50/60 px-4 py-3 text-sm text-text-700">
+          <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-accent-text" aria-hidden="true" />
+          {cotizacion.mensajeParaAgente}
+        </p>
+      </div>
+
+      {cotizacion.requiereAceptacion && (
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={acepta}
+          onClick={() => onAceptar(!acepta)}
+          className={cn(
+            'flex items-center gap-3 rounded-2xl border p-4 text-left text-sm transition-colors',
+            acepta ? 'border-accent-line bg-surface-selected' : 'border-border bg-surface-card hover:bg-surface-hover',
+          )}
+        >
+          <span
+            className={cn(
+              'flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-white transition-colors',
+              acepta ? 'border-accent-500 bg-accent-500' : 'border-border-strong bg-surface-card',
+            )}
+          >
+            {acepta && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
           </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-text-900">{escenario.titulo}</p>
-            <p className="mt-0.5 text-xs text-text-700">{escenario.texto}</p>
+          <span className="text-text-900">
+            Informé al pasajero que los <strong className="tabular-nums">{formatearPrecio(cotizacion.montoNoDevuelto, moneda)}</strong> de diferencia no se
+            devuelven, y lo acepta.
+          </span>
+        </button>
+      )}
+
+      {cotizacion.requierePago && (
+        <section aria-label="Cobro de la diferencia" className="flex flex-col gap-4 rounded-2xl bg-surface-card p-4 shadow-panel ring-1 ring-border">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-text-900">Cobrar la diferencia</p>
+            <span className="rounded-full bg-[image:var(--gradient-brand-deep)] px-3 py-1 font-display text-sm font-semibold tabular-nums text-white">
+              {formatearPrecio(cotizacion.montoAPagar, moneda)}
+            </span>
           </div>
-          <div className="shrink-0 text-right">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em]">
-              {comparacion.escenario === 'SUPERIOR' ? 'A cobrar' : comparacion.escenario === 'INFERIOR' ? 'No se devuelve' : 'Diferencia'}
-            </p>
-            <p className="font-display text-xl font-semibold tabular-nums text-text-900">{formatearPrecio(importe, moneda)}</p>
-          </div>
-        </div>
-      </div>
-
-      {comparacion.escenario === 'SUPERIOR' && (
-        <section aria-label="Cobro de la diferencia" className="flex flex-col gap-4 rounded-2xl border border-border bg-surface-card p-5 shadow-panel">
-          <RadioCardGroup<MetodoCambio>
-            legend="Método de pago de la diferencia"
-            name="metodo-diferencia"
-            value={metodo}
-            onChange={onMetodo}
-            options={METODOS.map((m) => ({
-              value: m.value,
-              label: m.label,
-              description: m.description,
-              icon: <m.icono className="h-4 w-4" aria-hidden="true" />,
-            }))}
-            className="[&>div]:sm:grid-cols-3"
-          />
-
-          {metodo !== 'EFECTIVO' && (
-            <SegmentedControl
-              label={`Resultado informado por ${metodo === 'YAPE' ? 'Yape' : 'el terminal'}`}
-              name="resultado-terminal"
-              value={terminal}
-              onChange={(v) => onTerminal(v as ResultadoTerminal)}
-              options={[
-                { value: 'APROBADO', label: 'Aprobado' },
-                { value: 'RECHAZADO', label: 'Rechazado' },
-              ]}
-            />
-          )}
-
-          {aviso && (
-            <p role="alert" className="flex items-start gap-2 rounded-lg border border-danger-500/30 bg-danger-500/8 px-3 py-2.5 text-sm text-danger-500">
-              <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              {aviso}
-            </p>
-          )}
-
-          {intentos.length > 0 && (
-            <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-text-500">Intentos registrados</p>
-              <ul className="flex flex-col divide-y divide-border-subtle rounded-xl border border-border-subtle">
-                {intentos.map((i) => (
-                  <li key={i.numero} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                    <span className="text-text-700">
-                      <span className="tabular-nums text-text-500">#{i.numero}</span> · {ETIQUETA_METODO[i.metodo]} · {i.hora}
-                    </span>
-                    <span className="flex items-center gap-3">
-                      <span className="tabular-nums text-text-900">{formatearPrecio(i.monto, moneda)}</span>
-                      <span
-                        className={cn(
-                          'rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                          i.resultado === 'APROBADO' ? 'bg-status-ok/15 text-accent-text' : 'bg-status-out/12 text-danger-500',
-                        )}
-                      >
-                        {i.resultado === 'APROBADO' ? 'Aprobado' : 'Rechazado'}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <FormularioPago montoAPagar={cotizacion.montoAPagar} moneda={moneda} pago={pago} onCambiar={onPago} />
+          {intentos.length > 0 && <ListaIntentos intentos={intentos} moneda={moneda} />}
         </section>
       )}
+    </div>
+  )
+}
 
-      {comparacion.escenario === 'INFERIOR' && (
-        <div className="rounded-2xl border border-border bg-surface-card p-5 shadow-panel">
-          <Checkbox
-            checked={acepta}
-            onChange={(e) => onAceptar(e.target.checked)}
-            label={`El cliente aceptó expresamente que no se le devolverá ${formatearPrecio(comparacion.montoNoDevuelto, moneda)} ni se le dejará saldo a favor.`}
-            description="Es obligatorio registrar esta aceptación para poder confirmar la postergación."
-          />
-        </div>
-      )}
-
-      <ul className="grid gap-2 text-xs text-text-500 sm:grid-cols-2">
-        <li className="rounded-lg bg-surface-sunken/60 px-3 py-2">Se conserva el mismo pasaje y la misma venta; no se crea una venta nueva.</li>
-        <li className="rounded-lg bg-surface-sunken/60 px-3 py-2">El pago original no se modifica; cualquier diferencia queda como pago adicional.</li>
-        <li className="rounded-lg bg-surface-sunken/60 px-3 py-2">El asiento nuevo queda ocupado y el original disponible, en una sola operación.</li>
-        <li className="rounded-lg bg-surface-sunken/60 px-3 py-2">Se registran el viaje anterior, el nuevo, los importes y quién realizó el cambio.</li>
+function ListaIntentos({ intentos, moneda }: { intentos: IntentoPagoCambio[]; moneda: string }) {
+  return (
+    <div>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-500">Intentos de pago</p>
+      <ul className="flex flex-col divide-y divide-border-subtle rounded-xl ring-1 ring-border-subtle">
+        {intentos.map((intento) => {
+          const aprobado = intento.resultado === 'APROBADO'
+          return (
+            <li key={intento.numero} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+              <span className="min-w-0 truncate text-text-700">
+                <span className="tabular-nums text-text-400">#{intento.numero}</span> {intento.metodo}
+                {intento.numeroOperacion && <span className="text-text-500"> · {intento.numeroOperacion}</span>}
+              </span>
+              <span className="flex shrink-0 items-center gap-3">
+                <span className="tabular-nums text-text-900">{formatearPrecio(intento.monto, moneda)}</span>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                    aprobado ? 'bg-status-ok/15 text-accent-text' : 'bg-status-out/12 text-danger-500',
+                  )}
+                >
+                  {aprobado ? 'Aprobado' : 'Rechazado'}
+                </span>
+              </span>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

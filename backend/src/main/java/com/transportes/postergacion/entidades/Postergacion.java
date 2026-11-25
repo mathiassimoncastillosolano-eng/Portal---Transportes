@@ -13,7 +13,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Registro de un cambio de pasaje (tabla postergacion): viaje y asiento anterior, nuevos y monto pagado. */
+/**
+ * Registro de un cambio de pasaje (tabla postergacion): viaje y asiento anterior, nuevos, monto pagado
+ * y, si el cambio se hizo desde el Sistema Empresarial, el agente que lo realizó.
+ */
 @Entity
 @Table(name = "postergacion")
 @Getter
@@ -44,14 +47,15 @@ public class Postergacion {
     @Column(name = "id_viaje_asiento_nuevo", nullable = false)
     private Integer idViajeAsientoNuevo;
 
-    /** Diferencia pagada (0 si el viaje nuevo cuesta lo mismo o menos). */
     @Column(name = "importe_adicional", nullable = false, precision = 10, scale = 2)
     private BigDecimal importeAdicional;
 
-    /** Referencia del pago adicional (hoy simulado); null si no hubo cobro. */
     @Column(name = "referencia_pago", length = 64)
     private String referenciaPago;
 
     @Column(name = "fecha_postergacion", nullable = false)
     private LocalDateTime fechaPostergacion;
+
+    @Column(name = "id_empleado")
+    private Integer idEmpleado;
 }

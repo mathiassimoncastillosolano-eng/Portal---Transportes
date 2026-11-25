@@ -16,12 +16,17 @@ import { cn } from '@/utils/cn'
 import { formatearFecha, formatearFechaHora, nombrePropio } from '@/utils/formato'
 import { ETIQUETA_ESTADO, formatearPrecio, textoLlegada, textoSalida } from '../utils/boleto'
 import { PostergarPasajeDialog } from '@/features/pasajes/postergacion/PostergarPasajeDialog'
+import { AvisoPlazoCambio } from '@/features/pasajes/postergacion/components/AvisoPlazoCambio'
+import { estaFueraDePlazoDeCambio } from '@/features/pasajes/postergacion/reglas'
+import { usePuedeCambiarViajes } from '@/features/pasajes/postergacion/usePuedeCambiarViajes'
 import { BoletoModal } from './BoletoModal'
 
 interface ClienteDetalleProps {
   idPasajero: number | null
   onClose: () => void
   onVerPasajes?: (cliente: ClienteFiltro) => void
+  /** Avisa a la lista de atrás que un viaje cambió, para que se actualice. */
+  onCambiado?: () => void
 }
 
 type Pestana = 'proximos' | 'realizados' | 'otros'
@@ -72,13 +77,20 @@ function Dato({ etiqueta, valor, icono: Icono }: { etiqueta: string; valor: stri
 
 function TarjetaViaje({ viaje, onBoleto, onPostergar }: { viaje: ViajeHistorial; onBoleto: () => void; onPostergar: () => void }) {
   const llegada = textoLlegada(viaje)
+  // Hora tomada una sola vez, al mostrar la tarjeta.
+  const [ahoraMs] = useState(Date.now)
+  const fueraDePlazo = estaFueraDePlazoDeCambio(viaje, ahoraMs)
+  const puedeCambiarViajes = usePuedeCambiarViajes()
   return (
     <li className={cn('rounded-xl border border-l-4 border-border bg-surface-card p-4', BORDE_FASE[viaje.fase])}>
       <div className="flex items-center justify-between gap-3">
         <p className="truncate text-xs font-medium tabular-nums text-text-500">Boleto {viaje.numeroBoleto}</p>
-        <Badge tone={viaje.estadoPasaje === 'CONFIRMADA' ? 'success' : viaje.estadoPasaje === 'REEMBOLSADA' ? 'warning' : 'neutral'}>
-          {ETIQUETA_ESTADO[viaje.estadoPasaje]}
-        </Badge>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {viaje.cambiado && <Badge tone="route">Cambiado</Badge>}
+          <Badge tone={viaje.estadoPasaje === 'CONFIRMADA' ? 'success' : viaje.estadoPasaje === 'REEMBOLSADA' ? 'warning' : 'neutral'}>
+            {ETIQUETA_ESTADO[viaje.estadoPasaje]}
+          </Badge>
+        </div>
       </div>
 
       <div className="mt-4 flex items-start gap-3">
@@ -122,14 +134,15 @@ function TarjetaViaje({ viaje, onBoleto, onPostergar }: { viaje: ViajeHistorial;
       </dl>
 
       <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-3">
-        {viaje.fase === 'PROXIMO' && (
+        {puedeCambiarViajes && viaje.fase === 'PROXIMO' && fueraDePlazo && <AvisoPlazoCambio />}
+        {puedeCambiarViajes && viaje.fase === 'PROXIMO' && !fueraDePlazo && (
           <Button
             variant="outline"
             size="sm"
             onClick={onPostergar}
             iconLeft={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
           >
-            Postergar este pasaje
+            Cambiar viaje
           </Button>
         )}
         <Button
@@ -146,7 +159,7 @@ function TarjetaViaje({ viaje, onBoleto, onPostergar }: { viaje: ViajeHistorial;
   )
 }
 
-export function ClienteDetalle({ idPasajero, onClose, onVerPasajes }: ClienteDetalleProps) {
+export function ClienteDetalle({ idPasajero, onClose, onVerPasajes, onCambiado }: ClienteDetalleProps) {
   const { data, cargando, error, reintentar } = useAsyncResource(idPasajero === null ? null : `cliente-${idPasajero}`, () =>
     clientesService.detalle(idPasajero as number),
   )
@@ -189,7 +202,8 @@ export function ClienteDetalle({ idPasajero, onClose, onVerPasajes }: ClienteDet
   return (
     <>
       <Drawer
-        open={idPasajero !== null}
+        // Se oculta mientras está abierto "Cambiar viaje" y vuelve a aparecer al cerrarlo.
+        open={idPasajero !== null && postergar === null}
         onClose={onClose}
         side="right"
         widthClassName="w-full max-w-[640px]"
@@ -314,7 +328,10 @@ export function ClienteDetalle({ idPasajero, onClose, onVerPasajes }: ClienteDet
       </Drawer>
 
       <BoletoModal viaje={boleto} onClose={() => setBoleto(null)} />
-      <PostergarPasajeDialog pasaje={postergar} onClose={() => setPostergar(null)} />
+      <PostergarPasajeDialog pasaje={postergar} onClose={() => setPostergar(null)} onCambiado={() => {
+        reintentar()
+        onCambiado?.()
+      }} />
     </>
   )
 }

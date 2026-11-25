@@ -103,7 +103,7 @@ public class PasajesServicio {
                 fila.fechaSalida(), fila.horaSalida() == null ? null : fila.horaSalida().format(HORA),
                 horaLlegada, fechaLlegada, fila.asiento(), fila.piso(), fila.tipoBus(), fila.precio(),
                 fila.moneda() == null ? ConstructorCompras.MONEDA_POR_DEFECTO : fila.moneda(), estado.name(),
-                fase.name(), ReglasCompra.documentoDisponible(estado, fase));
+                fase.name(), ReglasCompra.documentoDisponible(estado, fase), fila.cambiado());
     }
 
     private static LocalDate fecha(String valor) {

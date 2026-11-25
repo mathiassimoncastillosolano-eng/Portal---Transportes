@@ -25,7 +25,7 @@ public class PasajesRepositorio {
             int idPasaje, int idPasajero, String tipoDocumento, String numeroDocumento, String nombres,
             String apellidos, BigDecimal precio, int idVenta, String estado, String fase, String moneda,
             String serie, String numero, String asiento, Short piso, LocalDate fechaSalida, LocalTime horaSalida,
-            String origen, String destino, String tipoBus, Integer duracionMin) {
+            String origen, String destino, String tipoBus, Integer duracionMin, boolean cambiado) {
     }
 
     public record Totales(long total, long confirmados, long proximos, BigDecimal ingresos) {
@@ -36,9 +36,12 @@ public class PasajesRepositorio {
 
     private static final String BASE = """
             SELECT pa.id_pasaje, pa.id_pasajero, pj.tipo_documento, pj.numero_documento, pj.nombres, pj.apellidos,
-                   pa.precio, ve.id_venta, op.moneda, cp.serie, cp.numero, a.numero_asiento, a.piso,
+                   pa.precio + COALESCE((SELECT SUM(po.importe_adicional) FROM postergacion po
+                                         WHERE po.id_pasaje = pa.id_pasaje), 0) AS precio,
+                   ve.id_venta, op.moneda, cp.serie, cp.numero, a.numero_asiento, a.piso,
                    v.fecha_salida, v.hora_salida, uo.nombre AS origen, ud.nombre AS destino,
                    tb.nombre_tipo, r.duracion_estimada_min,
+                   EXISTS (SELECT 1 FROM postergacion po WHERE po.id_pasaje = pa.id_pasaje) AS cambiado,
                    CASE WHEN UPPER(TRIM(COALESCE(op.estado, ''))) = 'REEMBOLSADO' THEN 'REEMBOLSADA'
                         WHEN UPPER(TRIM(COALESCE(ve.estado_venta, ''))) = 'PAGADA'
                              AND UPPER(TRIM(COALESCE(pg.estado_pago, ''))) = 'APROBADO' THEN 'CONFIRMADA'
@@ -122,7 +125,7 @@ public class PasajesRepositorio {
                 rs.getString("numero_asiento"), rs.getObject("piso", Short.class),
                 rs.getObject("fecha_salida", LocalDate.class), rs.getObject("hora_salida", LocalTime.class),
                 rs.getString("origen"), rs.getString("destino"), rs.getString("nombre_tipo"),
-                rs.getObject("duracion_estimada_min", Integer.class));
+                rs.getObject("duracion_estimada_min", Integer.class), rs.getBoolean("cambiado"));
     }
 
     private static String condiciones(FiltroPasajes filtro, Map<String, Object> parametros) {

@@ -129,6 +129,35 @@ class PasajesIntegracionTest {
     }
 
     @Test
+    void marcaComoCambiadoSoloElPasajeConCambioDeViaje() {
+        jdbc.update("INSERT INTO postergacion(id_pasaje,id_venta,id_viaje_anterior,id_viaje_nuevo,"
+                + "id_viaje_asiento_anterior,id_viaje_asiento_nuevo) "
+                + "SELECT id_pasaje,id_venta,4,5,1,2 FROM pasaje WHERE id_pasaje = ?", p2);
+        PaginaPasajesDto pagina = todos();
+        assertEquals(4, pagina.total());
+        assertEquals(List.of(p2), pagina.contenido().stream().filter(PasajeDto::cambiado).map(PasajeDto::idPasaje).toList());
+    }
+
+    @Test
+    void elPrecioYLosIngresosIncluyenLaDiferenciaCobradaPorLosCambios() {
+        BigDecimal ingresosAntes = todos().resumen().ingresos();
+        BigDecimal precioAntes = precioDe(p2);
+        jdbc.update("INSERT INTO postergacion(id_pasaje,id_venta,id_viaje_anterior,id_viaje_nuevo,"
+                + "id_viaje_asiento_anterior,id_viaje_asiento_nuevo,importe_adicional) "
+                + "SELECT id_pasaje,id_venta,4,5,1,2,28.00 FROM pasaje WHERE id_pasaje = ?", p2);
+        jdbc.update("INSERT INTO postergacion(id_pasaje,id_venta,id_viaje_anterior,id_viaje_nuevo,"
+                + "id_viaje_asiento_anterior,id_viaje_asiento_nuevo,importe_adicional) "
+                + "SELECT id_pasaje,id_venta,4,5,1,2,2.00 FROM pasaje WHERE id_pasaje = ?", p2);
+        assertEquals(4, todos().total());
+        assertEquals(0, precioAntes.add(new BigDecimal("30.00")).compareTo(precioDe(p2)));
+        assertEquals(0, ingresosAntes.add(new BigDecimal("30.00")).compareTo(todos().resumen().ingresos()));
+    }
+
+    BigDecimal precioDe(int idPasaje) {
+        return todos().contenido().stream().filter(p -> p.idPasaje() == idPasaje).findFirst().orElseThrow().precio();
+    }
+
+    @Test
     void filtraPorCliente() {
         assertEquals(List.of(p2, p1), ids(listar(null, 1, null, null, null, null, null, null, null, null, 0, 20)));
     }

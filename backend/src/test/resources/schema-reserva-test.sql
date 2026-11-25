@@ -92,5 +92,31 @@ CREATE TABLE IF NOT EXISTS postergacion (
  id_viaje_asiento_nuevo integer NOT NULL REFERENCES viaje_asiento(id_viaje_asiento),
  importe_adicional numeric(10,2) NOT NULL DEFAULT 0 CHECK (importe_adicional >= 0),
  referencia_pago varchar(64),
- fecha_postergacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+ fecha_postergacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ id_empleado integer REFERENCES empleado(id_empleado)
+);
+-- Cambio de viajes en SE y venta en SE (HU-05): intentos de pago de agencia (migración 007).
+-- H2 no soporta el índice único parcial uq_auditoria_pago_venta_aprobada; esa regla también la valida el código.
+CREATE TABLE IF NOT EXISTS auditoria_pago (
+ id_auditoria_pago integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ id_venta integer NOT NULL REFERENCES venta(id_venta),
+ concepto varchar(20) NOT NULL,
+ id_pasaje integer REFERENCES pasaje(id_pasaje),
+ id_postergacion integer REFERENCES postergacion(id_postergacion),
+ id_metodo_pago integer NOT NULL REFERENCES metodo_pago(id_metodo_pago),
+ monto numeric(10,2) NOT NULL,
+ resultado varchar(20) NOT NULL,
+ numero_operacion varchar(64),
+ clave_idempotencia varchar(64) NOT NULL,
+ id_empleado integer NOT NULL REFERENCES empleado(id_empleado),
+ fecha_intento timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT ck_auditoria_pago_concepto CHECK (concepto IN ('VENTA', 'CAMBIO_VIAJE')),
+ CONSTRAINT ck_auditoria_pago_resultado CHECK (resultado IN ('APROBADO', 'RECHAZADO')),
+ CONSTRAINT ck_auditoria_pago_monto CHECK (monto > 0),
+ CONSTRAINT ck_auditoria_pago_pasaje CHECK (
+   (concepto = 'VENTA' AND id_pasaje IS NULL AND id_postergacion IS NULL)
+   OR (concepto = 'CAMBIO_VIAJE' AND id_pasaje IS NOT NULL)),
+ CONSTRAINT ck_auditoria_pago_postergacion CHECK (id_postergacion IS NULL OR resultado = 'APROBADO'),
+ CONSTRAINT uq_auditoria_pago_idempotencia UNIQUE (clave_idempotencia),
+ CONSTRAINT uq_auditoria_pago_postergacion UNIQUE (id_postergacion)
 );
