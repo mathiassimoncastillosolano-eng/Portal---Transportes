@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { ArrowRight, Check, ChevronDown, ChevronRight, Circle, Route } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, Circle, Route } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/utils/cn'
 import { formatearMoneda } from '@/utils/formato'
@@ -54,20 +54,8 @@ function ResumenDetalle() {
         </FilaDato>
       </dl>
 
-      <div className="mt-3 border-t border-border-subtle pt-3">
-        {cantidadPasajes === 0 ? (
-          <button
-            type="button"
-            onClick={() => irA('asientos')}
-            className="group flex w-full items-center justify-between rounded-lg py-1 text-left transition-colors duration-150 hover:text-text-900"
-          >
-            <span className="text-[13px] text-text-500">Asientos</span>
-            <span className="flex items-center gap-1 text-[13px] font-medium text-text-900">
-              Sin seleccionar
-              <ChevronRight className="h-4 w-4 text-text-400 transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true" />
-            </span>
-          </button>
-        ) : (
+      {cantidadPasajes > 0 && (
+        <div className="mt-3 border-t border-border-subtle pt-3">
           <div>
             <div className="mb-2 flex items-center justify-between">
               <p className={etiquetaSeccion}>Asientos ({cantidadPasajes})</p>
@@ -113,8 +101,8 @@ function ResumenDetalle() {
               </ul>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
