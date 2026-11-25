@@ -1,7 +1,6 @@
-import { Banknote, CreditCard, Smartphone } from 'lucide-react'
+import { Banknote, CircleCheck, CircleX, CreditCard, Smartphone } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { RadioCardGroup } from '@/components/ui/RadioCardGroup'
-import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { formatearPrecio } from '@/features/clientes/utils/boleto'
 import type { MetodoPagoAgencia, ResultadoPos } from '@/types/cambioViaje'
 import { cn } from '@/utils/cn'
@@ -19,6 +18,11 @@ const METODOS = [
   { value: 'EFECTIVO' as const, label: 'Efectivo', description: 'Se registra como aprobado', icon: <Banknote className="h-4 w-4" aria-hidden="true" /> },
   { value: 'YAPE' as const, label: 'Yape', description: 'Cobrado con el POS', icon: <Smartphone className="h-4 w-4" aria-hidden="true" /> },
   { value: 'TARJETA' as const, label: 'Tarjeta', description: 'Cobrada con el POS', icon: <CreditCard className="h-4 w-4" aria-hidden="true" /> },
+]
+
+const RESULTADOS: { valor: ResultadoPos; etiqueta: string; icono: typeof CircleCheck; activo: string }[] = [
+  { valor: 'APROBADO', etiqueta: 'Aprobado', icono: CircleCheck, activo: 'border-accent-line bg-accent-50 text-accent-text' },
+  { valor: 'RECHAZADO', etiqueta: 'Rechazado', icono: CircleX, activo: 'border-danger-500/50 bg-danger-50 text-danger-500' },
 ]
 
 export function FormularioPago({ montoAPagar, moneda, pago, onCambiar }: FormularioPagoProps) {
@@ -64,16 +68,30 @@ export function FormularioPago({ montoAPagar, moneda, pago, onCambiar }: Formula
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <SegmentedControl
-            label="Resultado que muestra el POS"
-            name="resultado-pos"
-            value={pago.resultado}
-            onChange={(valor) => onCambiar({ resultado: valor as ResultadoPos })}
-            options={[
-              { value: 'APROBADO', label: 'Aprobado' },
-              { value: 'RECHAZADO', label: 'Rechazado' },
-            ]}
-          />
+          <div role="radiogroup" aria-label="Resultado que muestra el POS">
+            <p className="mb-1.5 text-sm font-medium text-text-700">Resultado que muestra el POS</p>
+            <div className="grid grid-cols-2 gap-2">
+              {RESULTADOS.map(({ valor, etiqueta, icono: Icono, activo }) => {
+                const elegido = pago.resultado === valor
+                return (
+                  <button
+                    key={valor}
+                    type="button"
+                    role="radio"
+                    aria-checked={elegido}
+                    onClick={() => onCambiar({ resultado: valor })}
+                    className={cn(
+                      'flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors',
+                      elegido ? activo : 'border-border bg-surface-card text-text-500 hover:bg-surface-hover hover:text-text-900',
+                    )}
+                  >
+                    <Icono className="h-4 w-4" aria-hidden="true" />
+                    {etiqueta}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
           <Input
             label={etiquetaCodigo}
             placeholder={pago.resultado === 'APROBADO' ? 'Ej. 458921' : 'Ej. P51'}

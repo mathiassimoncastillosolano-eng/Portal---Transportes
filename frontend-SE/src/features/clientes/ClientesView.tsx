@@ -327,7 +327,7 @@ export function ClientesView() {
         </div>
       </Card>
 
-      <ClienteDetalle idPasajero={abierto} onClose={() => setAbierto(null)} onVerPasajes={verPasajes} />
+      <ClienteDetalle idPasajero={abierto} onClose={() => setAbierto(null)} onVerPasajes={verPasajes} onCambiado={reintentar} />
     </PageContainer>
   )
 }

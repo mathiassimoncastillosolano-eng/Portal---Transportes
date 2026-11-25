@@ -10,6 +10,7 @@ import {
   CODIGOS_ASIENTO_PERDIDO,
   CODIGOS_PASAJE_NO_CAMBIABLE,
   MINUTOS_RESERVA_CAMBIO,
+  intentosDelCambioActual,
   mensajeDeRechazo,
   nuevaClaveDeIntento,
   type Solicitante,
@@ -18,7 +19,13 @@ import {
 /*
  * Máquina de estados del modal "Cambiar viaje" (patrón State con useReducer).
  * Fases: validando → verificacion → viaje → asiento → tarifa → (procesando) → resultado
- * Cada acción del reductor cambia el estado de una sola forma; así el flujo se puede seguir paso a paso.
+ *
+ * Reserva del asiento (igual que en el Portal):
+ *  - Al entrar al mapa se abre UNA sesión de 10 minutos para ese viaje (arranca el contador).
+ *  - Elegir un asiento lo bloquea con esa sesión; soltarlo lo libera al instante.
+ *  - Elegir otro asiento: primero se libera el anterior y luego se bloquea el nuevo.
+ *  - Si la sesión vence, se libera todo y se abre una sesión nueva (contador desde 10 min).
+ *  - Al cambiar de viaje, cerrar el modal o cerrar la pestaña, se libera la sesión.
  */
 
 export type Fase = 'validando' | 'verificacion' | 'viaje' | 'asiento' | 'tarifa' | 'procesando' | 'resultado'
@@ -45,8 +52,8 @@ export interface EstadoCambio {
   filtros: FiltrosViajeForm
   vista: VistaViajes
   viaje: ViajeConsulta | null
-  asiento: AsientoElegido | null
   sesion: SesionReserva | null
+  asiento: AsientoElegido | null
   apartando: number | null
   cotizacion: CotizacionCambio | null
   acepta: boolean
@@ -65,10 +72,11 @@ type Accion =
   | { tipo: 'vista'; parcial: Partial<VistaViajes> }
   | { tipo: 'restablecer'; filtros: FiltrosViajeForm }
   | { tipo: 'viaje'; viaje: ViajeConsulta }
+  | { tipo: 'reservaIniciada'; sesion: SesionReserva }
   | { tipo: 'apartando'; idAsiento: number }
-  | { tipo: 'asientoReservado'; asiento: AsientoElegido; sesion: SesionReserva }
-  | { tipo: 'asientoLiberado' }
-  | { tipo: 'reservaPerdida'; mensaje: string }
+  | { tipo: 'asientoReservado'; asiento: AsientoElegido }
+  | { tipo: 'asientoSoltado' }
+  | { tipo: 'reservaPerdida'; mensaje: string; cerrarSesion: boolean }
   | { tipo: 'cotizacion'; cotizacion: CotizacionCambio }
   | { tipo: 'ir'; fase: Fase }
   | { tipo: 'acepta'; valor: boolean }
@@ -80,9 +88,10 @@ type Accion =
   | { tipo: 'pagoRechazado'; mensaje: string }
   | { tipo: 'exito'; resultado: ResultadoCambio }
 
+// La búsqueda arranca en la misma ruta y en la fecha de HOY: se puede elegir cualquier viaje desde ahora,
+// antes o después del viaje original (igual que en el Portal). El viaje original no aparece en la lista.
 export function filtrosIniciales(pasaje: ViajeHistorial, hoy: string): FiltrosViajeForm {
-  const fecha = pasaje.fechaSalida && pasaje.fechaSalida >= hoy ? pasaje.fechaSalida : hoy
-  return { origen: pasaje.origen, destino: pasaje.destino, fecha }
+  return { origen: pasaje.origen, destino: pasaje.destino, fecha: hoy }
 }
 
 function pagoInicial(): DatosPago {
@@ -97,8 +106,8 @@ function iniciar(pasaje: ViajeHistorial): EstadoCambio {
     filtros: filtrosIniciales(pasaje, fechaHoyLima()),
     vista: vistaViajesInicial,
     viaje: null,
-    asiento: null,
     sesion: null,
+    asiento: null,
     apartando: null,
     cotizacion: null,
     acepta: false,
@@ -109,15 +118,15 @@ function iniciar(pasaje: ViajeHistorial): EstadoCambio {
   }
 }
 
-// Al soltar el asiento también se olvida todo lo que dependía de él.
-const SIN_ASIENTO = { asiento: null, sesion: null, apartando: null, cotizacion: null, acepta: false }
+// Al soltar el asiento también se olvida todo lo que dependía de él (la sesión sigue abierta).
+const SIN_ASIENTO = { asiento: null, apartando: null, cotizacion: null, acepta: false }
 
 function reductor(estado: EstadoCambio, accion: Accion): EstadoCambio {
   switch (accion.tipo) {
     case 'elegible':
       return { ...estado, fase: 'verificacion' }
     case 'noCambiable':
-      return { ...estado, ...SIN_ASIENTO, fase: 'resultado', resultado: { exito: false, mensaje: accion.mensaje } }
+      return { ...estado, ...SIN_ASIENTO, sesion: null, fase: 'resultado', resultado: { exito: false, mensaje: accion.mensaje } }
     case 'solicitante':
       return { ...estado, solicitante: accion.valor, verificados: [] }
     case 'verificar': {
@@ -131,18 +140,21 @@ function reductor(estado: EstadoCambio, accion: Accion): EstadoCambio {
     case 'restablecer':
       return { ...estado, filtros: accion.filtros, vista: vistaViajesInicial }
     case 'viaje':
-      return estado.viaje?.id === accion.viaje.id ? estado : { ...estado, ...SIN_ASIENTO, viaje: accion.viaje, aviso: null }
+      return estado.viaje?.id === accion.viaje.id ? estado : { ...estado, ...SIN_ASIENTO, sesion: null, viaje: accion.viaje, aviso: null }
+    case 'reservaIniciada':
+      return { ...estado, sesion: accion.sesion }
     case 'apartando':
       return { ...estado, apartando: accion.idAsiento, aviso: null }
     case 'asientoReservado':
-      return { ...estado, asiento: accion.asiento, sesion: accion.sesion, apartando: null, cotizacion: null, acepta: false }
-    case 'asientoLiberado':
+      return { ...estado, asiento: accion.asiento, apartando: null, cotizacion: null, acepta: false }
+    case 'asientoSoltado':
       return { ...estado, ...SIN_ASIENTO }
     case 'reservaPerdida':
       if (estado.fase === 'resultado') return estado
       return {
         ...estado,
         ...SIN_ASIENTO,
+        sesion: accion.cerrarSesion ? null : estado.sesion,
         fase: estado.fase === 'tarifa' || estado.fase === 'procesando' ? 'asiento' : estado.fase,
         aviso: accion.mensaje,
       }
@@ -155,7 +167,7 @@ function reductor(estado: EstadoCambio, accion: Accion): EstadoCambio {
     case 'pago':
       return { ...estado, pago: { ...estado.pago, ...accion.parcial }, aviso: null }
     case 'intentos':
-      return { ...estado, intentos: accion.intentos }
+      return { ...estado, intentos: intentosDelCambioActual(accion.intentos) }
     case 'aviso':
       return { ...estado, aviso: accion.mensaje }
     case 'procesando':
@@ -170,15 +182,11 @@ function reductor(estado: EstadoCambio, accion: Accion): EstadoCambio {
   }
 }
 
-function liberarReserva(idViaje: number, sesion: SesionReserva | null) {
-  if (!sesion) return Promise.resolve()
-  return consultaViajesService.liberarSesion(idViaje, sesion.tokenSesion).catch(() => undefined)
-}
-
 export function useCambioViaje(pasaje: ViajeHistorial) {
   const [estado, despachar] = useReducer(reductor, pasaje, iniciar)
   const estadoRef = useRef(estado)
   const enVuelo = useRef(false)
+  const abriendoSesion = useRef(false)
   const idPasaje = pasaje.idPasaje
 
   useEffect(() => {
@@ -206,26 +214,52 @@ export function useCambioViaje(pasaje: ViajeHistorial) {
     }
   }, [idPasaje])
 
-  // Si el modal se cierra sin terminar, se suelta el asiento reservado.
+  // 2) Al entrar al mapa se abre la sesión de reserva (arranca el contador de 10 minutos).
+  const enMapa = estado.fase === 'asiento' || estado.fase === 'tarifa'
+  const idViajeElegido = estado.viaje?.id ?? null
   useEffect(() => {
-    return () => {
+    if (!enMapa || idViajeElegido === null || estado.sesion || abriendoSesion.current) return
+    abriendoSesion.current = true
+    consultaViajesService
+      .crearSesion(idViajeElegido, MINUTOS_RESERVA_CAMBIO)
+      .then((sesion) => {
+        // Si mientras tanto se eligió otro viaje o se terminó, esta sesión ya no sirve.
+        const actual = estadoRef.current
+        if (actual.viaje?.id === idViajeElegido && !actual.resultado) despachar({ tipo: 'reservaIniciada', sesion })
+        else void cambioViajeService.liberarReserva(idViajeElegido, sesion.tokenSesion)
+      })
+      .catch((error) => despachar({ tipo: 'aviso', mensaje: mensajeDeError(error, 'No se pudo iniciar la reserva de asientos.') }))
+      .finally(() => {
+        abriendoSesion.current = false
+      })
+  }, [enMapa, idViajeElegido, estado.sesion])
+
+  // 3) La sesión vence: se libera todo y el efecto 2 abre una nueva (contador otra vez en 10 minutos).
+  const sesionActual = estado.sesion
+  useEffect(() => {
+    if (!sesionActual) return
+    const temporizador = window.setTimeout(() => {
+      const viaje = estadoRef.current.viaje
+      if (viaje) void cambioViajeService.liberarReserva(viaje.id, sesionActual.tokenSesion)
+      despachar({ tipo: 'reservaPerdida', mensaje: 'La reserva de 10 minutos venció. Elija el asiento de nuevo.', cerrarSesion: true })
+    }, Math.max(0, sesionActual.expiraEn - Date.now()))
+    return () => window.clearTimeout(temporizador)
+  }, [sesionActual])
+
+  // 4) Si se cierra el modal o la pestaña sin terminar, se suelta la reserva para que otros puedan elegir.
+  useEffect(() => {
+    function soltarAlSalir() {
       const { viaje, sesion, resultado } = estadoRef.current
-      if (viaje && !resultado?.exito) void liberarReserva(viaje.id, sesion)
+      if (viaje && sesion && !resultado?.exito) void cambioViajeService.liberarReserva(viaje.id, sesion.tokenSesion)
+    }
+    window.addEventListener('pagehide', soltarAlSalir)
+    return () => {
+      window.removeEventListener('pagehide', soltarAlSalir)
+      soltarAlSalir()
     }
   }, [])
 
-  // La reserva temporal vence: el asiento vuelve a estar libre para otros.
-  useEffect(() => {
-    if (!estado.sesion) return
-    const restante = Math.max(0, estado.sesion.expiraEn - Date.now())
-    const temporizador = window.setTimeout(
-      () => despachar({ tipo: 'reservaPerdida', mensaje: 'La reserva temporal del asiento venció. Elija el asiento otra vez.' }),
-      restante,
-    )
-    return () => window.clearTimeout(temporizador)
-  }, [estado.sesion])
-
-  // Al llegar a un cobro, se muestran los intentos que ya tiene este pasaje.
+  // Al llegar a un cobro, se muestran los intentos que ya tiene este cambio.
   const requierePago = estado.cotizacion?.requierePago === true
   useEffect(() => {
     if (!requierePago) return
@@ -241,7 +275,9 @@ export function useCambioViaje(pasaje: ViajeHistorial) {
 
   const elegirViaje = useCallback((viaje: ViajeConsulta) => {
     const actual = estadoRef.current
-    if (actual.viaje && actual.viaje.id !== viaje.id) void liberarReserva(actual.viaje.id, actual.sesion)
+    if (actual.viaje && actual.viaje.id !== viaje.id && actual.sesion) {
+      void cambioViajeService.liberarReserva(actual.viaje.id, actual.sesion.tokenSesion)
+    }
     despachar({ tipo: 'viaje', viaje })
   }, [])
 
@@ -257,33 +293,36 @@ export function useCambioViaje(pasaje: ViajeHistorial) {
     [idPasaje],
   )
 
-  // Un cambio de viaje usa un solo asiento: al elegir otro, se suelta la reserva anterior.
+  // Un cambio de viaje usa un solo asiento.
   const alternarAsiento = useCallback(
     async (elegido: AsientoConsulta) => {
       const { viaje, asiento, sesion, apartando } = estadoRef.current
-      if (!viaje || apartando !== null) return
-      despachar({ tipo: 'apartando', idAsiento: elegido.idAsiento })
-      await liberarReserva(viaje.id, sesion)
+      if (!viaje || !sesion || apartando !== null) return
 
+      // Clic en el mismo asiento: se suelta al instante para que otros lo puedan tomar.
       if (asiento?.idAsiento === elegido.idAsiento) {
-        despachar({ tipo: 'asientoLiberado' })
+        despachar({ tipo: 'asientoSoltado' })
+        consultaViajesService
+          .liberarAsiento(viaje.id, elegido.idAsiento, sesion.tokenSesion)
+          .catch(() => undefined) // si ya había vencido, el backend ya lo liberó
         return
       }
 
-      let sesionNueva: SesionReserva | null = null
+      despachar({ tipo: 'apartando', idAsiento: elegido.idAsiento })
+      // Primero se libera el asiento anterior y luego se bloquea el nuevo.
+      if (asiento) {
+        await consultaViajesService.liberarAsiento(viaje.id, asiento.idAsiento, sesion.tokenSesion).catch(() => undefined)
+      }
       try {
-        sesionNueva = await consultaViajesService.crearSesion(viaje.id, MINUTOS_RESERVA_CAMBIO)
-        await consultaViajesService.bloquearAsiento(viaje.id, elegido.idAsiento, sesionNueva.tokenSesion)
+        await consultaViajesService.bloquearAsiento(viaje.id, elegido.idAsiento, sesion.tokenSesion)
       } catch (error) {
-        void liberarReserva(viaje.id, sesionNueva)
-        despachar({ tipo: 'asientoLiberado' })
-        despachar({ tipo: 'aviso', mensaje: mensajeDeError(error, 'No se pudo reservar el asiento. Elija otro.') })
+        despachar({ tipo: 'asientoSoltado' })
+        despachar({ tipo: 'aviso', mensaje: mensajeDeError(error, 'Ese asiento ya fue tomado. Elija otro.') })
         return
       }
 
       despachar({
         tipo: 'asientoReservado',
-        sesion: sesionNueva,
         asiento: {
           idAsiento: elegido.idAsiento,
           numero: elegido.numero,
@@ -296,10 +335,11 @@ export function useCambioViaje(pasaje: ViajeHistorial) {
     [cotizar],
   )
 
-  // El mapa avisa en vivo si el asiento reservado quedó libre (por ejemplo, venció la reserva).
+  // El mapa avisa en vivo si el asiento reservado quedó libre por otra razón (por ejemplo, venció).
   const asientoLiberadoEnServidor = useCallback((idAsiento: number) => {
-    if (estadoRef.current.asiento?.idAsiento === idAsiento && estadoRef.current.apartando === null) {
-      despachar({ tipo: 'reservaPerdida', mensaje: 'El asiento elegido ya no está reservado. Elija el asiento otra vez.' })
+    const actual = estadoRef.current
+    if (actual.asiento?.idAsiento === idAsiento && actual.apartando === null) {
+      despachar({ tipo: 'reservaPerdida', mensaje: 'El asiento elegido ya no está reservado. Elíjalo otra vez.', cerrarSesion: false })
     }
   }, [])
 
@@ -307,7 +347,8 @@ export function useCambioViaje(pasaje: ViajeHistorial) {
     const codigo = codigoDeError(error)
     const mensaje = mensajeDeError(error, 'No se pudo completar el cambio. El pasaje no fue modificado.')
     if (codigo && CODIGOS_ASIENTO_PERDIDO.includes(codigo)) {
-      despachar({ tipo: 'reservaPerdida', mensaje })
+      // Sesión vencida: se abre otra. Asiento tomado: la sesión sigue sirviendo.
+      despachar({ tipo: 'reservaPerdida', mensaje, cerrarSesion: codigo === 'SESION_VENCIDA' })
     } else if (codigo && CODIGOS_PASAJE_NO_CAMBIABLE.includes(codigo)) {
       despachar({ tipo: 'noCambiable', mensaje: mensajeDeRechazo(codigo, mensaje) })
     } else {

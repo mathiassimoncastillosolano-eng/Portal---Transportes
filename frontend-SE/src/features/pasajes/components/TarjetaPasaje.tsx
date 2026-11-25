@@ -47,6 +47,7 @@ export function TarjetaPasaje({ pasaje, onBoleto, onCliente, onPostergar }: Tarj
         </p>
         <div className="flex shrink-0 items-center gap-1.5">
           <Badge tone="neutral">{fase.etiqueta}</Badge>
+          {pasaje.cambiado && <Badge tone="route">Cambiado</Badge>}
           <Badge tone={tono}>{ETIQUETA_ESTADO[pasaje.estadoPasaje]}</Badge>
         </div>
       </div>
@@ -114,16 +115,10 @@ export function TarjetaPasaje({ pasaje, onBoleto, onCliente, onPostergar }: Tarj
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-500">Precio</p>
             <p className="font-display text-xl font-semibold tabular-nums text-text-900">{formatearPrecio(pasaje.precio, pasaje.moneda)}</p>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex shrink-0 items-center justify-end gap-2">
             {puedeCambiarViajes && pasaje.fase === 'PROXIMO' && fueraDePlazo && <AvisoPlazoCambio />}
-            {puedeCambiarViajes && pasaje.fase === 'PROXIMO' && (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={fueraDePlazo}
-                onClick={onPostergar}
-                iconLeft={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
-              >
+            {puedeCambiarViajes && pasaje.fase === 'PROXIMO' && !fueraDePlazo && (
+              <Button variant="outline" size="sm" onClick={onPostergar} iconLeft={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}>
                 Cambiar viaje
               </Button>
             )}

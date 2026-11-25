@@ -49,6 +49,17 @@ export const cambioViajeService = {
   listarIntentos(idPasaje: number) {
     return solicitarApi<IntentoPagoCambio[]>(`${ruta(idPasaje)}/pagos`)
   },
+
+  // Suelta todos los asientos reservados en la sesión. keepalive: el navegador termina el envío
+  // aunque la pestaña se esté cerrando, así el asiento no queda bloqueado para otros.
+  liberarReserva(idViaje: number, tokenSesion: string) {
+    return solicitarApi(`/api/viajes/${idViaje}/sesiones/liberar`, {
+      method: 'POST',
+      autenticar: false,
+      keepalive: true,
+      body: { tokenSesion },
+    }).catch(() => undefined)
+  },
 }
 
 // El backend manda el motivo del rechazo como código en "detalles" (por ejemplo SESION_VENCIDA).

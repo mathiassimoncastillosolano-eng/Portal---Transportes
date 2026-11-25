@@ -1,14 +1,11 @@
-import { ArrowLeft, ArrowRight, CalendarClock, Check, CircleAlert, Loader2, Timer, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarClock, Check, CircleAlert, Loader2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/Button'
 import { Stepper, type StepperStep } from '@/components/ui/Stepper'
 import { BoletoModal } from '@/features/clientes/components/BoletoModal'
 import { formatearPrecio } from '@/features/clientes/utils/boleto'
-import { formatearCuenta } from '@/features/ticketing/components/ReservaTemporal'
-import { useSegundosRestantes } from '@/features/ticketing/hooks/useReservaTemporal'
 import type { ViajeHistorial } from '@/types/cliente'
-import { cn } from '@/utils/cn'
 import { nombrePropio } from '@/utils/formato'
 import { PanelCambio } from './components/PanelCambio'
 import { PantallaResultado } from './components/PantallaResultado'
@@ -36,7 +33,7 @@ function Contenido({ pasaje, onClose, onCambiado }: { pasaje: ViajeHistorial; on
   const procesando = fase === 'procesando'
   const terminado = fase === 'resultado'
   const exito = terminado && resultado?.exito === true
-  const segundos = useSegundosRestantes(estado.sesion?.expiraEn ?? null)
+  const expiraEn = estado.sesion?.expiraEn ?? null
 
   function cerrar() {
     if (procesando) return
@@ -64,13 +61,13 @@ function Contenido({ pasaje, onClose, onCambiado }: { pasaje: ViajeHistorial; on
   const verificacionCompleta = documentos.length > 0 && documentos.every((d) => estado.verificados.includes(d.id))
 
   const pasos: StepperStep[] = [
-    { id: 'verificacion', label: 'Verificación', description: 'Titular y documentos', summary: estado.solicitante === 'TERCERO' ? 'Tercero autorizado' : 'Titular' },
-    { id: 'viaje', label: 'Nuevo viaje', description: 'Ruta, fecha y horario', summary: viaje ? `${viaje.horaSalida} · ${viaje.tipoBus}` : undefined },
-    { id: 'asiento', label: 'Asiento', description: 'Elija el asiento', summary: asiento ? `Asiento ${asiento.numero}` : undefined },
+    { id: 'verificacion', label: 'Verificación', description: 'Documentos', summary: estado.solicitante === 'TERCERO' ? 'Otra persona' : 'Titular' },
+    { id: 'viaje', label: 'Nuevo viaje', description: 'Ruta y fecha', summary: viaje ? `${viaje.horaSalida} · ${viaje.tipoBus}` : undefined },
+    { id: 'asiento', label: 'Asiento', description: 'En el mapa', summary: asiento ? `Asiento ${asiento.numero}` : undefined },
     {
       id: 'tarifa',
       label: 'Tarifa',
-      description: 'Diferencia y confirmación',
+      description: 'Confirmar',
       summary: cotizacion ? (cotizacion.requierePago ? `Cobro ${formatearPrecio(cotizacion.montoAPagar, pasaje.moneda)}` : 'Sin cobro') : undefined,
     },
   ]
@@ -87,10 +84,11 @@ function Contenido({ pasaje, onClose, onCambiado }: { pasaje: ViajeHistorial; on
       ? pagoListoParaRegistrar(estado.pago, cotizacion.montoAPagar)
       : !cotizacion.requiereAceptacion || estado.acepta)
   const etiquetaConfirmar = cotizacion?.requierePago ? 'Registrar pago' : 'Confirmar cambio'
-  const mostrarReserva = segundos !== null && (fase === 'asiento' || fase === 'tarifa' || procesando)
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
+    // z-[70]: por encima del menú lateral, pero debajo del calendario (z-80) y de los selects (z-120),
+    // que abren su panel fuera del modal.
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-6">
       <div className="animate-fade-in absolute inset-0 bg-scrim" onClick={cerrar} aria-hidden="true" />
       <div
         role="dialog"
@@ -98,40 +96,29 @@ function Contenido({ pasaje, onClose, onCambiado }: { pasaje: ViajeHistorial; on
         aria-labelledby="cambiar-viaje-titulo"
         className="animate-scale-in relative flex h-full max-h-[900px] w-full max-w-[1240px] flex-col overflow-hidden rounded-2xl border border-border bg-surface-card shadow-flyout"
       >
-        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-50 text-accent-text">
-              <CalendarClock className="h-5 w-5" aria-hidden="true" />
+        <header className="relative flex shrink-0 items-center justify-between gap-4 overflow-hidden bg-[image:var(--gradient-brand-deep)] px-5 py-4 text-white sm:px-6">
+          {/* Brillo verde suave de la marca en la esquina derecha. */}
+          <span className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-accent-400/20 blur-3xl" aria-hidden="true" />
+          <div className="relative flex min-w-0 items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+              <CalendarClock className="h-5 w-5 text-accent-400" aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <h2 id="cambiar-viaje-titulo" className="font-display text-lg font-semibold leading-tight text-text-900">
+              <h2 id="cambiar-viaje-titulo" className="font-display text-lg font-semibold leading-tight">
                 Cambiar viaje
               </h2>
-              <p className="truncate text-xs tabular-nums text-text-500">
+              <p className="truncate text-xs tabular-nums text-white/70">
                 Boleto {pasaje.numeroBoleto} · {nombrePropio(pasaje.pasajero)}
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-3">
-            {mostrarReserva && (
-              <span
-                role="timer"
-                aria-label={`Reserva del asiento, quedan ${formatearCuenta(segundos)}`}
-                className={cn(
-                  'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tabular-nums',
-                  segundos <= 60 ? 'border-status-out/40 bg-status-out/10 text-danger-500' : 'border-accent-line/40 bg-accent-line/10 text-accent-text',
-                )}
-              >
-                <Timer className="h-3.5 w-3.5" aria-hidden="true" />
-                Asiento reservado {formatearCuenta(segundos)}
-              </span>
-            )}
+          <div className="relative flex shrink-0 items-center gap-3">
             <button
               type="button"
               onClick={cerrar}
               disabled={procesando}
               aria-label="Cerrar"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-text-500 transition-colors hover:bg-surface-hover hover:text-text-900 disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -145,8 +132,9 @@ function Contenido({ pasaje, onClose, onCambiado }: { pasaje: ViajeHistorial; on
         )}
 
         <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)]">
-          <aside className="scrollbar-thin hidden overflow-y-auto border-r border-border bg-surface-sunken/50 p-5 lg:block">
-            <PanelCambio pasaje={pasaje} viaje={viaje} asiento={asiento} cotizacion={cotizacion} />
+          {/* Los boletos quedan fijos: solo se desplaza la parte derecha. */}
+          <aside className="hidden overflow-hidden border-r border-border bg-surface-sunken p-5 lg:block">
+            <PanelCambio pasaje={pasaje} viaje={viaje} asiento={asiento} />
           </aside>
 
           <div className="scrollbar-thin min-h-0 overflow-y-auto px-5 py-5 sm:px-6">
@@ -194,6 +182,7 @@ function Contenido({ pasaje, onClose, onCambiado }: { pasaje: ViajeHistorial; on
                 asiento={asiento}
                 apartando={estado.apartando}
                 cotizacion={cotizacion}
+                expiraEn={expiraEn}
                 onAlternar={(a) => void acciones.alternarAsiento(a)}
                 onAsientoLiberado={acciones.asientoLiberadoEnServidor}
               />
@@ -203,8 +192,8 @@ function Contenido({ pasaje, onClose, onCambiado }: { pasaje: ViajeHistorial; on
               <div aria-busy={procesando} className={procesando ? 'pointer-events-none opacity-60 transition-opacity' : 'transition-opacity'}>
                 <PasoTarifa
                   pasaje={pasaje}
-                  viaje={viaje}
                   cotizacion={cotizacion}
+                  expiraEn={expiraEn}
                   acepta={estado.acepta}
                   pago={estado.pago}
                   intentos={estado.intentos}

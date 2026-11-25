@@ -1,5 +1,5 @@
 import type { AsientoElegido } from '@/features/ticketing/types'
-import type { ConfirmacionCambio, MetodoPagoAgencia } from '@/types/cambioViaje'
+import type { ConfirmacionCambio, IntentoPagoCambio, MetodoPagoAgencia } from '@/types/cambioViaje'
 import type { ViajeHistorial } from '@/types/cliente'
 import type { ViajeConsulta } from '@/types/consultaViaje'
 
@@ -82,15 +82,16 @@ export function documentosRequeridos(
   solicitante: Solicitante,
   pasaje: Pick<ViajeHistorial, 'documento' | 'numeroBoleto'>,
 ): DocumentoRequerido[] {
-  const boleto = { id: 'boleto', texto: `Boleto ${pasaje.numeroBoleto}, impreso o en el celular` }
+  const boleto = { id: 'boleto', texto: `Boleto ${pasaje.numeroBoleto} (impreso o celular)` }
   if (solicitante === 'TITULAR') {
-    return [{ id: 'dni-titular', texto: `DNI original del pasajero (${pasaje.documento}), coincide con el boleto` }, boleto]
+    // pasaje.documento ya viene con el tipo, por ejemplo "DNI 60902621".
+    return [{ id: 'dni-titular', texto: `Original del ${pasaje.documento}` }, boleto]
   }
   return [
-    { id: 'dni-tercero', texto: 'DNI original de la persona que realiza el trámite' },
-    { id: 'copia-dni-titular', texto: `Copia del DNI del pasajero (${pasaje.documento})` },
+    { id: 'dni-tercero', texto: 'DNI original de quien tramita' },
+    { id: 'copia-dni-titular', texto: `Copia del ${pasaje.documento}` },
     boleto,
-    { id: 'carta-poder', texto: 'Carta poder simple firmada por el pasajero' },
+    { id: 'carta-poder', texto: 'Carta poder firmada por el titular' },
   ]
 }
 
@@ -115,12 +116,19 @@ export function pagoListoParaRegistrar(
   return pago.codigo.trim() !== ''
 }
 
+// El backend devuelve todos los intentos del pasaje. Un pago aprobado cierra un cambio,
+// así que los del cambio actual son los que vienen después del último aprobado.
+export function intentosDelCambioActual(intentos: IntentoPagoCambio[]): IntentoPagoCambio[] {
+  const ultimoAprobado = intentos.findLastIndex((intento) => intento.resultado === 'APROBADO')
+  return intentos.slice(ultimoAprobado + 1).map((intento, i) => ({ ...intento, numero: i + 1 }))
+}
+
 export function nuevaClaveDeIntento(): string {
   return crypto.randomUUID()
 }
 
 // El mismo pasaje con los datos del viaje nuevo, para mostrar el boleto actualizado.
-// El precio no cambia: el pasaje conserva su compra y su pago original.
+// El precio es lo que el cliente pagó en total: su compra más la diferencia cobrada (si la hubo).
 export function pasajeDespuesDelCambio(
   pasaje: ViajeHistorial,
   confirmacion: ConfirmacionCambio,
@@ -132,11 +140,12 @@ export function pasajeDespuesDelCambio(
     origen: confirmacion.origen,
     destino: confirmacion.destino,
     fechaSalida: confirmacion.fechaSalida,
-    horaSalida: confirmacion.horaSalida,
+    horaSalida: confirmacion.horaSalida.slice(0, 5),
     fechaLlegada: viaje.fechaLlegada,
     horaLlegada: viaje.horaLlegada,
     asiento: confirmacion.asientoNuevo,
     piso: asiento.piso,
     bus: viaje.tipoBus,
+    precio: pasaje.precio === null ? null : pasaje.precio + confirmacion.importeAdicional,
   }
 }

@@ -69,15 +69,15 @@ export function PantallaResultado({ pasaje, resultado, cotizacion, pisoNuevo, ti
           <ArrowDown className="h-4 w-4 text-text-400" />
           <span className="h-px flex-1 border-t border-dashed border-border-strong" />
         </div>
-        <div className="bg-surface-selected px-5 py-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-accent-text">Nuevo viaje</p>
-          <p className="mt-1 font-display text-lg font-semibold text-text-900">
+        <div className="bg-gradient-to-br from-ink-700 via-ink-600 to-accent-500 px-5 py-4 text-white">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/75">Nuevo viaje</p>
+          <p className="mt-1 font-display text-lg font-semibold">
             {confirmacion.origen} → {confirmacion.destino}
           </p>
-          <p className="text-sm tabular-nums text-text-700">
+          <p className="text-sm tabular-nums text-white/85">
             {formatearFechaLarga(confirmacion.fechaSalida)} · {confirmacion.horaSalida.slice(0, 5)} h{tipoBus ? ` · ${tipoBus}` : ''}
           </p>
-          <p className="mt-1 text-sm font-semibold text-text-900">
+          <p className="mt-1 text-sm font-semibold">
             Asiento {confirmacion.asientoNuevo}
             {pisoNuevo ? ` · Piso ${pisoNuevo}` : ''}
           </p>

@@ -2,8 +2,6 @@ import { Info } from 'lucide-react'
 import { useMemo } from 'react'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { ScheduleFilter } from '@/features/ticketing/components/ScheduleFilter'
-import { TravelFilters } from '@/features/ticketing/components/TravelFilters'
-import { TravelList } from '@/features/ticketing/components/TravelList'
 import { TripResultsBar } from '@/features/ticketing/components/TripResultsBar'
 import { useRutasCiudad } from '@/features/ticketing/hooks/useRutasCiudad'
 import { vistaViajesInicial, type FiltrosViajeForm, type VistaViajes } from '@/features/ticketing/types'
@@ -13,6 +11,9 @@ import type { ViajeHistorial } from '@/types/cliente'
 import type { FranjaId, ViajeConsulta } from '@/types/consultaViaje'
 import { fechaHoyLima } from '@/utils/fechas'
 import { filtrosIniciales } from '../useCambioViaje'
+import { EncabezadoPaso } from './EncabezadoPaso'
+import { FiltrosCambio } from './FiltrosCambio'
+import { ListaViajesCambio } from './ListaViajesCambio'
 
 interface PasoViajeProps {
   pasaje: ViajeHistorial
@@ -36,8 +37,7 @@ function franjaDe(hora: string): FranjaId {
 export function PasoViaje({ pasaje, filtros, vista, viaje, onFiltros, onVista, onRestablecer, onElegir }: PasoViajeProps) {
   const hoy = useMemo(() => fechaHoyLima(), [])
   const { rutas } = useRutasCiudad()
-  const errorFecha = !filtros.fecha ? 'Selecciona una fecha.' : filtros.fecha < hoy ? 'Los viajes anteriores a hoy ya salieron.' : undefined
-  const listo = !errorFecha && filtros.origen.trim() !== '' && filtros.destino.trim() !== ''
+  const listo = filtros.fecha >= hoy && filtros.origen.trim() !== '' && filtros.destino.trim() !== ''
   const clave = listo ? `cambio-${pasaje.idPasaje}|${filtros.origen}|${filtros.destino}|${filtros.fecha}` : null
 
   // El backend ya quita el viaje original y devuelve cuántos ocultó.
@@ -60,41 +60,30 @@ export function PasoViaje({ pasaje, filtros, vista, viaje, onFiltros, onVista, o
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h3 className="font-display text-lg font-semibold text-text-900">¿A qué viaje se cambia?</h3>
-        <p className="mt-0.5 text-sm text-text-500">
-          Puede mantener la ruta o cambiarla, y elegir otra fecha u horario. Solo se pueden elegir viajes con salida futura y asientos disponibles.
-        </p>
-      </div>
+      <EncabezadoPaso paso={2} titulo="Elija el nuevo viaje" ayuda="Cualquier ruta, fecha u horario desde hoy." />
 
-      <section aria-label="Búsqueda de viajes" className="overflow-hidden rounded-[var(--radius-card)] border border-border bg-surface-card shadow-panel">
-        <TravelFilters filtros={filtros} rutas={rutas} hoy={hoy} errorFecha={errorFecha} onFiltros={onFiltros} />
-        <div className="border-t border-border px-4 py-2.5">
-          <ScheduleFilter franjas={vista.franjas} onChange={(franjas) => onVista({ franjas })} />
-        </div>
-      </section>
+      <FiltrosCambio filtros={filtros} rutas={rutas} hoy={hoy} onFiltros={onFiltros} />
+      <ScheduleFilter franjas={vista.franjas} onChange={(franjas) => onVista({ franjas })} />
 
       {listo && (
         <>
           <TripResultsBar total={visibles.length} orden={vista.orden} hayFiltros={hayFiltros} onOrden={(orden) => onVista({ orden })} onReset={onRestablecer} />
 
           {(data?.ocultos ?? 0) > 0 && (
-            <p className="flex items-center gap-2 rounded-lg border border-border-subtle bg-surface-sunken/60 px-3 py-2 text-xs text-text-500">
+            <p className="flex items-center gap-2 rounded-lg bg-route-50 px-3 py-2 text-xs text-route-600">
               <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              El viaje actual del pasaje no aparece en la lista: el nuevo viaje debe ser distinto.
+              El viaje actual del pasaje no se muestra.
             </p>
           )}
 
           <div aria-live="polite">
-            <TravelList
+            <ListaViajesCambio
               viajes={visibles}
               cargando={cargando}
-              error={error ? 'No pudimos consultar los viajes. Inténtalo de nuevo.' : null}
+              error={error}
               seleccionadoId={viaje?.id}
-              hayFiltros={hayFiltros}
-              onSelect={onElegir}
+              onElegir={onElegir}
               onReintentar={reintentar}
-              onReset={onRestablecer}
             />
           </div>
         </>
