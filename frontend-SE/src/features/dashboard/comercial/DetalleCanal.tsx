@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowDownRight, ArrowLeft, ArrowUpRight, Building2, CalendarClock, CalendarDays, CreditCard, Banknote, Smartphone, CalendarCheck, Clock, MapPin, Zap, Globe2, Minus, Repeat, RotateCcw, Star } from 'lucide-react'
+import { ArrowDownRight, ArrowLeft, ArrowUpRight, Building2, CalendarClock, CalendarDays, CreditCard, Banknote, Smartphone, CalendarCheck, Clock, MapPin, Zap, Globe2, Minus, Repeat, RotateCcw, Star, Wallet } from 'lucide-react'
 import type { Canal, Totales } from './modelo'
 import { participacion, variacion } from './modelo'
 import { ciudadesSalidaEjemplo, datosDetalleEjemplo } from './datosDetalleEjemplo'
@@ -7,6 +7,7 @@ import {
   anticipacionEjemplo, cambiosConDiferenciaEjemplo, comprasPorHorarioEjemplo, diasSemana, franjasHorarias,
   incidenciasCanalEjemplo, metodosPagoEjemplo, vendedoresEjemplo, type Segmento,
 } from './datosCanalEjemplo'
+import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import { ConversionPortal } from './OperacionDashboard'
 import { coloresRanking } from './paletaRanking'
 import { TemaComercial } from './TemaComercial'
@@ -33,7 +34,6 @@ const moneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PE
 const precio = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 })
 const numero = new Intl.NumberFormat('es-PE')
 const decimal = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const coloresSegmento = ['var(--serie-1)', 'var(--serie-2)', 'var(--serie-3)', 'var(--serie-4)']
 
 /** neutral: comparación entre canales (no es mejora ni caída), se muestra en gris. */
 function Variacion({ valor, texto, neutral = false }: { valor: number | null; texto: string; neutral?: boolean }) {
@@ -65,38 +65,54 @@ function Tarjeta({ titulo, detalle, children, className = '' }: { titulo: string
 const iconosPago: Record<string, typeof CreditCard> = { Tarjeta: CreditCard, Yape: Smartphone, Efectivo: Banknote }
 
 function MetodosPago({ filas }: { filas: Segmento[] }) {
+  const [activo, setActivo] = useState<number | null>(null)
   const total = filas.reduce((suma, fila) => suma + fila.ingresos, 0)
   const principal = [...filas].sort((a, b) => b.ingresos - a.ingresos)[0]
   const IconoPrincipal = principal ? iconosPago[principal.nombre] ?? CreditCard : CreditCard
+  const centro = activo === null ? null : filas[activo]
+  const IconoCentro = centro ? iconosPago[centro.nombre] ?? CreditCard : Wallet
 
   return (
     <div className="mt-5 flex flex-1 flex-col">
-      <div className="flex h-7 overflow-hidden rounded-lg" role="img" aria-label={filas.map((fila) => `${fila.nombre} ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
-        {filas.map((fila, indice) => {
-          const porcentaje = participacion(fila.ingresos, total)
-          return <div key={fila.nombre} className="flex h-full items-center justify-center text-xs font-bold text-white" style={{ width: `${porcentaje}%`, backgroundColor: coloresSegmento[indice] }}>{porcentaje >= 12 ? `${porcentaje.toFixed(0)} %` : ''}</div>
-        })}
+      <div className="grid items-center gap-5 sm:grid-cols-[11rem_minmax(0,1fr)]">
+        <div className="relative mx-auto size-44" role="img" aria-label={filas.map((fila) => `${fila.nombre} ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={filas} dataKey="ingresos" nameKey="nombre" innerRadius="64%" outerRadius="100%" paddingAngle={3} stroke="none" isAnimationActive={false}
+                onMouseEnter={(_, indice) => setActivo(indice)} onMouseLeave={() => setActivo(null)}>
+                {filas.map((fila, indice) => <Cell key={fila.nombre} fill={coloresInfografia[indice]} opacity={activo === null || activo === indice ? 1 : 0.35} />)}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+            <IconoCentro size={18} style={{ color: centro ? coloresInfografia[activo ?? 0] : 'var(--color-text-500)' }} aria-hidden="true" />
+            <span className="mt-0.5 font-display text-lg font-bold tabular-nums text-text-900">{centro ? `${participacion(centro.ingresos, total).toFixed(0)} %` : moneda.format(total)}</span>
+            <span className="text-[11px] text-text-500">{centro ? centro.nombre : 'Total'}</span>
+          </div>
+        </div>
+        <ul className="space-y-2">
+          {filas.map((fila, indice) => {
+            const Icono = iconosPago[fila.nombre] ?? CreditCard
+            const color = coloresInfografia[indice]
+            return (
+              <li key={fila.nombre}>
+                <button type="button" onMouseEnter={() => setActivo(indice)} onMouseLeave={() => setActivo(null)} onFocus={() => setActivo(indice)} onBlur={() => setActivo(null)}
+                  className={`flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-colors ${activo === indice ? 'bg-surface-sunken' : 'border-border'}`} style={activo === indice ? { borderColor: color } : undefined}>
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, ${color} 18%, transparent)`, color }}><Icono size={18} aria-hidden="true" /></span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-text-900">{fila.nombre}</span>
+                    <span className="block text-xs tabular-nums text-text-500">{moneda.format(fila.ingresos)} · {numero.format(fila.pasajes)} pasajes</span>
+                  </span>
+                  <span className="ml-auto font-display text-lg font-bold tabular-nums text-text-900">{participacion(fila.ingresos, total).toFixed(0)} %</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
       </div>
-      <ul className={`mt-4 grid gap-3 ${filas.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
-        {filas.map((fila, indice) => {
-          const Icono = iconosPago[fila.nombre] ?? CreditCard
-          const color = coloresSegmento[indice]
-          return (
-            <li key={fila.nombre} className="rounded-xl border border-border p-3" style={{ borderTop: `3px solid ${color}` }}>
-              <div className="flex items-center gap-2">
-                <span className="flex size-9 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, ${color} 18%, transparent)`, color }}><Icono size={18} aria-hidden="true" /></span>
-                <span className="text-sm font-semibold text-text-900">{fila.nombre}</span>
-              </div>
-              <p className="mt-3 font-display text-2xl font-bold tabular-nums text-text-900">{participacion(fila.ingresos, total).toFixed(0)} %</p>
-              <p className="text-xs tabular-nums text-text-700">{moneda.format(fila.ingresos)}</p>
-              <p className="text-xs tabular-nums text-text-500">{numero.format(fila.pasajes)} pasajes</p>
-            </li>
-          )
-        })}
-      </ul>
       {principal && (
         <div className="mt-auto pt-4"><p className="flex items-center gap-2 rounded-xl bg-surface-sunken px-3 py-2.5 text-xs text-text-700">
-          <IconoPrincipal size={16} className="shrink-0" style={{ color: coloresSegmento[filas.indexOf(principal)] }} aria-hidden="true" />
+          <IconoPrincipal size={16} className="shrink-0" style={{ color: coloresInfografia[filas.indexOf(principal)] }} aria-hidden="true" />
           <span><strong className="text-text-900">{principal.nombre}</strong> es el medio más usado: {participacion(principal.ingresos, total).toFixed(0)} % de los ingresos.</span>
         </p></div>
       )}
@@ -193,34 +209,71 @@ function AnticipacionCompra({ filas, esWeb }: { filas: Segmento[]; esWeb: boolea
 }
 
 /** Mapa de bloques: cada sede ocupa un espacio proporcional a sus ingresos. */
+/** Colores de la infografía de referencia: 01 rojo, 02 magenta, 03 verde, 04 naranja, 05 turquesa. */
+const coloresInfografia = ['#d9544a', '#a8457a', '#7cb35a', '#e08a3c', '#3a9aa3', '#6b7f8e']
+
+/**
+ * Columnas con punta de flecha, piso en perspectiva y líneas guía hacia la leyenda.
+ * La más alta va al centro, como en la referencia (orden 05 · 02 · 01 · 04 · 03).
+ */
 function VentasPorSede({ filas }: { filas: Resumen[] }) {
   const total = filas.reduce((suma, fila) => suma + fila.ingresos, 0)
+  const top = filas.slice(0, 5)
+  const mayor = Math.max(...top.map((fila) => fila.ingresos), 1)
+  const ordenVisual = [4, 1, 0, 3, 2].filter((indice) => indice < top.length)
   const principales = filas.slice(0, 2)
-  const resto = filas.slice(2, 6)
   const cuotaPrincipales = participacion(principales.reduce((suma, fila) => suma + fila.ingresos, 0), total)
 
-  const bloque = (fila: Resumen, indice: number, grande: boolean) => {
-    const { fondo, texto } = coloresRanking[indice]
-    const porcentaje = participacion(fila.ingresos, total)
-    return (
-      <div key={fila.nombre} title={`${fila.nombre}: ${moneda.format(fila.ingresos)} · ${fila.pasajes} pasajes · ${porcentaje.toFixed(1)} %`}
-        className="flex min-w-0 flex-col justify-between overflow-hidden rounded-xl p-3" style={{ flexGrow: Math.max(fila.ingresos, total * 0.06), flexBasis: 0, minWidth: grande ? 0 : '4.5rem', backgroundColor: fondo, color: texto }}>
-        <span className="flex items-center gap-1 truncate text-xs font-semibold"><MapPin size={14} className="shrink-0" aria-hidden="true" />{fila.nombre}</span>
-        <span className="mt-2">
-          <span className={`block font-display font-bold tabular-nums ${grande ? 'text-2xl' : 'text-base'}`}>{porcentaje.toFixed(0)} %</span>
-          <span className="block truncate text-[11px] tabular-nums opacity-90">{moneda.format(fila.ingresos)}{grande ? ` · ${numero.format(fila.pasajes)} pasajes` : ''}</span>
-        </span>
-      </div>
-    )
-  }
+  const ancho = 46
+  const separacion = 8
+  const base = 250
+  const alturaMax = 150
+  const inicioX = 12
+  const leyendaX = 300
+  const leyendaY = (rank: number) => 22 + rank * 30
 
   return (
-    <div className="mt-5 flex flex-1 flex-col">
-      <div className="flex min-h-64 flex-1 flex-col gap-2" role="img" aria-label={filas.slice(0, 6).map((fila) => `${fila.nombre} ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
-        <div className="flex min-h-36 flex-[3] gap-2">{principales.map((fila, indice) => bloque(fila, indice, true))}</div>
-        {resto.length > 0 && <div className="flex min-h-24 flex-[2] gap-2">{resto.map((fila, indice) => bloque(fila, indice + 2, false))}</div>}
-      </div>
-      <div className="mt-auto pt-4">
+    <div className="mt-4 flex flex-1 flex-col">
+      <svg viewBox="0 0 620 310" className="mx-auto h-auto max-h-96 w-full" role="img" aria-label={top.map((fila, i) => `${String(i + 1).padStart(2, '0')} ${fila.nombre}: ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
+        {ordenVisual.map((rank, posicion) => {
+          const fila = top[rank]
+          const color = coloresInfografia[rank]
+          const x = inicioX + posicion * (ancho + separacion)
+          const alto = Math.max((fila.ingresos / mayor) * alturaMax, 28)
+          const tope = base - alto
+          const centroX = x + ancho / 2
+          const puntoY = tope - 16
+          const y = leyendaY(rank)
+          const dx = (posicion - (ordenVisual.length - 1) / 2) * 26
+          const piso = `${x},${base} ${x + ancho},${base} ${x + ancho + dx + 6},${base + 50} ${x + dx - 6},${base + 50}`
+          return (
+            <g key={fila.nombre}>
+              <polygon points={piso} fill={color} opacity="0.75" />
+              <polygon points={`${x},${tope + 14} ${centroX},${tope} ${x + ancho},${tope + 14} ${x + ancho},${base} ${x},${base}`} fill={color} />
+              <polyline points={`${x + 7},${tope + 22} ${centroX},${tope + 10} ${x + ancho - 7},${tope + 22}`} fill="none" stroke="white" strokeWidth="2.5" strokeLinejoin="round" opacity="0.9" />
+              <text x={centroX} y={tope + 44} textAnchor="middle" fill="white" fontSize="16" fontWeight="700">{String(rank + 1).padStart(2, '0')}</text>
+              <polyline points={`${centroX},${puntoY} ${centroX},${y} ${leyendaX - 8},${y}`} fill="none" stroke={color} strokeWidth="1.2" />
+              <circle cx={centroX} cy={puntoY} r="4" fill={color} />
+            </g>
+          )
+        })}
+        {top.map((fila, rank) => {
+          const color = coloresInfografia[rank]
+          const y = leyendaY(rank)
+          return (
+            <g key={fila.nombre} transform={`translate(${leyendaX}, ${y})`}>
+              <rect x="0" y="-9" width="18" height="18" rx="4" fill={color} />
+              <path d="M9 -5 a3.6 3.6 0 0 1 3.6 3.6 c0 2.7 -3.6 6.3 -3.6 6.3 s-3.6 -3.6 -3.6 -6.3 A3.6 3.6 0 0 1 9 -5 z" fill="white" />
+              <circle cx="9" cy="-1.4" r="1.3" fill={color} />
+              <text x="26" y="4.5" fontSize="13" fontWeight="700" fill="var(--color-text-900)">{fila.nombre}</text>
+              <text x="314" y="4.5" textAnchor="end" fontSize="12" fill="var(--color-text-500)">
+                {moneda.format(fila.ingresos)} · <tspan fontWeight="700" fill={color}>{participacion(fila.ingresos, total).toFixed(0)} %</tspan>
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+      <div className="mt-auto pt-3">
         <p className="flex items-center gap-2 rounded-xl bg-surface-sunken px-3 py-2.5 text-xs text-text-700">
           <MapPin size={16} className="shrink-0 text-text-500" aria-hidden="true" />
           <span><strong className="text-text-900">{principales.map((fila) => fila.nombre).join(' y ')}</strong> concentran el {cuotaPrincipales.toFixed(0)} % de las ventas en mostrador.</span>
@@ -375,8 +428,8 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
               <MapaHorario valores={comprasPorHorarioEjemplo(filtrado)} color={color} />
             </Tarjeta>
           ) : (
-            <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-              <Tarjeta className="flex flex-col" titulo="Ventas por sede" detalle="El tamaño de cada bloque es su parte de los ingresos">
+            <div className="grid gap-4">
+              <Tarjeta className="flex flex-col" titulo="Ventas por sede" detalle="Las 5 sedes que más venden en mostrador">
                 <VentasPorSede filas={sedes} />
               </Tarjeta>
               <Tarjeta titulo="Ranking de vendedores" detalle="Pasajes e ingresos por empleado (id_empleado)">
