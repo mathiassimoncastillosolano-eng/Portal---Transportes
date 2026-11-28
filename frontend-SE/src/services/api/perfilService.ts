@@ -15,8 +15,15 @@ export interface CambiosPerfil {
   nroTelefono: string
 }
 
-/** GET/PUT /api/usuarios/perfil: el mismo endpoint que usa el Portal, válido para empleados. */
+export interface CambioContrasena {
+  contrasenaActual: string
+  contrasenaNueva: string
+  confirmacion: string
+}
+
+/** GET/PUT /api/usuarios/perfil (el mismo que usa el Portal) y PUT /api/usuarios/contrasena. */
 export const perfilService = {
   obtener: () => solicitarApi<PerfilUsuario>('/api/usuarios/perfil'),
   actualizar: (cambios: CambiosPerfil) => solicitarApi<PerfilUsuario>('/api/usuarios/perfil', { method: 'PUT', body: cambios }),
+  cambiarContrasena: (datos: CambioContrasena) => solicitarApi<void>('/api/usuarios/contrasena', { method: 'PUT', body: datos }),
 }

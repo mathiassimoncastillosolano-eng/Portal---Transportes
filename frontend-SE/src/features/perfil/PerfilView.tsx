@@ -6,6 +6,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { perfilService } from '@/services/api/perfilService'
 import { esApiError } from '@/services/api/httpClient'
 import { TODAS_LAS_SEDES, useAuthStore } from '@/stores/authStore'
+import { CambiarContrasena } from './CambiarContrasena'
 import { useToastStore } from '@/stores/toastStore'
 
 const TELEFONO_VALIDO = /^$|^[0-9+\s-]{6,20}$/
@@ -94,7 +95,7 @@ export function PerfilView() {
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">Cuenta</p>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-text-900">Mi perfil</h1>
-        <p className="mt-2 text-sm text-text-500">Revisa tus datos y mantén actualizado tu número de contacto.</p>
+        <p className="mt-2 text-sm text-text-500">Revisa tus datos, mantén actualizado tu número de contacto y cambia tu contraseña.</p>
       </div>
 
       {cargando ? (
@@ -116,6 +117,7 @@ export function PerfilView() {
             </div>
           </aside>
 
+          <div className="space-y-6">
           <form onSubmit={guardar} noValidate className="space-y-6 rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
             <section className="space-y-4">
               <h2 className="flex items-center gap-2 font-display text-lg font-bold text-text-900"><UserRound size={18} aria-hidden="true" />Datos personales</h2>
@@ -144,6 +146,8 @@ export function PerfilView() {
               <Button type="submit" variant="accent" loading={guardando} disabled={!hayCambios} iconLeft={<Save size={16} />}>Guardar cambios</Button>
             </div>
           </form>
+          <CambiarContrasena />
+          </div>
         </div>
       )}
     </div>
