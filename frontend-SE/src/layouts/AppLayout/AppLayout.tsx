@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { CommandPalette } from '@/components/command/CommandPalette'
-import { PerfilModal } from '@/components/perfil/PerfilModal'
 import { homeSectionFor } from '@/config/navigation'
 import { TODAS_LAS_SEDES, useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
@@ -50,7 +49,6 @@ export function AppLayout() {
         <MainContent />
       </div>
       <CommandPalette />
-      <PerfilModal />
     </div>
   )
 }

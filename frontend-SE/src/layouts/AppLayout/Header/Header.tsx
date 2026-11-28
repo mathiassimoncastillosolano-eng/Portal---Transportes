@@ -39,14 +39,16 @@ export function Header() {
         <div className="hidden min-w-0 sm:block">
           <Breadcrumbs />
         </div>
+        <div className="mx-2 hidden h-7 w-px bg-border lg:block" aria-hidden="true" />
+        <div className="hidden lg:block">
+          <Saludo />
+        </div>
       </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
-        <Saludo />
-        <div className="mx-1.5 hidden h-6 w-px bg-border md:block" aria-hidden="true" />
+      <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
         <CommandTrigger />
         <ThemeToggle />
-        <div className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
+        <div className="mx-1 hidden h-7 w-px bg-border sm:block" aria-hidden="true" />
         <UserMenu />
       </div>
     </header>

@@ -1,8 +1,7 @@
-import { ChevronDown, LogOut, UserRoundPen } from 'lucide-react'
+import { ChevronDown, LogOut } from 'lucide-react'
 import { Dropdown } from '@/components/ui/Dropdown'
 import { Avatar } from '@/components/ui/Avatar'
 import { useAuthStore } from '@/stores/authStore'
-import { useUIStore } from '@/stores/uiStore'
 import { cn } from '@/utils/cn'
 
 const roleLabels: Record<string, string> = {
@@ -19,7 +18,6 @@ const roleLabels: Record<string, string> = {
 export function UserMenu() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
-  const abrirPerfil = useUIStore((s) => s.setPerfilOpen)
 
   if (!user) return null
 
@@ -49,15 +47,6 @@ export function UserMenu() {
         <p className="truncate text-xs text-text-500">{user.email}</p>
       </div>
       <div className="my-1 h-px bg-border" role="separator" />
-      <button
-        type="button"
-        role="menuitem"
-        onClick={() => abrirPerfil(true)}
-        className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-text-700 transition-colors hover:bg-surface-sunken hover:text-text-900"
-      >
-        <UserRoundPen className="h-4 w-4" aria-hidden="true" />
-        Mi perfil
-      </button>
       <button
         type="button"
         role="menuitem"

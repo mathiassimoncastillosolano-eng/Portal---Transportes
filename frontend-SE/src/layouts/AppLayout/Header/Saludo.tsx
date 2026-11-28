@@ -29,7 +29,7 @@ export function Saludo() {
 
   // Texto simple (sin borde ni fondo) para que no parezca un botón o un selector.
   return (
-    <p className="hidden min-w-0 items-center gap-2.5 md:flex">
+    <p className="flex min-w-0 items-center gap-2.5">
       <Icono className="h-5 w-5 shrink-0" style={{ color }} aria-hidden="true" />
       <span className="min-w-0 leading-tight">
         <span className="block truncate text-sm font-semibold text-text-900">{texto}, {primerNombre}</span>
