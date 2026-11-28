@@ -414,7 +414,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
   // Ranking de orígenes: respeta el servicio pero no la ciudad, para ver en qué puesto queda la elegida.
   const origenes = agrupar(filas.filter((fila) => servicio === 'todos' || fila.servicio === servicio), 'ciudadSalida')
     .sort((a, b) => b.pasajes - a.pasajes)
-  const ciudadesFiltro = esWeb ? [...new Set(filas.map((fila) => fila.ciudadSalida))].sort((a, b) => a.localeCompare(b, 'es')) : ciudadesSalidaEjemplo
+  const ciudadesFiltro = ciudadesSalidaEjemplo
   const ticket = pasajes === 0 ? 0 : ingresos / pasajes
   const ticketOtro = otroCanal.pasajes === 0 ? 0 : otroCanal.ingresos / otroCanal.pasajes
   const pasajesPorCompra = totales.compras === 0 ? 0 : totales.pasajes / totales.compras
