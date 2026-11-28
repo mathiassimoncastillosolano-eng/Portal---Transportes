@@ -24,7 +24,7 @@ export const ciudadesSalidaEjemplo = [
 
 /**
  * Rutas regionales de las ciudades que no son origen de las 10 rutas principales.
- * Se llevan una parte pequeña de las ventas para que las 17 ciudades aparezcan como origen.
+ * Se llevan una parte pequeña de las ventas para que las 17 ciudades aparezcan como origen y destino.
  */
 const rutasRegionales: { origen: string; destino: string; peso: number }[] = [
   { origen: 'Chimbote', destino: 'Lima', peso: 0.026 },
@@ -66,8 +66,15 @@ export function datosDetalleEjemplo(canal: Canal, totales: Totales): VentaDetall
 
   const filasPrincipales = rutasPorCanalEjemplo(canal, principales).flatMap((ruta) =>
     desglosar(ruta.nombre, ruta.nombre.split(' → ')[0], ruta.pasajes, ruta.ingresos))
-  const filasRegionales = rutasRegionales.flatMap((ruta, indice) =>
-    desglosar(`${ruta.origen} → ${ruta.destino}`, ruta.origen, pasajes[indice + 1], ingresos[indice + 1]))
+  // Cada ruta regional tiene ida y vuelta, así las 17 ciudades son origen y también destino.
+  const filasRegionales = rutasRegionales.flatMap((ruta, indice) => {
+    const pasajesIda = Math.ceil(pasajes[indice + 1] * 0.55)
+    const ingresosIda = Math.ceil(ingresos[indice + 1] * 0.55)
+    return [
+      ...desglosar(`${ruta.origen} → ${ruta.destino}`, ruta.origen, pasajesIda, ingresosIda),
+      ...desglosar(`${ruta.destino} → ${ruta.origen}`, ruta.destino, pasajes[indice + 1] - pasajesIda, ingresos[indice + 1] - ingresosIda),
+    ]
+  })
   return [...filasPrincipales, ...filasRegionales]
 }
 
