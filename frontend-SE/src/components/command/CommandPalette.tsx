@@ -6,11 +6,15 @@ import {
   LayoutDashboard,
   Search,
   SearchX,
+  LogOut,
+  SunMoon,
   Ticket,
+  UserRoundPen,
   UserRoundSearch,
 } from 'lucide-react'
 import { hasPermission, useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
+import { resolveTheme, useThemeStore } from '@/stores/themeStore'
 import { cn } from '@/utils/cn'
 import type { Comando } from './comando'
 import { useComandosDashboard } from './useComandosDashboard'
@@ -53,7 +57,12 @@ export function CommandPalette() {
 function PaletaAbierta() {
   const setAbierto = useUIStore((s) => s.setCommandPaletteOpen)
   const setActiveSection = useUIStore((s) => s.setActiveSection)
+  const setPerfilOpen = useUIStore((s) => s.setPerfilOpen)
   const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const modoTema = useThemeStore((s) => s.mode)
+  const setModoTema = useThemeStore((s) => s.setMode)
+  const oscuro = resolveTheme(modoTema) === 'dark'
 
   const [consulta, setConsulta] = useState('')
   const [activo, setActivo] = useState(0)
@@ -70,8 +79,11 @@ function PaletaAbierta() {
       { id: 'ventas', titulo: 'Ver ventas', descripcion: 'Ingresos y ocupación en el Dashboard', icono: <LayoutDashboard className={icono} />, claves: 'ingresos dashboard kpi', permiso: 'dashboard:ver', ejecutar: ir('dashboard') },
       { id: 'pasajero', titulo: 'Buscar pasajero', descripcion: 'Por documento o nombre', icono: <UserRoundSearch className={icono} />, claves: 'cliente dni documento', permiso: 'pasajes:registrar', ejecutar: ir('clientes') },
       { id: 'viaje', titulo: 'Consultar viaje', descripcion: 'Estado y manifiesto de un viaje', icono: <BookOpenCheck className={icono} />, claves: 'manifiesto codigo', pronto: true },
+      { id: 'perfil', titulo: 'Mi perfil', descripcion: 'Editar nombre y número de celular', icono: <UserRoundPen className={icono} />, claves: 'cuenta datos correo telefono celular editar', ejecutar: () => setPerfilOpen(true) },
+      { id: 'tema', titulo: oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro', descripcion: 'Apariencia del sistema', icono: <SunMoon className={icono} />, claves: 'tema oscuro claro apariencia', ejecutar: () => setModoTema(oscuro ? 'light' : 'dark') },
+      { id: 'salir', titulo: 'Cerrar sesión', descripcion: 'Salir del Sistema Empresarial', icono: <LogOut className={icono} />, claves: 'salir logout', ejecutar: logout },
     ]
-  }, [setActiveSection])
+  }, [setActiveSection, setPerfilOpen, oscuro, setModoTema, logout])
 
   // Sin texto: solo las acciones principales. Con texto: todo lo que coincida, incluidos los filtros.
   const filtrados = useMemo(() => {

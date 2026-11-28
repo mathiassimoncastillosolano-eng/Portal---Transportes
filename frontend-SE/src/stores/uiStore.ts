@@ -40,6 +40,10 @@ interface UIState {
   // --- Command palette (Ctrl/⌘ + K). Estado efímero: nunca se persiste. ---
   commandPaletteOpen: boolean
   setCommandPaletteOpen: (open: boolean) => void
+
+  // --- Modal "Mi perfil". Estado efímero: nunca se persiste. ---
+  perfilOpen: boolean
+  setPerfilOpen: (open: boolean) => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -65,6 +69,9 @@ export const useUIStore = create<UIState>()(
 
       commandPaletteOpen: false,
       setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+
+      perfilOpen: false,
+      setPerfilOpen: (open) => set({ perfilOpen: open }),
     }),
     {
       name: 'rutalibre-ui-preferences',
