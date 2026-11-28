@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { AlertTriangle, ArrowRight, CalendarClock, CreditCard, RotateCcw, Search, Ticket } from 'lucide-react'
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import type { DatosOperacion, FilaRanking, RutaOcupacion, SalidaEnRiesgo } from './datosOperacionEjemplo'
 import { ocupacionTotal } from './datosOperacionEjemplo'
 
@@ -11,7 +10,7 @@ interface Props {
 
 const moneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 })
 const numero = new Intl.NumberFormat('es-PE')
-const coloresServicio = ['var(--color-chart-1)', 'var(--color-chart-2)', 'var(--color-chart-3)', 'var(--color-chart-4)']
+const coloresServicio = ['var(--serie-1)', 'var(--serie-2)', 'var(--serie-3)', 'var(--serie-4)']
 
 function ocupacion(vendidos: number, capacidad: number): number {
   return capacidad === 0 ? 0 : (vendidos / capacidad) * 100
@@ -19,7 +18,7 @@ function ocupacion(vendidos: number, capacidad: number): number {
 
 function BarraOcupacion({ fila }: { fila: RutaOcupacion }) {
   const porcentaje = ocupacion(fila.vendidos, fila.capacidad)
-  const color = porcentaje < 60 ? 'var(--color-warning-text)' : 'var(--color-accent-500)'
+  const color = porcentaje < 60 ? 'var(--color-warning-text)' : 'var(--serie-neutra)'
 
   return (
     <li className="space-y-2">
@@ -160,35 +159,26 @@ function TablaRutas({ filas }: { filas: FilaRanking[] }) {
 
 function Servicios({ filas }: { filas: FilaRanking[] }) {
   const total = filas.reduce((suma, fila) => suma + fila.ingresos, 0)
+  const ordenadas = [...filas].sort((a, b) => b.ingresos - a.ingresos)
 
   return (
     <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
-      <h3 className="font-display text-lg font-bold text-text-900">Distribución por servicio</h3>
-      <p className="mt-1 text-sm text-text-500">Participación en ingresos de ambos canales</p>
-      <div className="relative mx-auto mt-3 h-48 max-w-64" role="img" aria-label="Distribución de ingresos por tipo de servicio">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie data={filas} dataKey="ingresos" nameKey="nombre" innerRadius={66} outerRadius={89} paddingAngle={3} stroke="none">
-              {filas.map((fila, indice) => <Cell key={fila.nombre} fill={coloresServicio[indice]} />)}
-            </Pie>
-            <Tooltip formatter={(valor, nombre) => [moneda.format(Number(valor)), nombre]} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xs text-text-500">Total</span>
-          <strong className="font-display text-lg text-text-900">{moneda.format(total)}</strong>
-        </div>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="font-display text-lg font-bold text-text-900">Distribución por servicio</h3>
+        <span className="text-sm text-text-700">Total <strong className="tabular-nums text-text-900">{moneda.format(total)}</strong></span>
       </div>
-      <ul className="mt-2 space-y-3">
-        {filas.map((fila, indice) => {
+      <p className="mt-1 text-sm text-text-500">Participación en ingresos de ambos canales</p>
+      <ul className="mt-6 space-y-5">
+        {ordenadas.map((fila) => {
           const porcentaje = total === 0 ? 0 : (fila.ingresos / total) * 100
+          const color = coloresServicio[filas.indexOf(fila)]
           return (
             <li key={fila.nombre}>
-              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
-                <span className="flex items-center gap-2 text-text-900"><i className="size-2.5 rounded-full" style={{ backgroundColor: coloresServicio[indice] }} />{fila.nombre}</span>
-                <span className="ml-auto tabular-nums text-text-700">{moneda.format(fila.ingresos)} · <strong>{porcentaje.toFixed(1)} %</strong></span>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
+                <span className="flex items-center gap-2 font-medium text-text-900"><i className="size-2.5 rounded-full" style={{ backgroundColor: color }} />{fila.nombre}</span>
+                <span className="ml-auto tabular-nums text-text-700"><strong className="text-text-900">{porcentaje.toFixed(1)} %</strong> · {moneda.format(fila.ingresos)} · {numero.format(fila.pasajes)} pasajes</span>
               </div>
-              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true"><div className="h-full" style={{ width: `${porcentaje}%`, backgroundColor: coloresServicio[indice] }} /></div>
+              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true"><div className="h-full rounded-full" style={{ width: `${porcentaje}%`, backgroundColor: color }} /></div>
             </li>
           )
         })}
@@ -228,7 +218,7 @@ export function IncidenciasResumen({ datos, periodo }: Props) {
       <ul className="mt-4 grid gap-3 sm:grid-cols-3">
         {items.map(({ titulo, valor, Icono }) => (
           <li key={titulo} className="flex items-center gap-3 rounded-xl bg-surface-sunken px-4 py-3">
-            <Icono size={18} className="shrink-0 text-route-500" aria-hidden="true" />
+            <Icono size={18} className="shrink-0" style={{ color: 'var(--serie-neutra)' }} aria-hidden="true" />
             <span className="text-sm text-text-700">{titulo}</span>
             <strong className="ml-auto font-display text-xl tabular-nums text-text-900">{valor}</strong>
           </li>
@@ -264,7 +254,7 @@ export function PanoramaRutas({ datos, periodo }: Props) {
       </article>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Ranking titulo="Rutas de mayor ingreso" detalle={`5 rutas principales de ambos canales · últimos ${periodo} días`} filas={datos.rutasPorIngreso} color="var(--color-accent-500)" />
+        <Ranking titulo="Rutas de mayor ingreso" detalle={`5 rutas principales de ambos canales · últimos ${periodo} días`} filas={datos.rutasPorIngreso} color="var(--serie-neutra)" />
         <Servicios filas={datos.servicios} />
       </div>
       <TablaRutas filas={datos.rutasPorIngreso} />

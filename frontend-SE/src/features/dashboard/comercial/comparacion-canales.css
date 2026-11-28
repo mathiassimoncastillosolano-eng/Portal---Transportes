@@ -1,3 +1,26 @@
+/* Paleta del dashboard comercial.
+ * Canales: Web (verde) y Agencia (azul), siempre con los mismos colores.
+ * Series: categorías que no son canales (métodos de pago, servicios, anticipación). */
+:root {
+  --canal-web: #16a34a;
+  --canal-agencia: #2f6fe0;
+  --serie-neutra: #52667a;
+  --serie-1: #d18a1f;
+  --serie-2: #8b5cf6;
+  --serie-3: #e05d7a;
+  --serie-4: #52667a;
+}
+
+:root.dark {
+  --canal-web: #3ccda3;
+  --canal-agencia: #6f9cf5;
+  --serie-neutra: #9fb0c2;
+  --serie-1: #e6a74a;
+  --serie-2: #a78bfa;
+  --serie-3: #f17f98;
+  --serie-4: #9fb0c2;
+}
+
 .comercial-indicador-principal {
   border-color: #087b42;
   background: linear-gradient(135deg, #087b42, #0ba75a);
@@ -9,38 +32,19 @@
 }
 
 .comparacion-canal-pista {
-  height: 24px;
+  height: 10px;
   overflow: hidden;
-  border-radius: 7px;
-  background: var(--color-surface-card);
-  box-shadow: inset 0 2px 4px rgb(15 38 45 / 12%);
+  border-radius: 999px;
+  background: var(--color-surface-sunken);
 }
 
 .comparacion-canal-barra {
-  position: relative;
   height: 100%;
   min-width: 0;
-  border-radius: 7px;
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--barra-color), white 26%),
-    var(--barra-color) 45%,
-    color-mix(in srgb, var(--barra-color), black 20%)
-  );
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 48%), inset 0 -2px 0 rgb(0 0 0 / 12%);
+  border-radius: 999px;
+  background: var(--barra-color);
   transform-origin: left center;
-  animation: comparacion-entrada 550ms ease-out both;
-}
-
-.comparacion-canal-barra::after {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  bottom: 2px;
-  width: 6px;
-  border-radius: 0 5px 5px 0;
-  background: rgb(0 0 0 / 16%);
-  content: '';
+  animation: comparacion-entrada 450ms ease-out both;
 }
 
 @keyframes comparacion-entrada {

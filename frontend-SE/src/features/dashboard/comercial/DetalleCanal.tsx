@@ -32,11 +32,12 @@ const moneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PE
 const precio = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 })
 const numero = new Intl.NumberFormat('es-PE')
 const decimal = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const coloresSegmento = ['var(--color-chart-1)', 'var(--color-chart-2)', 'var(--color-chart-3)', 'var(--color-chart-4)']
+const coloresSegmento = ['var(--serie-1)', 'var(--serie-2)', 'var(--serie-3)', 'var(--serie-4)']
 
-function Variacion({ valor, texto }: { valor: number | null; texto: string }) {
+/** neutral: comparación entre canales (no es mejora ni caída), se muestra en gris. */
+function Variacion({ valor, texto, neutral = false }: { valor: number | null; texto: string; neutral?: boolean }) {
   const Icono = valor === null || Math.abs(valor) < 0.05 ? Minus : valor > 0 ? ArrowUpRight : ArrowDownRight
-  const color = valor !== null && valor < 0 ? 'text-red-600' : 'text-accent-text'
+  const color = neutral ? 'text-text-500' : valor !== null && valor < 0 ? 'text-red-600' : 'text-accent-text'
   return <span className={`inline-flex items-center gap-1 text-xs font-semibold ${color}`}><Icono size={15} aria-hidden="true" />{valor === null ? 'Sin comparación' : `${valor > 0 ? '+' : ''}${valor.toFixed(1)} % ${texto}`}</span>
 }
 
@@ -107,8 +108,8 @@ function MapaHorario({ valores, color }: { valores: number[][]; color: string })
             <tr key={diasSemana[indice]}>
               <th scope="row" className="pr-2 text-left font-medium text-text-700">{diasSemana[indice]}</th>
               {fila.map((valor, columna) => {
-                const intensidad = Math.round(12 + (valor / mayor) * 78)
-                return <td key={franjasHorarias[columna]} className="h-9 rounded-md text-center font-semibold tabular-nums" style={{ backgroundColor: `color-mix(in srgb, ${color} ${intensidad}%, transparent)`, color: intensidad > 55 ? 'white' : 'var(--color-text-900)' }} title={`${diasSemana[indice]} ${franjasHorarias[columna]}: ${valor} pasajes`}>{valor}</td>
+                const intensidad = Math.round(22 + (valor / mayor) * 70)
+                return <td key={franjasHorarias[columna]} className="h-9 rounded-md text-center font-semibold tabular-nums" style={{ backgroundColor: `color-mix(in srgb, ${color} ${intensidad}%, transparent)`, color: intensidad > 60 ? 'white' : 'var(--color-text-900)' }} title={`${diasSemana[indice]} ${franjasHorarias[columna]}: ${valor} pasajes`}>{valor}</td>
               })}
             </tr>
           ))}
@@ -121,7 +122,7 @@ function MapaHorario({ valores, color }: { valores: number[][]; color: string })
 function Incidencia({ icono, titulo, valor, base, detalle }: { icono: ReactNode; titulo: string; valor: number; base: number; detalle: string }) {
   return (
     <li className="rounded-xl bg-surface-sunken p-4">
-      <div className="flex items-center gap-2 text-sm text-text-700"><span className="text-route-500">{icono}</span>{titulo}</div>
+      <div className="flex items-center gap-2 text-sm text-text-700"><span style={{ color: 'var(--serie-neutra)' }}>{icono}</span>{titulo}</div>
       <p className="mt-2 font-display text-2xl font-bold tabular-nums text-text-900">{numero.format(valor)} <span className="text-sm font-semibold text-text-500">· {participacion(valor, base).toFixed(1)} %</span></p>
       <p className="mt-1 text-xs text-text-500">{detalle}</p>
     </li>
@@ -183,7 +184,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
   const cambios = cambiosConDiferenciaEjemplo(filtrado)
   const nombreCanal = esWeb ? 'Web' : 'Agencia'
   const nombreOtro = esWeb ? 'Agencia' : 'Web'
-  const color = esWeb ? 'var(--color-accent-500)' : 'var(--color-route-500)'
+  const color = esWeb ? 'var(--canal-web)' : 'var(--canal-agencia)'
   const Contenedor = integrado ? 'div' : 'main'
   const sinVentas = pasajes === 0
 
@@ -236,7 +237,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
         <section aria-label="Indicadores del canal" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Indicador titulo="Pasajes vendidos" valor={numero.format(pasajes)} pie={<Variacion valor={variacion(totales.pasajes, anteriores.pasajes)} texto="vs. período anterior" />} />
           <Indicador titulo="Ingresos netos" valor={moneda.format(ingresos)} pie={<Variacion valor={variacion(totales.ingresos, anteriores.ingresos)} texto="vs. período anterior" />} />
-          <Indicador titulo="Ticket promedio" valor={sinVentas ? '—' : precio.format(ticket)} pie={sinVentas ? 'Sin ventas con estos filtros' : <Variacion valor={variacion(ticket, ticketOtro)} texto={`vs. ${nombreOtro} (${precio.format(ticketOtro)})`} />} />
+          <Indicador titulo="Ticket promedio" valor={sinVentas ? '—' : precio.format(ticket)} pie={sinVentas ? 'Sin ventas con estos filtros' : <Variacion valor={variacion(ticket, ticketOtro)} texto={`vs. ${nombreOtro} (${precio.format(ticketOtro)})`} neutral />} />
           <Indicador titulo="Pasajes por compra" valor={decimal.format(pasajesPorCompra)} pie={<Variacion valor={variacion(pasajesPorCompra, pasajesPorCompraAntes)} texto="vs. período anterior" />} />
         </section>
 
@@ -285,7 +286,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
               {esWeb
                 ? <Incidencia icono={<CreditCard size={18} aria-hidden="true" />} titulo="Pagos fallidos" valor={incidencias.pagosFallidos} base={filtrado.compras} detalle="Porcentaje sobre intentos de compra" />
                 : <li className="rounded-xl bg-surface-sunken p-4">
-                    <div className="flex items-center gap-2 text-sm text-text-700"><span className="text-route-500"><Repeat size={18} aria-hidden="true" /></span>Cambios de viaje con diferencia</div>
+                    <div className="flex items-center gap-2 text-sm text-text-700"><span style={{ color: 'var(--serie-neutra)' }}><Repeat size={18} aria-hidden="true" /></span>Cambios de viaje con diferencia</div>
                     <p className="mt-2 font-display text-2xl font-bold tabular-nums text-text-900">{numero.format(cambios.conCobro)} <span className="text-sm font-semibold text-text-500">de {numero.format(cambios.cambios)} cambios</span></p>
                     <p className="mt-1 text-xs text-text-500">{moneda.format(cambios.montoCobrado)} cobrados por diferencia de tarifa</p>
                   </li>}

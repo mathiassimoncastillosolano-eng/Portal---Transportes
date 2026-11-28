@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, Armchair, Building2, CalendarDays, Globe2, Map as MapIcon, Minus, Receipt, Ticket, Wallet } from 'lucide-react'
 import type { Canal, Totales, VentasDia } from './modelo'
 import { participacion, resumir, variacion } from './modelo'
@@ -47,10 +47,11 @@ function Cambio({ valor, oscuro = false, unidad = '%', prefijo = '' }: { valor: 
   return <span className={`inline-flex items-center gap-1 text-xs font-semibold ${color}`}><Icono size={15} aria-hidden="true" />{texto}</span>
 }
 
-function Indicador({ titulo, valor, cambio, nota, icono, principal = false }: {
+function Indicador({ titulo, valor, cambio, unidad = '%', nota, icono, principal = false }: {
   titulo: string
   valor: string
   cambio?: number | null
+  unidad?: '%' | 'pp'
   nota?: string
   icono: ReactNode
   principal?: boolean
@@ -63,7 +64,7 @@ function Indicador({ titulo, valor, cambio, nota, icono, principal = false }: {
       </div>
       <div>
         <p className="font-display text-3xl font-semibold tracking-tight tabular-nums">{valor}</p>
-        <div className="mt-3">{cambio !== undefined ? <Cambio valor={cambio} oscuro={principal} /> : <span className="text-xs text-text-500">{nota}</span>}</div>
+        <div className="mt-3">{cambio !== undefined && <Cambio valor={cambio} oscuro={principal} unidad={unidad} />}{nota && <span className="mt-1 block text-xs text-text-500">{nota}</span>}</div>
       </div>
     </article>
   )
@@ -113,6 +114,39 @@ function CanalCard({ nombre, icono, color, valor, total, anterior, totalAnterior
   )
 }
 
+interface PuntoTendencia {
+  fecha: string
+  Web: number
+  Agencia: number
+  WebAnterior: number | null
+  AgenciaAnterior: number | null
+}
+
+const nombresSerie: Record<string, string> = {
+  Web: 'Web', Agencia: 'Agencia', WebAnterior: 'Web · período anterior', AgenciaAnterior: 'Agencia · período anterior',
+}
+
+/** Serie diaria del período; con 30 o 90 días usa el promedio de los últimos 7 días para ver la tendencia. */
+function serieTendencia(dias: VentasDia[], periodo: Periodo, metrica: MetricaCanal, suavizado: boolean): PuntoTendencia[] {
+  const valor = (dia: VentasDia, canal: 'web' | 'agencia') => metrica === 'pasajes'
+    ? (canal === 'web' ? dia.webPasajes : dia.agenciaPasajes)
+    : (canal === 'web' ? dia.webIngresos : dia.agenciaIngresos)
+  const medir = (indice: number, canal: 'web' | 'agencia') => {
+    if (indice < 0) return null
+    const ventana = suavizado ? dias.slice(Math.max(0, indice - 6), indice + 1) : [dias[indice]]
+    const promedio = ventana.reduce((suma, dia) => suma + valor(dia, canal), 0) / ventana.length
+    return Math.round(promedio * 10) / 10
+  }
+  const inicio = dias.length - periodo
+  return dias.slice(inicio).map((dia, i) => ({
+    fecha: dia.fecha,
+    Web: medir(inicio + i, 'web') ?? 0,
+    Agencia: medir(inicio + i, 'agencia') ?? 0,
+    WebAnterior: medir(inicio + i - periodo, 'web'),
+    AgenciaAnterior: medir(inicio + i - periodo, 'agencia'),
+  }))
+}
+
 function Encabezado({ integrado }: { integrado: boolean }) {
   if (integrado) return null
   return (
@@ -155,11 +189,9 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, inte
   const antes = resumir(anterior)
   const operacion = datosOperacionEjemplo(periodo, hoy.total, hoy.agencia, serviciosGlobalesEjemplo(hoy.web, hoy.agencia))
   const ocupacion = ocupacionTotal(operacion)
-  const serie = actual.map((dia) => ({
-    fecha: dia.fecha,
-    Web: metrica === 'pasajes' ? dia.webPasajes : dia.webIngresos,
-    Agencia: metrica === 'pasajes' ? dia.agenciaPasajes : dia.agenciaIngresos,
-  }))
+  const suavizado = periodo > 7
+  const serie = serieTendencia(datos, periodo, metrica, suavizado)
+  const ocupacionAnterior = hoy.total.pasajes === 0 ? null : Math.min(100, ocupacion.porcentaje * (antes.total.pasajes / hoy.total.pasajes))
   const lider = hoy.web[metrica] >= hoy.agencia[metrica] ? 'Web' : 'Agencia'
   const participacionLider = participacion(Math.max(hoy.web[metrica], hoy.agencia[metrica]), hoy.total[metrica])
   const diferenciaCanales = Math.abs(hoy.web[metrica] - hoy.agencia[metrica])
@@ -226,7 +258,7 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, inte
           <Indicador titulo="Ingresos netos" valor={moneda.format(hoy.total.ingresos)} cambio={variacion(hoy.total.ingresos, antes.total.ingresos)} icono={<Wallet size={19} />} principal />
           <Indicador titulo="Pasajes vendidos" valor={numero.format(hoy.total.pasajes)} cambio={variacion(hoy.total.pasajes, antes.total.pasajes)} icono={<Ticket size={19} />} />
           <Indicador titulo="Ticket promedio" valor={precio.format(ticket(hoy.total))} cambio={variacion(ticket(hoy.total), ticket(antes.total))} icono={<Receipt size={19} />} />
-          <Indicador titulo="Ocupación" valor={`${ocupacion.porcentaje.toFixed(1)} %`} nota={`${numero.format(ocupacion.vendidos)} de ${numero.format(ocupacion.capacidad)} asientos`} icono={<Armchair size={19} />} />
+          <Indicador titulo="Ocupación" valor={`${ocupacion.porcentaje.toFixed(1)} %`} cambio={ocupacionAnterior === null ? null : ocupacion.porcentaje - ocupacionAnterior} unidad="pp" nota={`${numero.format(ocupacion.vendidos)} de ${numero.format(ocupacion.capacidad)} asientos`} icono={<Armchair size={19} />} />
         </section>
 
         <section aria-labelledby="canales-titulo" className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
@@ -243,23 +275,35 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, inte
             </div>
           </div>
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            <CanalCard nombre="Web" icono={<Globe2 size={20} />} color="var(--color-accent-500)" valor={hoy.web} total={hoy.total} anterior={antes.web} totalAnterior={antes.total} metrica={metrica} onVerDetalles={() => setVista('web')} />
-            <CanalCard nombre="Agencia" icono={<Building2 size={20} />} color="var(--color-route-500)" valor={hoy.agencia} total={hoy.total} anterior={antes.agencia} totalAnterior={antes.total} metrica={metrica} onVerDetalles={() => setVista('agencia')} />
+            <CanalCard nombre="Web" icono={<Globe2 size={20} />} color="var(--canal-web)" valor={hoy.web} total={hoy.total} anterior={antes.web} totalAnterior={antes.total} metrica={metrica} onVerDetalles={() => setVista('web')} />
+            <CanalCard nombre="Agencia" icono={<Building2 size={20} />} color="var(--canal-agencia)" valor={hoy.agencia} total={hoy.total} anterior={antes.agencia} totalAnterior={antes.total} metrica={metrica} onVerDetalles={() => setVista('agencia')} />
           </div>
         </section>
 
         <section aria-labelledby="tendencia-titulo" className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 id="tendencia-titulo" className="font-display text-xl font-bold">Evolución diaria por canal</h2><p className="mt-1 text-sm text-text-500">{metrica === 'pasajes' ? 'Pasajes vendidos' : 'Ingresos netos'} por fecha de compra</p></div><div className="flex gap-4 text-xs font-semibold text-text-700"><span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full bg-accent-500" />Web</span><span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full bg-route-500" />Agencia</span></div></div>
-          <div className="mt-6 h-72" role="img" aria-label={`Gráfico de evolución diaria de ${metrica} para Web y Agencia`}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 id="tendencia-titulo" className="font-display text-xl font-bold">Tendencia por canal</h2>
+              <p className="mt-1 text-sm text-text-500">{metrica === 'pasajes' ? 'Pasajes vendidos' : 'Ingresos netos'} por día{suavizado ? ' · promedio de los últimos 7 días' : ''}</p>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-text-700">
+              <span className="flex items-center gap-1.5"><i className="h-0.5 w-4 rounded-full" style={{ backgroundColor: 'var(--canal-web)' }} />Web</span>
+              <span className="flex items-center gap-1.5"><i className="h-0.5 w-4 rounded-full" style={{ backgroundColor: 'var(--canal-agencia)' }} />Agencia</span>
+              <span className="flex items-center gap-1.5 text-text-500"><i className="w-4 border-t-2 border-dashed border-text-400" />Período anterior</span>
+            </div>
+          </div>
+          <div className="mt-6 h-72" role="img" aria-label={`Tendencia de ${metrica} para Web y Agencia comparada con el período anterior`}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={serie} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+              <LineChart data={serie} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="fecha" tickFormatter={(fecha: string) => fechaVisible(fecha).replace(/ 2026$/, '')} tick={{ fill: 'var(--color-text-500)', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={30} />
                 <YAxis tickFormatter={(valor: number) => metrica === 'ingresos' ? `S/ ${compacto.format(valor)}` : compacto.format(valor)} tick={{ fill: 'var(--color-text-500)', fontSize: 11 }} tickLine={false} axisLine={false} width={64} />
-                <Tooltip labelFormatter={(fecha) => fechaVisible(String(fecha))} formatter={(valor, nombre) => [cifra(Number(valor), metrica), nombre]} />
-                <Area dataKey="Web" type="monotone" stroke="var(--color-accent-500)" fill="var(--color-accent-500)" fillOpacity={0.08} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-                <Area dataKey="Agencia" type="monotone" stroke="var(--color-route-500)" fill="var(--color-route-500)" fillOpacity={0.06} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-              </AreaChart>
+                <Tooltip labelFormatter={(fecha) => fechaVisible(String(fecha))} formatter={(valor, nombre) => [cifra(Number(valor), metrica), nombresSerie[String(nombre)] ?? nombre]} />
+                <Line dataKey="WebAnterior" type="monotone" stroke="var(--canal-web)" strokeOpacity={0.45} strokeDasharray="5 4" strokeWidth={1.5} dot={false} activeDot={false} isAnimationActive={false} />
+                <Line dataKey="AgenciaAnterior" type="monotone" stroke="var(--canal-agencia)" strokeOpacity={0.45} strokeDasharray="5 4" strokeWidth={1.5} dot={false} activeDot={false} isAnimationActive={false} />
+                <Line dataKey="Web" type="monotone" stroke="var(--canal-web)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} isAnimationActive={false} />
+                <Line dataKey="Agencia" type="monotone" stroke="var(--canal-agencia)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} isAnimationActive={false} />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </section>
