@@ -223,74 +223,53 @@ function VentasPorSede({ filas }: { filas: Resumen[] }) {
   const total = filas.reduce((suma, fila) => suma + fila.ingresos, 0)
   const top = filas.slice(0, 5)
   const mayor = Math.max(...top.map((fila) => fila.ingresos), 1)
-  const ordenVisual = [4, 1, 0, 3, 2].filter((indice) => indice < top.length)
   const principales = filas.slice(0, 2)
   const cuotaPrincipales = participacion(principales.reduce((suma, fila) => suma + fila.ingresos, 0), total)
   const resto = filas.slice(5)
   const ingresosResto = resto.reduce((suma, fila) => suma + fila.ingresos, 0)
 
-  // Lienzo ancho para llenar la tarjeta: columnas a la izquierda, leyenda a la derecha.
-  const ancho = 88
-  const separacion = 12
-  const base = 262
+  // Columnas ordenadas de mayor a menor, repartidas en todo el ancho.
+  const anchoLienzo = 1000
+  const separacion = 44
+  const ancho = (anchoLienzo - separacion * (top.length + 1)) / Math.max(top.length, 1)
+  const base = 270
   const alturaMax = 200
-  const inicioX = 64
-  const leyendaX = 640
-  const leyendaAncho = 340
-  const leyendaY = (rank: number) => 34 + rank * 46
 
   return (
     <div className="mt-4 flex flex-1 flex-col">
-      <svg viewBox="0 0 1000 330" className="h-auto w-full" role="img" aria-label={top.map((fila, i) => `${String(i + 1).padStart(2, '0')} ${fila.nombre}: ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
-        {ordenVisual.map((rank, posicion) => {
-          const fila = top[rank]
-          const color = coloresInfografia[rank]
-          const x = inicioX + posicion * (ancho + separacion)
-          const alto = Math.max((fila.ingresos / mayor) * alturaMax, 46)
-          const tope = base - alto
-          const centroX = x + ancho / 2
-          const puntoY = tope - 18
-          const y = leyendaY(rank)
-          const dx = (posicion - (ordenVisual.length - 1) / 2) * 22
-          return (
-            <g key={fila.nombre}>
-              <polygon points={`${x},${base} ${x + ancho},${base} ${x + ancho + dx + 10},${base + 62} ${x + dx - 10},${base + 62}`} fill={color} opacity="0.7" />
-              <polygon points={`${x},${tope + 22} ${centroX},${tope} ${x + ancho},${tope + 22} ${x + ancho},${base} ${x},${base}`} fill={color} />
-              <polyline points={`${x + 14},${tope + 34} ${centroX},${tope + 16} ${x + ancho - 14},${tope + 34}`} fill="none" stroke="white" strokeWidth="4" strokeLinejoin="round" opacity="0.9" />
-              <text x={centroX} y={tope + 66} textAnchor="middle" fill="white" fontSize="24" fontWeight="700">{String(rank + 1).padStart(2, '0')}</text>
-              <polyline points={`${centroX},${puntoY} ${centroX},${y} ${leyendaX - 12},${y}`} fill="none" stroke={color} strokeWidth="1.6" />
-              <circle cx={centroX} cy={puntoY} r="6" fill={color} />
-            </g>
-          )
-        })}
+      <svg viewBox={`0 0 ${anchoLienzo} 330`} className="h-auto w-full" role="img" aria-label={top.map((fila, i) => `${String(i + 1).padStart(2, '0')} ${fila.nombre}: ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
+        <line x1="0" y1={base} x2={anchoLienzo} y2={base} stroke="var(--color-border)" strokeWidth="2" />
         {top.map((fila, rank) => {
           const color = coloresInfografia[rank]
-          const y = leyendaY(rank)
+          const x = separacion + rank * (ancho + separacion)
+          const alto = Math.max((fila.ingresos / mayor) * alturaMax, 86)
+          const tope = base - alto
+          const centroX = x + ancho / 2
           const cuota = participacion(fila.ingresos, total)
           return (
-            <g key={fila.nombre} transform={`translate(${leyendaX}, ${y})`}>
-              <rect x="0" y="-13" width="26" height="26" rx="6" fill={color} />
-              <path d="M13 -7 a5 5 0 0 1 5 5 c0 3.8 -5 8.8 -5 8.8 s-5 -5 -5 -8.8 A5 5 0 0 1 13 -7 z" fill="white" />
-              <circle cx="13" cy="-2" r="1.8" fill={color} />
-              <text x="38" y="-1" fontSize="17" fontWeight="700" fill="var(--color-text-900)">{fila.nombre}</text>
-              <text x={leyendaAncho} y="-1" textAnchor="end" fontSize="15" fill="var(--color-text-500)">
-                {moneda.format(fila.ingresos)}  <tspan fontWeight="700" fill={color}>{cuota.toFixed(0)} %</tspan>
-              </text>
-              <rect x="38" y="7" width={leyendaAncho - 38} height="6" rx="3" fill="var(--color-surface-sunken)" />
-              <rect x="38" y="7" width={Math.max(((leyendaAncho - 38) * fila.ingresos) / mayor, 4)} height="6" rx="3" fill={color} />
+            <g key={fila.nombre}>
+              <title>{`${fila.nombre}: ${moneda.format(fila.ingresos)} · ${fila.pasajes} pasajes`}</title>
+              <text x={centroX} y={tope - 34} textAnchor="middle" fontSize="22" fontWeight="700" fill={color}>{cuota.toFixed(0)} %</text>
+              <text x={centroX} y={tope - 12} textAnchor="middle" fontSize="15" fill="var(--color-text-500)">{moneda.format(fila.ingresos)}</text>
+              <polygon points={`${x},${tope + 24} ${centroX},${tope} ${x + ancho},${tope + 24} ${x + ancho},${base} ${x},${base}`} fill={color} />
+              <polyline points={`${x + 18},${tope + 38} ${centroX},${tope + 18} ${x + ancho - 18},${tope + 38}`} fill="none" stroke="white" strokeWidth="4" strokeLinejoin="round" opacity="0.9" />
+              <text x={centroX} y={tope + 72} textAnchor="middle" fill="white" fontSize="26" fontWeight="700">{String(rank + 1).padStart(2, '0')}</text>
+              <g transform={`translate(${centroX}, ${base + 30})`}>
+                <path d="M0 -12 a6 6 0 0 1 6 6 c0 4.5 -6 10.5 -6 10.5 s-6 -6 -6 -10.5 A6 6 0 0 1 0 -12 z" fill={color} transform={`translate(${-fila.nombre.length * 4.9 - 12}, 0)`} />
+                <text x="6" y="4" textAnchor="middle" fontSize="17" fontWeight="700" fill="var(--color-text-900)">{fila.nombre}</text>
+              </g>
+              <text x={centroX} y={base + 52} textAnchor="middle" fontSize="13" fill="var(--color-text-500)">{numero.format(fila.pasajes)} pasajes</text>
             </g>
           )
         })}
-        {resto.length > 0 && (
-          <text x={leyendaX + 38} y={leyendaY(5) + 2} fontSize="14" fill="var(--color-text-500)">
-            + {resto.length} {resto.length === 1 ? 'sede más' : 'sedes más'} · {moneda.format(ingresosResto)} ({participacion(ingresosResto, total).toFixed(0)} %)
-          </text>
-        )}
       </svg>
       <div className="mt-auto pt-3">
         <p className="flex items-center gap-2 rounded-xl bg-surface-sunken px-3 py-2.5 text-xs text-text-700">
           <MapPin size={16} className="shrink-0 text-text-500" aria-hidden="true" />
-          <span><strong className="text-text-900">{principales.map((fila) => fila.nombre).join(' y ')}</strong> concentran el {cuotaPrincipales.toFixed(0)} % de las ventas en mostrador.</span>
+          <span>
+            <strong className="text-text-900">{principales.map((fila) => fila.nombre).join(' y ')}</strong> concentran el {cuotaPrincipales.toFixed(0)} % de las ventas en mostrador.
+            {resto.length > 0 && <> Además, {resto.length} {resto.length === 1 ? 'sede más suma' : 'sedes más suman'} {moneda.format(ingresosResto)} ({participacion(ingresosResto, total).toFixed(0)} %).</>}
+          </span>
         </p>
       </div>
     </div>
@@ -443,7 +422,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
             </Tarjeta>
           ) : (
             <div className="grid gap-4">
-              <Tarjeta className="flex flex-col" titulo="Ventas por sede" detalle="Las 5 sedes que más venden en mostrador">
+              <Tarjeta className="flex flex-col" titulo="Ventas por sede" detalle="Las 5 sedes que más venden, de mayor a menor">
                 <VentasPorSede filas={sedes} />
               </Tarjeta>
               <Tarjeta titulo="Ranking de vendedores" detalle="Pasajes e ingresos por empleado (id_empleado)">
