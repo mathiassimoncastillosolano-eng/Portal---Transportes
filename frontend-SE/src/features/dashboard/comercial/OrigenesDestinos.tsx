@@ -20,6 +20,8 @@ type Filtro = 'todos' | Canal
 
 const numero = new Intl.NumberFormat('es-PE')
 const VISIBLES = 8
+/** Destinos con una paleta fría (azules y violetas) para distinguirlos de los orígenes. */
+const coloresDestino = ['#1f5fbf', '#7b3fc4', '#0f8fa8', '#4c6fe0', '#b0479b', '#6b7f8e']
 
 function agruparCiudades(filas: VentaDetalle[], lado: 'origen' | 'destino'): Ciudad[] {
   const grupos = new Map<string, Ciudad>()
@@ -34,7 +36,7 @@ function agruparCiudades(filas: VentaDetalle[], lado: 'origen' | 'destino'): Ciu
   return [...grupos.values()].filter((ciudad) => ciudad.pasajes > 0).sort((a, b) => b.pasajes - a.pasajes)
 }
 
-function RankingCiudades({ titulo, detalle, ciudades, Icono }: { titulo: string; detalle: string; ciudades: Ciudad[]; Icono: typeof MapPin }) {
+function RankingCiudades({ titulo, detalle, ciudades, Icono, paleta }: { titulo: string; detalle: string; ciudades: Ciudad[]; Icono: typeof MapPin; paleta: string[] }) {
   const [verTodas, setVerTodas] = useState(false)
   const total = ciudades.reduce((suma, ciudad) => suma + ciudad.pasajes, 0)
   const mayor = Math.max(...ciudades.map((ciudad) => ciudad.pasajes), 1)
@@ -46,7 +48,7 @@ function RankingCiudades({ titulo, detalle, ciudades, Icono }: { titulo: string;
       <h3 className="flex items-center gap-2 font-display text-lg font-bold text-text-900"><Icono size={18} aria-hidden="true" />{titulo}</h3>
       <p className="mt-1 text-sm text-text-500">{detalle}</p>
       {lider && (
-        <div className="mt-4 flex items-center gap-3 rounded-xl p-4 text-white" style={{ backgroundColor: coloresInfografia[0] }}>
+        <div className="mt-4 flex items-center gap-3 rounded-xl p-4 text-white" style={{ backgroundColor: paleta[0] }}>
           <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/20"><Trophy size={22} aria-hidden="true" /></span>
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-white/80">Primer lugar</p>
@@ -57,7 +59,7 @@ function RankingCiudades({ titulo, detalle, ciudades, Icono }: { titulo: string;
       )}
       <ol className="mt-4 space-y-2">
         {visibles.map((ciudad, indice) => {
-          const color = indice < 5 ? coloresInfografia[indice] : '#6b7f8e'
+          const color = indice < 5 ? paleta[indice] : paleta[5]
           return (
             <li key={ciudad.nombre} className="grid grid-cols-[1.75rem_7.5rem_minmax(0,1fr)_5.5rem] items-center gap-3">
               <span className="flex size-7 items-center justify-center rounded-full text-xs font-bold tabular-nums text-white" style={{ backgroundColor: color }}>{indice + 1}</span>
@@ -103,8 +105,8 @@ export function OrigenesDestinos({ web, agencia }: Props) {
         </div>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <RankingCiudades titulo="¿Desde dónde viajan más?" detalle="Ciudades de origen" ciudades={agruparCiudades(filas, 'origen')} Icono={MapPin} />
-        <RankingCiudades titulo="¿A dónde llegan más?" detalle="Ciudades de destino" ciudades={agruparCiudades(filas, 'destino')} Icono={Flag} />
+        <RankingCiudades titulo="¿Desde dónde viajan más?" detalle="Ciudades de origen" ciudades={agruparCiudades(filas, 'origen')} Icono={MapPin} paleta={coloresInfografia} />
+        <RankingCiudades titulo="¿A dónde llegan más?" detalle="Ciudades de destino" ciudades={agruparCiudades(filas, 'destino')} Icono={Flag} paleta={coloresDestino} />
       </div>
     </section>
   )
