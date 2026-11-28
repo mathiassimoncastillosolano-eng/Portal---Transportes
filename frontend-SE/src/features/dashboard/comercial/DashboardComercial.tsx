@@ -246,7 +246,7 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, inte
               <SelectorPeriodo periodo={periodo} onChange={setPeriodo} />
             </div>
           </div>
-          <PanoramaRutas datos={operacion} periodo={periodo} />
+          <PanoramaRutas datos={operacion} periodo={periodo} web={hoy.web} agencia={hoy.agencia} />
         </Contenedor>
       </div>
     )

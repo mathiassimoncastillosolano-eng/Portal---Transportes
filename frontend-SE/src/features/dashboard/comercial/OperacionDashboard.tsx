@@ -3,10 +3,17 @@ import { AlertTriangle, Armchair, ArrowRight, CalendarClock, CreditCard, RotateC
 import type { DatosOperacion, FilaRanking, RutaOcupacion, SalidaEnRiesgo } from './datosOperacionEjemplo'
 import { ocupacionTotal } from './datosOperacionEjemplo'
 import { coloresRanking } from './paletaRanking'
+import { OrigenesDestinos } from './OrigenesDestinos'
+import type { Totales } from './modelo'
 
 interface Props {
   datos: DatosOperacion
   periodo: number
+}
+
+interface PropsPanorama extends Props {
+  web: Totales
+  agencia: Totales
 }
 
 const moneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 })
@@ -357,7 +364,7 @@ export function IncidenciasResumen({ datos, periodo }: Props) {
 }
 
 /** Contenido de la vista "Rutas y ocupación". */
-export function PanoramaRutas({ datos, periodo }: Props) {
+export function PanoramaRutas({ datos, periodo, web, agencia }: PropsPanorama) {
   const total = ocupacionTotal(datos)
 
   return (
@@ -386,6 +393,8 @@ export function PanoramaRutas({ datos, periodo }: Props) {
         </div>
         <ul className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">{datos.ocupacionPorRuta.map((fila) => <MedidorOcupacion key={fila.nombre} fila={fila} />)}</ul>
       </article>
+
+      <OrigenesDestinos web={web} agencia={agencia} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Ranking titulo="Rutas de mayor ingreso" detalle={`5 rutas principales de ambos canales · últimos ${periodo} días`} filas={datos.rutasPorIngreso} />
