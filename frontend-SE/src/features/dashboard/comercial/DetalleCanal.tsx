@@ -8,6 +8,7 @@ import {
   incidenciasCanalEjemplo, metodosPagoEjemplo, vendedoresEjemplo, type Segmento,
 } from './datosCanalEjemplo'
 import { ConversionPortal } from './OperacionDashboard'
+import { coloresRanking } from './paletaRanking'
 import { TemaComercial } from './TemaComercial'
 
 interface Props {
@@ -154,16 +155,6 @@ function RankingBarras({ filas, color, unaColumna = false }: { filas: Resumen[];
     </ol>
   )
 }
-
-/** Un color por puesto, al estilo de un podio; el texto se ajusta para que se lea sobre cada color. */
-const coloresRanking = [
-  { fondo: '#f2a516', texto: '#3a2600' },
-  { fondo: '#e8572a', texto: '#ffffff' },
-  { fondo: '#1fae8f', texto: '#ffffff' },
-  { fondo: '#1597b8', texto: '#ffffff' },
-  { fondo: '#7c5cd6', texto: '#ffffff' },
-  { fondo: '#6b7f8e', texto: '#ffffff' },
-]
 
 function RankingRutas({ filas }: { filas: Resumen[] }) {
   const [metrica, setMetrica] = useState<'ingresos' | 'pasajes'>('ingresos')

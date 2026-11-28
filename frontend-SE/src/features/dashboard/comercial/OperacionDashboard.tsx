@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AlertTriangle, ArrowRight, CalendarClock, CreditCard, RotateCcw, Search, Ticket } from 'lucide-react'
 import type { DatosOperacion, FilaRanking, RutaOcupacion, SalidaEnRiesgo } from './datosOperacionEjemplo'
 import { ocupacionTotal } from './datosOperacionEjemplo'
+import { coloresRanking } from './paletaRanking'
 
 interface Props {
   datos: DatosOperacion
@@ -10,6 +11,7 @@ interface Props {
 
 const moneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 })
 const numero = new Intl.NumberFormat('es-PE')
+const compacto = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', notation: 'compact', maximumFractionDigits: 1 })
 const coloresServicio = ['var(--serie-1)', 'var(--serie-2)', 'var(--serie-3)', 'var(--serie-4)']
 
 function ocupacion(vendidos: number, capacidad: number): number {
@@ -48,26 +50,35 @@ function Salida({ fila }: { fila: SalidaEnRiesgo }) {
   )
 }
 
-function Ranking({ titulo, detalle, filas, color }: { titulo: string; detalle: string; filas: FilaRanking[]; color: string }) {
+function Ranking({ titulo, detalle, filas }: { titulo: string; detalle: string; filas: FilaRanking[] }) {
   const destacadas = [...filas].sort((a, b) => b.ingresos - a.ingresos).slice(0, 5)
   const mayor = Math.max(...destacadas.map((fila) => fila.ingresos), 1)
 
   return (
-    <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
+    <article className="flex flex-col rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
       <h3 className="font-display text-lg font-bold text-text-900">{titulo}</h3>
       <p className="mt-1 text-sm text-text-500">{detalle}</p>
-      <ol className="mt-5 space-y-5">
-        {destacadas.map((fila, indice) => (
-          <li key={fila.nombre}>
-            <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 text-sm">
-              <span className="min-w-0 font-medium text-text-900"><span className="mr-2 text-text-400">{indice + 1}.</span>{fila.nombre}</span>
-              <span className="ml-auto text-right tabular-nums"><strong className="block text-text-900">{moneda.format(fila.ingresos)}</strong><span className="text-xs text-text-500">{numero.format(fila.pasajes)} pasajes</span></span>
-            </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
-              <div className="h-full rounded-full" style={{ width: `${(fila.ingresos / mayor) * 100}%`, backgroundColor: color }} />
-            </div>
-          </li>
-        ))}
+      <ol className="mt-6 grid flex-1 grid-cols-5 items-end gap-2 sm:gap-4" aria-label={titulo}>
+        {destacadas.map((fila, indice) => {
+          const { fondo, texto } = coloresRanking[indice]
+          const [origen, destino] = fila.nombre.split(' → ')
+          const alto = Math.max((fila.ingresos / mayor) * 100, 16)
+          return (
+            <li key={fila.nombre} title={fila.nombre} className="flex h-full flex-col items-center justify-end text-center">
+              <div className="flex h-60 w-full flex-col items-center justify-end" role="img" aria-label={`${indice + 1}. ${fila.nombre}: ${moneda.format(fila.ingresos)}, ${fila.pasajes} pasajes`}>
+                <span className="text-xs font-bold tabular-nums text-text-900 sm:text-sm">{compacto.format(fila.ingresos)}</span>
+                <span className="mb-1.5 text-[11px] tabular-nums text-text-500">{numero.format(fila.pasajes)} pas.</span>
+                <div className="flex w-full items-end justify-center rounded-t-xl pb-2 transition-[height] duration-500" style={{ height: `${alto * 0.78}%`, backgroundColor: fondo }}>
+                  <span className="flex size-7 items-center justify-center rounded-full border-2 font-display text-xs font-bold tabular-nums" style={{ borderColor: texto, color: texto }}>{String(indice + 1).padStart(2, '0')}</span>
+                </div>
+              </div>
+              <div className="mt-2 w-full rounded-lg bg-surface-sunken px-1 py-1.5">
+                <p className="truncate text-xs font-semibold text-text-900">{origen}</p>
+                <p className="truncate text-[11px] text-text-500">→ {destino}</p>
+              </div>
+            </li>
+          )
+        })}
       </ol>
     </article>
   )
@@ -254,7 +265,7 @@ export function PanoramaRutas({ datos, periodo }: Props) {
       </article>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Ranking titulo="Rutas de mayor ingreso" detalle={`5 rutas principales de ambos canales · últimos ${periodo} días`} filas={datos.rutasPorIngreso} color="var(--serie-neutra)" />
+        <Ranking titulo="Rutas de mayor ingreso" detalle={`5 rutas principales de ambos canales · últimos ${periodo} días`} filas={datos.rutasPorIngreso} />
         <Servicios filas={datos.servicios} />
       </div>
       <TablaRutas filas={datos.rutasPorIngreso} />
