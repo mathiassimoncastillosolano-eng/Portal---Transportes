@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowDownRight, ArrowLeft, ArrowUpRight, Building2, CalendarClock, CalendarDays, CreditCard, Banknote, Smartphone, Globe2, Minus, Repeat, RotateCcw, Star } from 'lucide-react'
+import { ArrowDownRight, ArrowLeft, ArrowUpRight, Building2, CalendarClock, CalendarDays, CreditCard, Banknote, Smartphone, CalendarCheck, Clock, MapPin, Zap, Globe2, Minus, Repeat, RotateCcw, Star } from 'lucide-react'
 import type { Canal, Totales } from './modelo'
 import { participacion, variacion } from './modelo'
 import { ciudadesSalidaEjemplo, datosDetalleEjemplo } from './datosDetalleEjemplo'
@@ -59,23 +59,6 @@ function Tarjeta({ titulo, detalle, children, className = '' }: { titulo: string
       <p className="mt-1 text-sm text-text-500">{detalle}</p>
       {children}
     </section>
-  )
-}
-
-function BarrasSegmento({ filas, color }: { filas: Segmento[]; color: string }) {
-  const total = filas.reduce((suma, fila) => suma + fila.pasajes, 0)
-  return (
-    <ul className="mt-5 space-y-4">
-      {filas.map((fila) => {
-        const porcentaje = participacion(fila.pasajes, total)
-        return (
-          <li key={fila.nombre}>
-            <div className="flex items-baseline justify-between gap-3 text-sm"><span className="font-medium text-text-900">{fila.nombre}</span><span className="tabular-nums text-text-700"><strong className="text-text-900">{porcentaje.toFixed(0)} %</strong> · {numero.format(fila.pasajes)} pasajes</span></div>
-            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true"><div className="h-full rounded-full" style={{ width: `${porcentaje}%`, backgroundColor: color }} /></div>
-          </li>
-        )
-      })}
-    </ul>
   )
 }
 
@@ -165,17 +148,85 @@ function agrupar(filas: ReturnType<typeof datosDetalleEjemplo>, clave: 'ruta' | 
   return [...grupos.values()].filter((grupo) => grupo.pasajes > 0).sort((a, b) => b.ingresos - a.ingresos)
 }
 
-function RankingBarras({ filas, color, unaColumna = false }: { filas: Resumen[]; color: string; unaColumna?: boolean }) {
-  const mayor = Math.max(...filas.map((fila) => fila.ingresos), 1)
+/** Del más urgente (rojo) al más planificado (verde), con un icono por tramo. */
+const tramosAnticipacion = [
+  { Icono: Zap, color: '#e8572a' },
+  { Icono: Clock, color: '#f2a516' },
+  { Icono: CalendarDays, color: '#1597b8' },
+  { Icono: CalendarCheck, color: '#1fae8f' },
+]
+
+function AnticipacionCompra({ filas, esWeb }: { filas: Segmento[]; esWeb: boolean }) {
+  const total = filas.reduce((suma, fila) => suma + fila.pasajes, 0)
+  const mayor = Math.max(...filas.map((fila) => fila.pasajes), 1)
+  const principal = filas.reduce((max, fila) => (fila.pasajes > max.pasajes ? fila : max), filas[0])
+  const indicePrincipal = filas.indexOf(principal)
+  const IconoPrincipal = tramosAnticipacion[indicePrincipal]?.Icono ?? Zap
+
   return (
-    <ol className={`mt-6 grid gap-5 ${unaColumna ? '' : 'lg:grid-cols-2'}`}>
-      {filas.map((fila, indice) => (
-        <li key={fila.nombre}>
-          <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm"><span className="min-w-0 font-medium"><span className="mr-2 text-text-400">{indice + 1}.</span>{fila.nombre}</span><span className="ml-auto text-right tabular-nums"><strong className="block">{moneda.format(fila.ingresos)}</strong><span className="text-xs text-text-500">{numero.format(fila.pasajes)} pasajes</span></span></div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true"><div className="h-full rounded-full" style={{ width: `${(fila.ingresos / mayor) * 100}%`, backgroundColor: color }} /></div>
-        </li>
-      ))}
-    </ol>
+    <div className="mt-5 flex flex-1 flex-col">
+      <ol className="grid grid-cols-4 items-end gap-3">
+        {filas.map((fila, indice) => {
+          const { Icono, color } = tramosAnticipacion[indice]
+          const porcentaje = participacion(fila.pasajes, total)
+          return (
+            <li key={fila.nombre} className="flex flex-col items-center text-center" title={`${fila.nombre}: ${fila.pasajes} pasajes`}>
+              <div className="flex h-36 w-full flex-col items-center justify-end">
+                <span className="mb-1 font-display text-lg font-bold tabular-nums text-text-900">{porcentaje.toFixed(0)} %</span>
+                <div className="w-full rounded-t-lg transition-[height] duration-500" style={{ height: `${Math.max((fila.pasajes / mayor) * 78, 5)}%`, backgroundColor: color }} />
+              </div>
+              <span className="mt-2 flex size-9 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in srgb, ${color} 18%, transparent)`, color }}><Icono size={18} aria-hidden="true" /></span>
+              <span className="mt-1 text-xs font-semibold text-text-900">{fila.nombre}</span>
+              <span className="text-[11px] tabular-nums text-text-500">{numero.format(fila.pasajes)} pasajes</span>
+            </li>
+          )
+        })}
+      </ol>
+      <div className="mt-auto pt-4">
+        <p className="flex items-center gap-2 rounded-xl bg-surface-sunken px-3 py-2.5 text-xs text-text-700">
+          <IconoPrincipal size={16} className="shrink-0" style={{ color: tramosAnticipacion[indicePrincipal]?.color }} aria-hidden="true" />
+          <span>La mayoría compra con <strong className="text-text-900">{principal.nombre.toLowerCase()}</strong> de anticipación ({participacion(principal.pasajes, total).toFixed(0)} %). {esWeb ? 'Conviene lanzar promociones con varios días de anticipación.' : 'Conviene reforzar el personal de mostrador en horas cercanas a la salida.'}</span>
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/** Mapa de bloques: cada sede ocupa un espacio proporcional a sus ingresos. */
+function VentasPorSede({ filas }: { filas: Resumen[] }) {
+  const total = filas.reduce((suma, fila) => suma + fila.ingresos, 0)
+  const principales = filas.slice(0, 2)
+  const resto = filas.slice(2, 6)
+  const cuotaPrincipales = participacion(principales.reduce((suma, fila) => suma + fila.ingresos, 0), total)
+
+  const bloque = (fila: Resumen, indice: number, grande: boolean) => {
+    const { fondo, texto } = coloresRanking[indice]
+    const porcentaje = participacion(fila.ingresos, total)
+    return (
+      <div key={fila.nombre} title={`${fila.nombre}: ${moneda.format(fila.ingresos)} · ${fila.pasajes} pasajes · ${porcentaje.toFixed(1)} %`}
+        className="flex min-w-0 flex-col justify-between overflow-hidden rounded-xl p-3" style={{ flexGrow: Math.max(fila.ingresos, total * 0.06), flexBasis: 0, minWidth: grande ? 0 : '4.5rem', backgroundColor: fondo, color: texto }}>
+        <span className="flex items-center gap-1 truncate text-xs font-semibold"><MapPin size={14} className="shrink-0" aria-hidden="true" />{fila.nombre}</span>
+        <span className="mt-2">
+          <span className={`block font-display font-bold tabular-nums ${grande ? 'text-2xl' : 'text-base'}`}>{porcentaje.toFixed(0)} %</span>
+          <span className="block truncate text-[11px] tabular-nums opacity-90">{moneda.format(fila.ingresos)}{grande ? ` · ${numero.format(fila.pasajes)} pasajes` : ''}</span>
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-5 flex flex-1 flex-col">
+      <div className="flex min-h-64 flex-1 flex-col gap-2" role="img" aria-label={filas.slice(0, 6).map((fila) => `${fila.nombre} ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
+        <div className="flex min-h-36 flex-[3] gap-2">{principales.map((fila, indice) => bloque(fila, indice, true))}</div>
+        {resto.length > 0 && <div className="flex min-h-24 flex-[2] gap-2">{resto.map((fila, indice) => bloque(fila, indice + 2, false))}</div>}
+      </div>
+      <div className="mt-auto pt-4">
+        <p className="flex items-center gap-2 rounded-xl bg-surface-sunken px-3 py-2.5 text-xs text-text-700">
+          <MapPin size={16} className="shrink-0 text-text-500" aria-hidden="true" />
+          <span><strong className="text-text-900">{principales.map((fila) => fila.nombre).join(' y ')}</strong> concentran el {cuotaPrincipales.toFixed(0)} % de las ventas en mostrador.</span>
+        </p>
+      </div>
+    </div>
   )
 }
 
@@ -311,8 +362,8 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
 
         {sinVentas ? <p className="rounded-xl bg-surface-sunken p-4 text-sm text-text-500">{esWeb ? 'No hay ventas simuladas para este servicio.' : 'No hay ventas simuladas para esta sede y servicio.'}</p> : <>
           <div className="grid gap-4 lg:grid-cols-2">
-            <Tarjeta titulo="Anticipación de compra" detalle={esWeb ? 'Días entre la compra y la salida · útil para planificar promociones' : 'Días entre la compra y la salida · en mostrador predomina la venta del mismo día'}>
-              <BarrasSegmento filas={anticipacion} color={color} />
+            <Tarjeta className="flex flex-col" titulo="Anticipación de compra" detalle="¿Con cuántos días de anticipación compran antes de viajar?">
+              <AnticipacionCompra filas={anticipacion} esWeb={esWeb} />
             </Tarjeta>
             <Tarjeta className="flex flex-col" titulo="Método de pago" detalle={esWeb ? 'Participación en ingresos del portal' : 'Participación en ingresos · sirve para cuadrar caja por sede'}>
               <MetodosPago filas={metodos} />
@@ -325,8 +376,8 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
             </Tarjeta>
           ) : (
             <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-              <Tarjeta titulo="Ventas por sede" detalle="Ordenado por ingresos netos">
-                <RankingBarras filas={sedes.slice(0, 6)} color={color} unaColumna />
+              <Tarjeta className="flex flex-col" titulo="Ventas por sede" detalle="El tamaño de cada bloque es su parte de los ingresos">
+                <VentasPorSede filas={sedes} />
               </Tarjeta>
               <Tarjeta titulo="Ranking de vendedores" detalle="Pasajes e ingresos por empleado (id_empleado)">
                 <div className="mt-5 overflow-x-auto rounded-xl border border-border">
