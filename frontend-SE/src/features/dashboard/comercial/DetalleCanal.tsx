@@ -101,7 +101,7 @@ function MetodosPago({ filas }: { filas: Segmento[] }) {
             return (
               <li key={fila.nombre} className="flex flex-1">
                 <button type="button" onMouseEnter={() => setActivo(indice)} onMouseLeave={() => setActivo(null)} onFocus={() => setActivo(indice)} onBlur={() => setActivo(null)}
-                  className={`flex w-full flex-col justify-center gap-2.5 rounded-xl border p-3 text-left transition-colors ${activo === indice ? 'bg-surface-sunken' : 'border-border'}`} style={activo === indice ? { borderColor: color } : undefined}>
+                  className={`hover-elevar flex w-full flex-col justify-center gap-2.5 rounded-xl border p-3 text-left transition-colors ${activo === indice ? 'bg-surface-sunken' : 'border-border'}`} style={activo === indice ? { borderColor: color } : undefined}>
                   <span className="flex w-full items-center gap-3">
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `color-mix(in srgb, ${color} 18%, transparent)`, color }}><Icono size={20} aria-hidden="true" /></span>
                     <span className="min-w-0">
@@ -140,7 +140,7 @@ function MapaHorario({ valores, color }: { valores: number[][]; color: string })
               <th scope="row" className="pr-2 text-left font-medium text-text-700">{diasSemana[indice]}</th>
               {fila.map((valor, columna) => {
                 const intensidad = Math.round(22 + (valor / mayor) * 70)
-                return <td key={franjasHorarias[columna]} className="h-9 rounded-md text-center font-semibold tabular-nums" style={{ backgroundColor: `color-mix(in srgb, ${color} ${intensidad}%, transparent)`, color: intensidad > 60 ? 'white' : 'var(--color-text-900)' }} title={`${diasSemana[indice]} ${franjasHorarias[columna]}: ${valor} pasajes`}>{valor}</td>
+                return <td key={franjasHorarias[columna]} className="hover-celda h-9 cursor-default rounded-md text-center font-semibold tabular-nums" style={{ backgroundColor: `color-mix(in srgb, ${color} ${intensidad}%, transparent)`, color: intensidad > 60 ? 'white' : 'var(--color-text-900)' }} title={`${diasSemana[indice]} ${franjasHorarias[columna]}: ${valor} pasajes`}>{valor}</td>
               })}
             </tr>
           ))}
@@ -152,7 +152,7 @@ function MapaHorario({ valores, color }: { valores: number[][]; color: string })
 
 function Incidencia({ icono, titulo, valor, base, detalle }: { icono: ReactNode; titulo: string; valor: number; base: number; detalle: string }) {
   return (
-    <li className="rounded-xl bg-surface-sunken p-4">
+    <li className="hover-elevar rounded-xl bg-surface-sunken p-4">
       <div className="flex items-center gap-2 text-sm text-text-700"><span style={{ color: 'var(--serie-neutra)' }}>{icono}</span>{titulo}</div>
       <p className="mt-2 font-display text-2xl font-bold tabular-nums text-text-900">{numero.format(valor)} <span className="text-sm font-semibold text-text-500">· {participacion(valor, base).toFixed(1)} %</span></p>
       <p className="mt-1 text-xs text-text-500">{detalle}</p>
@@ -189,12 +189,12 @@ function AnticipacionCompra({ filas, esWeb }: { filas: Segmento[]; esWeb: boolea
 
   return (
     <div className="mt-5 flex flex-1 flex-col">
-      <ol className="grid grid-cols-4 items-end gap-3">
+      <ol className="hover-grupo grid grid-cols-4 items-end gap-3">
         {filas.map((fila, indice) => {
           const { Icono, color } = tramosAnticipacion[indice]
           const porcentaje = participacion(fila.pasajes, total)
           return (
-            <li key={fila.nombre} className="flex flex-col items-center text-center" title={`${fila.nombre}: ${fila.pasajes} pasajes`}>
+            <li key={fila.nombre} className="hover-item flex cursor-default flex-col items-center text-center" title={`${fila.nombre}: ${fila.pasajes} pasajes`}>
               <div className="flex h-36 w-full flex-col items-center justify-end">
                 <span className="mb-1 font-display text-lg font-bold tabular-nums text-text-900">{porcentaje.toFixed(0)} %</span>
                 <div className="w-full rounded-t-lg transition-[height] duration-500" style={{ height: `${Math.max((fila.pasajes / mayor) * 78, 5)}%`, backgroundColor: color }} />
@@ -240,7 +240,7 @@ function VentasPorSede({ filas }: { filas: Resumen[] }) {
 
   return (
     <div className="mt-4 flex flex-1 flex-col">
-      <svg viewBox={`0 0 ${anchoLienzo} 330`} className="h-auto w-full" role="img" aria-label={top.map((fila, i) => `${String(i + 1).padStart(2, '0')} ${fila.nombre}: ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
+      <svg viewBox={`0 0 ${anchoLienzo} 330`} className="hover-grupo h-auto w-full overflow-visible" role="img" aria-label={top.map((fila, i) => `${String(i + 1).padStart(2, '0')} ${fila.nombre}: ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
         <line x1="0" y1={base} x2={anchoLienzo} y2={base} stroke="var(--color-border)" strokeWidth="2" />
         {top.map((fila, rank) => {
           const color = coloresInfografia[rank]
@@ -250,7 +250,7 @@ function VentasPorSede({ filas }: { filas: Resumen[] }) {
           const centroX = x + ancho / 2
           const cuota = participacion(fila.ingresos, total)
           return (
-            <g key={fila.nombre}>
+            <g key={fila.nombre} className="hover-item cursor-default">
               <title>{`${fila.nombre}: ${moneda.format(fila.ingresos)} · ${fila.pasajes} pasajes`}</title>
               <text x={centroX} y={tope - 34} textAnchor="middle" fontSize="22" fontWeight="700" fill={color}>{cuota.toFixed(0)} %</text>
               <text x={centroX} y={tope - 12} textAnchor="middle" fontSize="15" fill="var(--color-text-500)">{moneda.format(fila.ingresos)}</text>
@@ -293,14 +293,14 @@ function RankingRutas({ filas }: { filas: Resumen[] }) {
           <button key={opcion} type="button" onClick={() => setMetrica(opcion)} aria-pressed={metrica === opcion} className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${metrica === opcion ? 'bg-surface-card text-text-900 shadow-sm' : 'text-text-500 hover:text-text-900'}`}>{opcion}</button>
         ))}
       </div>
-      <ol className="mt-6 space-y-4">
+      <ol className="hover-grupo mt-6 space-y-4">
         {ordenadas.map((fila, indice) => {
           const { fondo, texto } = coloresRanking[indice]
           const ancho = Math.max((fila[metrica] / mayor) * 100, 10)
           const cuota = participacion(fila[metrica], suma)
           const dentro = ancho > 34
           return (
-            <li key={fila.nombre} className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 sm:grid-cols-[2.5rem_11rem_minmax(0,1fr)]">
+            <li key={fila.nombre} className="hover-item hover-horizontal grid cursor-default grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 sm:grid-cols-[2.5rem_11rem_minmax(0,1fr)]">
               <span className="relative flex size-10 items-center justify-center rounded-xl font-display text-sm font-bold tabular-nums shadow-sm" style={{ backgroundColor: fondo, color: texto }}>
                 {String(indice + 1).padStart(2, '0')}
                 {indice === 0 && <Star size={14} className="absolute -right-1.5 -top-1.5 fill-yellow-300 text-yellow-400" aria-hidden="true" />}
@@ -454,7 +454,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
               <Incidencia icono={<RotateCcw size={18} aria-hidden="true" />} titulo="Reembolsos" valor={incidencias.reembolsos} base={pasajes} detalle="Devoluciones aprobadas" />
               {esWeb
                 ? <Incidencia icono={<CreditCard size={18} aria-hidden="true" />} titulo="Pagos fallidos" valor={incidencias.pagosFallidos} base={filtrado.compras} detalle="Porcentaje sobre intentos de compra" />
-                : <li className="rounded-xl bg-surface-sunken p-4">
+                : <li className="hover-elevar rounded-xl bg-surface-sunken p-4">
                     <div className="flex items-center gap-2 text-sm text-text-700"><span style={{ color: 'var(--serie-neutra)' }}><Repeat size={18} aria-hidden="true" /></span>Cambios de viaje con diferencia</div>
                     <p className="mt-2 font-display text-2xl font-bold tabular-nums text-text-900">{numero.format(cambios.conCobro)} <span className="text-sm font-semibold text-text-500">de {numero.format(cambios.cambios)} cambios</span></p>
                     <p className="mt-1 text-xs text-text-500">{moneda.format(cambios.montoCobrado)} cobrados por diferencia de tarifa</p>

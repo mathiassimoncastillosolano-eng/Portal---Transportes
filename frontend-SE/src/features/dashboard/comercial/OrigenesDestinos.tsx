@@ -58,11 +58,11 @@ function RankingCiudades({ titulo, detalle, ciudades, Icono, paleta }: { titulo:
           </div>
         </div>
       )}
-      <ol className="mt-4 space-y-2">
+      <ol className="hover-grupo mt-4 space-y-2">
         {visibles.map((ciudad, indice) => {
           const color = indice < 5 ? paleta[indice] : paleta[5]
           return (
-            <li key={ciudad.nombre} className="grid grid-cols-[1.75rem_7.5rem_minmax(0,1fr)_5.5rem] items-center gap-3">
+            <li key={ciudad.nombre} className="hover-item hover-horizontal grid cursor-default grid-cols-[1.75rem_7.5rem_minmax(0,1fr)_5.5rem] items-center gap-3 rounded-lg">
               <span className="flex size-7 items-center justify-center rounded-full text-xs font-bold tabular-nums" style={{ backgroundColor: color, color: textoSobrePastel }}>{indice + 1}</span>
               <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-text-900"><MapPin size={14} className="shrink-0" style={{ color }} aria-hidden="true" /><span className="truncate">{ciudad.nombre}</span></span>
               <span className="h-3 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true"><span className="block h-full rounded-full" style={{ width: `${(ciudad.pasajes / mayor) * 100}%`, backgroundColor: color }} /></span>
