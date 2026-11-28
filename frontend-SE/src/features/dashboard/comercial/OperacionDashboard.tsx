@@ -18,20 +18,37 @@ function ocupacion(vendidos: number, capacidad: number): number {
   return capacidad === 0 ? 0 : (vendidos / capacidad) * 100
 }
 
-function BarraOcupacion({ fila }: { fila: RutaOcupacion }) {
+const META_OCUPACION = 75
+
+function nivelOcupacion(porcentaje: number) {
+  if (porcentaje >= META_OCUPACION) return { etiqueta: 'Buena', color: 'var(--color-success-500)' }
+  if (porcentaje >= 60) return { etiqueta: 'Regular', color: 'var(--color-warning-500)' }
+  return { etiqueta: 'Baja', color: 'var(--color-danger-500)' }
+}
+
+/** Medidor circular: el anillo muestra la ocupación y la marca indica la meta. */
+function MedidorOcupacion({ fila }: { fila: RutaOcupacion }) {
   const porcentaje = ocupacion(fila.vendidos, fila.capacidad)
-  const color = porcentaje < 60 ? 'var(--color-warning-text)' : 'var(--serie-neutra)'
+  const { etiqueta, color } = nivelOcupacion(porcentaje)
+  const radio = 42
+  const circunferencia = 2 * Math.PI * radio
+  const anguloMeta = (META_OCUPACION / 100) * 2 * Math.PI - Math.PI / 2
+  const vacios = fila.capacidad - fila.vendidos
+  const [origen, destino] = fila.nombre.split(' → ')
 
   return (
-    <li className="space-y-2">
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="font-semibold text-text-900">{fila.nombre}</span>
-        <span className="font-semibold tabular-nums text-text-900">{porcentaje.toFixed(0)} %</span>
-      </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-surface-sunken" role="img" aria-label={`${fila.nombre}: ${fila.vendidos} de ${fila.capacidad} asientos ocupados`}>
-        <div className="h-full rounded-full" style={{ width: `${porcentaje}%`, backgroundColor: color }} />
-      </div>
-      <p className="text-xs tabular-nums text-text-500">{numero.format(fila.vendidos)} de {numero.format(fila.capacidad)} asientos</p>
+    <li className="flex flex-col items-center rounded-xl bg-surface-sunken p-4 text-center">
+      <svg viewBox="0 0 100 100" className="size-32" role="img" aria-label={`${fila.nombre}: ${porcentaje.toFixed(0)} % de ocupación (${etiqueta}), ${fila.vendidos} de ${fila.capacidad} asientos`}>
+        <circle cx="50" cy="50" r={radio} fill="none" stroke="var(--color-border)" strokeWidth="9" />
+        <circle cx="50" cy="50" r={radio} fill="none" stroke={color} strokeWidth="9" strokeLinecap="round"
+          strokeDasharray={`${(porcentaje / 100) * circunferencia} ${circunferencia}`} transform="rotate(-90 50 50)" />
+        <line x1={50 + 34 * Math.cos(anguloMeta)} y1={50 + 34 * Math.sin(anguloMeta)} x2={50 + 50 * Math.cos(anguloMeta)} y2={50 + 50 * Math.sin(anguloMeta)} stroke="var(--color-text-900)" strokeWidth="2" strokeLinecap="round" />
+        <text x="50" y="50" textAnchor="middle" className="fill-text-900 font-display" fontSize="20" fontWeight="700">{porcentaje.toFixed(0)}%</text>
+        <text x="50" y="65" textAnchor="middle" fontSize="9" fontWeight="600" fill={color}>{etiqueta}</text>
+      </svg>
+      <p className="mt-2 text-sm font-semibold text-text-900">{origen} <span className="font-normal text-text-400">→</span> {destino}</p>
+      <p className="mt-1 text-xs tabular-nums text-text-500">{numero.format(fila.vendidos)} de {numero.format(fila.capacidad)} asientos</p>
+      <p className="mt-1 text-xs font-semibold tabular-nums text-text-700">{numero.format(vacios)} asientos vacíos</p>
     </li>
   )
 }
@@ -261,7 +278,13 @@ export function PanoramaRutas({ datos, periodo }: Props) {
       <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
         <h3 className="font-display text-lg font-bold">Ocupación por ruta</h3>
         <p className="mt-1 text-sm text-text-500">Asientos ocupados ÷ capacidad de salidas realizadas en el período</p>
-        <ul className="mt-6 grid gap-x-8 gap-y-5 md:grid-cols-2">{datos.ocupacionPorRuta.map((fila) => <BarraOcupacion key={fila.nombre} fila={fila} />)}</ul>
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-700">
+          <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full" style={{ backgroundColor: 'var(--color-success-500)' }} />Buena (75 % o más)</span>
+          <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full" style={{ backgroundColor: 'var(--color-warning-500)' }} />Regular (60–74 %)</span>
+          <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full" style={{ backgroundColor: 'var(--color-danger-500)' }} />Baja (menos de 60 %)</span>
+          <span className="flex items-center gap-1.5"><i className="h-3 w-0.5 rounded-full bg-text-900" />Meta 75 %</span>
+        </div>
+        <ul className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">{datos.ocupacionPorRuta.map((fila) => <MedidorOcupacion key={fila.nombre} fila={fila} />)}</ul>
       </article>
 
       <div className="grid gap-4 lg:grid-cols-2">
