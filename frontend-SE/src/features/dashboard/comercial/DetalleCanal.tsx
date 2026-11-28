@@ -155,6 +155,50 @@ function RankingBarras({ filas, color, unaColumna = false }: { filas: Resumen[];
   )
 }
 
+function RankingRutas({ filas, color, total }: { filas: Resumen[]; color: string; total: number }) {
+  const [metrica, setMetrica] = useState<'ingresos' | 'pasajes'>('ingresos')
+  const ordenadas = [...filas].sort((a, b) => b[metrica] - a[metrica]).slice(0, 6)
+  const mayor = Math.max(...ordenadas.map((fila) => fila[metrica]), 1)
+  const suma = metrica === 'ingresos' ? total : filas.reduce((acumulado, fila) => acumulado + fila.pasajes, 0)
+  const formato = (valor: number) => metrica === 'ingresos' ? moneda.format(valor) : `${numero.format(valor)} pas.`
+
+  return (
+    <>
+      <div className="mt-4 inline-flex rounded-xl border border-border bg-surface-sunken p-1" role="group" aria-label="Ordenar ranking por">
+        {(['ingresos', 'pasajes'] as const).map((opcion) => (
+          <button key={opcion} type="button" onClick={() => setMetrica(opcion)} aria-pressed={metrica === opcion} className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${metrica === opcion ? 'bg-surface-card text-text-900 shadow-sm' : 'text-text-500 hover:text-text-900'}`}>{opcion}</button>
+        ))}
+      </div>
+      <ol className="mt-5 space-y-3">
+        {ordenadas.map((fila, indice) => {
+          const [origen, destino] = fila.nombre.split(' → ')
+          const ancho = (fila[metrica] / mayor) * 100
+          const cuota = participacion(fila[metrica], suma)
+          const podio = indice < 3
+          return (
+            <li key={fila.nombre} className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 sm:grid-cols-[2rem_13rem_minmax(0,1fr)]">
+              <span className={`flex size-8 items-center justify-center rounded-full font-display text-sm font-bold tabular-nums ${podio ? 'text-white' : 'bg-surface-sunken text-text-500'}`} style={podio ? { backgroundColor: color, opacity: 1 - indice * 0.2 } : undefined}>{indice + 1}</span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-text-900">{origen} <span className="font-normal text-text-400">→</span> {destino}</p>
+                <p className="text-xs text-text-500 tabular-nums">{numero.format(fila.pasajes)} pasajes · {precio.format(fila.pasajes === 0 ? 0 : fila.ingresos / fila.pasajes)} por pasaje</p>
+              </div>
+              <div className="col-span-2 flex items-center gap-3 sm:col-span-1">
+                <div className="relative h-7 flex-1 overflow-hidden rounded-lg bg-surface-sunken" role="img" aria-label={`${fila.nombre}: ${formato(fila[metrica])}, ${cuota.toFixed(1)} % del total`}>
+                  <div className="flex h-full items-center justify-end rounded-lg pr-2 transition-[width] duration-500" style={{ width: `${Math.max(ancho, 8)}%`, backgroundColor: color, opacity: podio ? 1 : 0.55 }}>
+                    {ancho > 30 && <span className="text-xs font-bold tabular-nums text-white">{formato(fila[metrica])}</span>}
+                  </div>
+                  {ancho <= 30 && <span className="absolute inset-y-0 flex items-center text-xs font-bold tabular-nums text-text-900" style={{ left: `calc(${Math.max(ancho, 8)}% + 8px)` }}>{formato(fila[metrica])}</span>}
+                </div>
+                <span className="w-14 shrink-0 text-right text-xs font-semibold tabular-nums text-text-700">{cuota.toFixed(1)} %</span>
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+    </>
+  )
+}
+
 export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales, anteriores, otroCanal, integrado = false }: Props) {
   useEffect(() => { window.scrollTo(0, 0) }, [])
   const [servicio, setServicio] = useState('todos')
@@ -295,10 +339,10 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
 
           <section aria-labelledby="rutas-canal-titulo" className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <div><h2 id="rutas-canal-titulo" className="font-display text-lg font-bold">Ranking de rutas</h2><p className="mt-1 text-sm text-text-500">Ordenado por ingresos netos · {nombreCanal}</p></div>
+              <div><h2 id="rutas-canal-titulo" className="font-display text-lg font-bold">Ranking de rutas</h2><p className="mt-1 text-sm text-text-500">Las 6 rutas que más venden por {nombreCanal} · % sobre el total del canal</p></div>
               <p className="text-sm text-text-700">Ingresos del filtro: <strong className="tabular-nums text-text-900">{moneda.format(ingresos)}</strong></p>
             </div>
-            <RankingBarras filas={rutas.slice(0, 6)} color={color} />
+            <RankingRutas filas={rutas} color={color} total={ingresos} />
             <details className="mt-6">
               <summary className="cursor-pointer text-sm font-semibold text-accent-text">Ver todas las rutas del canal</summary>
               <div className="mt-4 overflow-x-auto rounded-xl border border-border">
