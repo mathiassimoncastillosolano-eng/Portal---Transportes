@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowDownRight, ArrowLeft, ArrowUpRight, Building2, CalendarClock, CalendarDays, CreditCard, Globe2, Minus, Repeat, RotateCcw } from 'lucide-react'
+import { ArrowDownRight, ArrowLeft, ArrowUpRight, Building2, CalendarClock, CalendarDays, CreditCard, Globe2, Minus, Repeat, RotateCcw, Star } from 'lucide-react'
 import type { Canal, Totales } from './modelo'
 import { participacion, variacion } from './modelo'
 import { ciudadesSalidaEjemplo, datosDetalleEjemplo } from './datosDetalleEjemplo'
@@ -155,12 +155,22 @@ function RankingBarras({ filas, color, unaColumna = false }: { filas: Resumen[];
   )
 }
 
-function RankingRutas({ filas, color, total }: { filas: Resumen[]; color: string; total: number }) {
+/** Un color por puesto, al estilo de un podio; el texto se ajusta para que se lea sobre cada color. */
+const coloresRanking = [
+  { fondo: '#f2a516', texto: '#3a2600' },
+  { fondo: '#e8572a', texto: '#ffffff' },
+  { fondo: '#1fae8f', texto: '#ffffff' },
+  { fondo: '#1597b8', texto: '#ffffff' },
+  { fondo: '#7c5cd6', texto: '#ffffff' },
+  { fondo: '#6b7f8e', texto: '#ffffff' },
+]
+
+function RankingRutas({ filas }: { filas: Resumen[] }) {
   const [metrica, setMetrica] = useState<'ingresos' | 'pasajes'>('ingresos')
   const ordenadas = [...filas].sort((a, b) => b[metrica] - a[metrica]).slice(0, 6)
   const mayor = Math.max(...ordenadas.map((fila) => fila[metrica]), 1)
-  const suma = metrica === 'ingresos' ? total : filas.reduce((acumulado, fila) => acumulado + fila.pasajes, 0)
-  const formato = (valor: number) => metrica === 'ingresos' ? moneda.format(valor) : `${numero.format(valor)} pas.`
+  const suma = filas.reduce((acumulado, fila) => acumulado + fila[metrica], 0)
+  const formato = (valor: number) => metrica === 'ingresos' ? moneda.format(valor) : `${numero.format(valor)} pasajes`
 
   return (
     <>
@@ -169,27 +179,27 @@ function RankingRutas({ filas, color, total }: { filas: Resumen[]; color: string
           <button key={opcion} type="button" onClick={() => setMetrica(opcion)} aria-pressed={metrica === opcion} className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${metrica === opcion ? 'bg-surface-card text-text-900 shadow-sm' : 'text-text-500 hover:text-text-900'}`}>{opcion}</button>
         ))}
       </div>
-      <ol className="mt-5 space-y-3">
+      <ol className="mt-6 space-y-4">
         {ordenadas.map((fila, indice) => {
-          const [origen, destino] = fila.nombre.split(' → ')
-          const ancho = (fila[metrica] / mayor) * 100
+          const { fondo, texto } = coloresRanking[indice]
+          const ancho = Math.max((fila[metrica] / mayor) * 100, 10)
           const cuota = participacion(fila[metrica], suma)
-          const podio = indice < 3
+          const dentro = ancho > 34
           return (
-            <li key={fila.nombre} className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 sm:grid-cols-[2rem_13rem_minmax(0,1fr)]">
-              <span className={`flex size-8 items-center justify-center rounded-full font-display text-sm font-bold tabular-nums ${podio ? 'text-white' : 'bg-surface-sunken text-text-500'}`} style={podio ? { backgroundColor: color, opacity: 1 - indice * 0.2 } : undefined}>{indice + 1}</span>
+            <li key={fila.nombre} className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 sm:grid-cols-[2.5rem_11rem_minmax(0,1fr)]">
+              <span className="relative flex size-10 items-center justify-center rounded-xl font-display text-sm font-bold tabular-nums shadow-sm" style={{ backgroundColor: fondo, color: texto }}>
+                {String(indice + 1).padStart(2, '0')}
+                {indice === 0 && <Star size={14} className="absolute -right-1.5 -top-1.5 fill-yellow-300 text-yellow-400" aria-hidden="true" />}
+              </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-text-900">{origen} <span className="font-normal text-text-400">→</span> {destino}</p>
-                <p className="text-xs text-text-500 tabular-nums">{numero.format(fila.pasajes)} pasajes · {precio.format(fila.pasajes === 0 ? 0 : fila.ingresos / fila.pasajes)} por pasaje</p>
+                <p className="truncate text-sm font-semibold text-text-900">{fila.nombre}</p>
+                <p className="text-xs text-text-500 tabular-nums">{cuota.toFixed(1)} % del canal</p>
               </div>
-              <div className="col-span-2 flex items-center gap-3 sm:col-span-1">
-                <div className="relative h-7 flex-1 overflow-hidden rounded-lg bg-surface-sunken" role="img" aria-label={`${fila.nombre}: ${formato(fila[metrica])}, ${cuota.toFixed(1)} % del total`}>
-                  <div className="flex h-full items-center justify-end rounded-lg pr-2 transition-[width] duration-500" style={{ width: `${Math.max(ancho, 8)}%`, backgroundColor: color, opacity: podio ? 1 : 0.55 }}>
-                    {ancho > 30 && <span className="text-xs font-bold tabular-nums text-white">{formato(fila[metrica])}</span>}
-                  </div>
-                  {ancho <= 30 && <span className="absolute inset-y-0 flex items-center text-xs font-bold tabular-nums text-text-900" style={{ left: `calc(${Math.max(ancho, 8)}% + 8px)` }}>{formato(fila[metrica])}</span>}
+              <div className="relative col-span-2 h-9 overflow-hidden rounded-xl bg-surface-sunken sm:col-span-1" role="img" aria-label={`${indice + 1}. ${fila.nombre}: ${formato(fila[metrica])}, ${cuota.toFixed(1)} % del canal`}>
+                <div className="flex h-full items-center justify-end rounded-xl px-3 transition-[width] duration-500" style={{ width: `${ancho}%`, backgroundColor: fondo }}>
+                  {dentro && <span className="text-sm font-bold tabular-nums" style={{ color: texto }}>{formato(fila[metrica])}</span>}
                 </div>
-                <span className="w-14 shrink-0 text-right text-xs font-semibold tabular-nums text-text-700">{cuota.toFixed(1)} %</span>
+                {!dentro && <span className="absolute inset-y-0 flex items-center text-sm font-bold tabular-nums text-text-900" style={{ left: `calc(${ancho}% + 10px)` }}>{formato(fila[metrica])}</span>}
               </div>
             </li>
           )
@@ -342,7 +352,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
               <div><h2 id="rutas-canal-titulo" className="font-display text-lg font-bold">Ranking de rutas</h2><p className="mt-1 text-sm text-text-500">Las 6 rutas que más venden por {nombreCanal} · % sobre el total del canal</p></div>
               <p className="text-sm text-text-700">Ingresos del filtro: <strong className="tabular-nums text-text-900">{moneda.format(ingresos)}</strong></p>
             </div>
-            <RankingRutas filas={rutas} color={color} total={ingresos} />
+            <RankingRutas filas={rutas} />
             <details className="mt-6">
               <summary className="cursor-pointer text-sm font-semibold text-accent-text">Ver todas las rutas del canal</summary>
               <div className="mt-4 overflow-x-auto rounded-xl border border-border">
