@@ -47,7 +47,7 @@ function Cambio({ valor, oscuro = false, unidad = '%', prefijo = '' }: { valor: 
   return <span className={`inline-flex items-center gap-1 text-xs font-semibold ${color}`}><Icono size={15} aria-hidden="true" />{texto}</span>
 }
 
-function Indicador({ titulo, valor, cambio, unidad = '%', nota, icono, principal = false }: {
+function Indicador({ titulo, valor, cambio, unidad = '%', nota, icono, principal = false, acento = 'var(--canal-web)' }: {
   titulo: string
   valor: string
   cambio?: number | null
@@ -55,12 +55,18 @@ function Indicador({ titulo, valor, cambio, unidad = '%', nota, icono, principal
   nota?: string
   icono: ReactNode
   principal?: boolean
+  acento?: string
 }) {
+  const estilo = principal ? undefined : {
+    borderColor: `color-mix(in srgb, ${acento} 28%, var(--color-border))`,
+    backgroundImage: `linear-gradient(160deg, color-mix(in srgb, ${acento} 10%, transparent), transparent 55%)`,
+  }
   return (
-    <article className={`flex min-h-40 flex-col justify-between rounded-2xl border p-5 shadow-sm ${principal ? 'comercial-indicador-principal text-white' : 'border-border bg-surface-card text-text-900'}`}>
+    <article className={`relative flex min-h-40 flex-col justify-between overflow-hidden rounded-2xl border p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${principal ? 'comercial-indicador-principal text-white' : 'bg-surface-card text-text-900'}`} style={estilo}>
+      {!principal && <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: acento }} aria-hidden="true" />}
       <div className="flex items-start justify-between gap-3">
         <p className={`text-xs font-semibold uppercase tracking-[0.1em] ${principal ? 'text-white/85' : 'text-text-500'}`}>{titulo}</p>
-        <span className={`rounded-xl p-2 ${principal ? 'bg-white/15 text-white' : 'bg-accent-50 text-accent-text'}`}>{icono}</span>
+        <span className={`flex size-10 items-center justify-center rounded-xl ${principal ? 'bg-white/15 text-white' : ''}`} style={principal ? undefined : { backgroundColor: `color-mix(in srgb, ${acento} 16%, transparent)`, color: acento }}>{icono}</span>
       </div>
       <div>
         <p className="font-display text-3xl font-semibold tracking-tight tabular-nums">{valor}</p>
@@ -90,26 +96,35 @@ function CanalCard({ nombre, icono, color, valor, total, anterior, totalAnterior
   ]
 
   return (
-    <article className="flex flex-col rounded-2xl border border-border bg-surface-card p-5">
+    <article className="flex flex-col overflow-hidden rounded-2xl border bg-surface-card shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ borderColor: `color-mix(in srgb, ${color} 35%, var(--color-border))` }}>
+      <div className="p-5 pb-4" style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${color} 16%, transparent), color-mix(in srgb, ${color} 4%, transparent))` }}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${nombre === 'Web' ? 'text-on-cta' : 'text-white'}`} style={{ backgroundColor: color }}>{icono}</span>
+          <span className={`flex size-12 shrink-0 items-center justify-center rounded-2xl shadow-sm ${nombre === 'Web' ? 'text-on-cta' : 'text-white'}`} style={{ backgroundColor: color }}>{icono}</span>
           <div>
             <h3 className="font-display text-lg font-semibold text-text-900">{nombre}</h3>
             <p className="text-xs text-text-500">Participación en {metrica}</p>
           </div>
         </div>
-        <span className="shrink-0 whitespace-nowrap font-display text-2xl font-bold tabular-nums text-text-900">{porcentaje.toFixed(1)} %</span>
+        <span className="shrink-0 whitespace-nowrap font-display text-3xl font-bold tabular-nums" style={{ color }}>{porcentaje.toFixed(1)} %</span>
       </div>
       <div className="comparacion-canal-pista mt-4" aria-hidden="true">
         <div className="comparacion-canal-barra" style={{ width: `${porcentaje}%`, '--barra-color': color } as CSSProperties} />
       </div>
       <div className="mt-2"><Cambio valor={porcentajeAnterior === null ? null : porcentaje - porcentajeAnterior} unidad="pp" prefijo="Participación " /></div>
-      <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-4">
-        {datos.map((dato) => <div key={dato.etiqueta}><dt className="text-xs text-text-500">{dato.etiqueta}</dt><dd className="mt-1 text-base font-semibold tabular-nums text-text-900 sm:text-lg">{dato.valor}</dd></div>)}
-      </dl>
-      <div className="mt-2"><Cambio valor={variacion(valor[metrica], anterior[metrica])} prefijo={metrica === 'pasajes' ? 'Pasajes ' : 'Ingresos '} /></div>
-      <button type="button" onClick={onVerDetalles} className="mt-5 inline-flex min-h-11 items-center gap-2 self-start whitespace-nowrap rounded-lg border border-border px-3 py-2 text-xs font-semibold text-text-900 transition-colors hover:bg-surface-sunken sm:text-sm">Ver detalles de {nombre}<ArrowRight size={16} aria-hidden="true" /></button>
+      </div>
+      <div className="flex flex-1 flex-col p-5 pt-4">
+        <dl className="grid grid-cols-3 gap-3">
+          {datos.map((dato) => <div key={dato.etiqueta} className="rounded-xl bg-surface-sunken px-3 py-2.5"><dt className="text-xs text-text-500">{dato.etiqueta}</dt><dd className="mt-1 text-base font-semibold tabular-nums text-text-900 sm:text-lg">{dato.valor}</dd></div>)}
+        </dl>
+        <div className="mt-3"><Cambio valor={variacion(valor[metrica], anterior[metrica])} prefijo={metrica === 'pasajes' ? 'Pasajes ' : 'Ingresos '} /></div>
+        <button type="button" onClick={onVerDetalles}
+          className={`group mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-sm transition duration-200 hover:shadow-md hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 ${nombre === 'Web' ? 'text-on-cta' : 'text-white'}`}
+          style={{ backgroundColor: color, outlineColor: color }}>
+          Ver detalles de {nombre}<ArrowRight size={18} className="transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true" />
+        </button>
+      </div>
     </article>
   )
 }
@@ -256,9 +271,9 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, inte
 
         <section aria-label="Indicadores comerciales" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Indicador titulo="Ingresos netos" valor={moneda.format(hoy.total.ingresos)} cambio={variacion(hoy.total.ingresos, antes.total.ingresos)} icono={<Wallet size={19} />} principal />
-          <Indicador titulo="Pasajes vendidos" valor={numero.format(hoy.total.pasajes)} cambio={variacion(hoy.total.pasajes, antes.total.pasajes)} icono={<Ticket size={19} />} />
-          <Indicador titulo="Ticket promedio" valor={precio.format(ticket(hoy.total))} cambio={variacion(ticket(hoy.total), ticket(antes.total))} icono={<Receipt size={19} />} />
-          <Indicador titulo="Ocupación" valor={`${ocupacion.porcentaje.toFixed(1)} %`} cambio={ocupacionAnterior === null ? null : ocupacion.porcentaje - ocupacionAnterior} unidad="pp" nota={`${numero.format(ocupacion.vendidos)} de ${numero.format(ocupacion.capacidad)} asientos`} icono={<Armchair size={19} />} />
+          <Indicador titulo="Pasajes vendidos" valor={numero.format(hoy.total.pasajes)} cambio={variacion(hoy.total.pasajes, antes.total.pasajes)} icono={<Ticket size={19} />} acento="#7c5cd6" />
+          <Indicador titulo="Ticket promedio" valor={precio.format(ticket(hoy.total))} cambio={variacion(ticket(hoy.total), ticket(antes.total))} icono={<Receipt size={19} />} acento="#e08a3c" />
+          <Indicador titulo="Ocupación" valor={`${ocupacion.porcentaje.toFixed(1)} %`} cambio={ocupacionAnterior === null ? null : ocupacion.porcentaje - ocupacionAnterior} unidad="pp" nota={`${numero.format(ocupacion.vendidos)} de ${numero.format(ocupacion.capacidad)} asientos`} icono={<Armchair size={19} />} acento="#1597b8" />
         </section>
 
         <section aria-labelledby="canales-titulo" className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
