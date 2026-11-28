@@ -111,3 +111,19 @@
     transform: none;
   }
 }
+
+/* Listas desplegables (Período, Servicio, Ciudad): el menú nativo sigue el tema de la página,
+ * no el del sistema operativo, para que en modo claro no salga con fondo oscuro. */
+:root:not(.dark) {
+  color-scheme: light;
+}
+
+select option {
+  background-color: var(--color-surface-card);
+  color: var(--color-text-900);
+}
+
+select option:checked {
+  background-color: color-mix(in srgb, var(--canal-web) 22%, var(--color-surface-card));
+  color: var(--color-text-900);
+}
