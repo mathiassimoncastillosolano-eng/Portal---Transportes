@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AlertTriangle, ArrowRight, CalendarClock, CreditCard, RotateCcw, Search, Ticket } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import type { DatosOperacion, FilaRanking, RutaOcupacion, SalidaEnRiesgo } from './datosOperacionEjemplo'
+import { ocupacionTotal } from './datosOperacionEjemplo'
 
 interface Props {
   datos: DatosOperacion
@@ -196,74 +197,91 @@ function Servicios({ filas }: { filas: FilaRanking[] }) {
   )
 }
 
-export function OperacionDashboard({ datos, periodo }: Props) {
-  const vendidos = datos.ocupacionPorRuta.reduce((suma, fila) => suma + fila.vendidos, 0)
-  const capacidad = datos.ocupacionPorRuta.reduce((suma, fila) => suma + fila.capacidad, 0)
-  const ocupacionTotal = ocupacion(vendidos, capacidad)
+/** Única alerta accionable de la vista general. */
+export function SalidasImpulso({ datos }: { datos: DatosOperacion }) {
+  return (
+    <article className="rounded-2xl border border-warning-500/30 bg-surface-card p-5 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-warning-text"><AlertTriangle size={15} aria-hidden="true" />Requiere atención</p>
+          <h2 className="mt-1 font-display text-xl font-bold">Salidas que necesitan impulso</h2>
+          <p className="mt-1 text-sm text-text-500">Próximos días · por debajo del 40 % de ocupación</p>
+        </div>
+        <span className="rounded-full bg-warning-50 px-3 py-1 text-sm font-bold tabular-nums text-warning-text">{datos.salidasEnRiesgo.length}</span>
+      </div>
+      <ul className="mt-5 grid gap-3 md:grid-cols-3">{datos.salidasEnRiesgo.map((fila) => <Salida key={`${fila.ruta}-${fila.salida}`} fila={fila} />)}</ul>
+    </article>
+  )
+}
+
+/** Resumen compacto: el desglose por canal está en cada detalle. */
+export function IncidenciasResumen({ datos, periodo }: Props) {
+  const items = [
+    { titulo: 'Devoluciones aprobadas', valor: datos.incidencias.devoluciones, Icono: RotateCcw },
+    { titulo: 'Cambios de fecha', valor: datos.incidencias.cambiosFecha, Icono: CalendarClock },
+    { titulo: 'Pagos fallidos', valor: datos.incidencias.pagosFallidos, Icono: CreditCard },
+  ]
+  return (
+    <section aria-labelledby="incidencias-titulo" className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
+      <h2 id="incidencias-titulo" className="font-display text-lg font-bold">Incidencias del período</h2>
+      <p className="mt-1 text-sm text-text-500">Últimos {periodo} días · ambos canales</p>
+      <ul className="mt-4 grid gap-3 sm:grid-cols-3">
+        {items.map(({ titulo, valor, Icono }) => (
+          <li key={titulo} className="flex items-center gap-3 rounded-xl bg-surface-sunken px-4 py-3">
+            <Icono size={18} className="shrink-0 text-route-500" aria-hidden="true" />
+            <span className="text-sm text-text-700">{titulo}</span>
+            <strong className="ml-auto font-display text-xl tabular-nums text-text-900">{valor}</strong>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/** Contenido de la vista "Rutas y ocupación". */
+export function PanoramaRutas({ datos, periodo }: Props) {
+  const total = ocupacionTotal(datos)
 
   return (
-    <>
-      <section aria-labelledby="operacion-titulo" className="space-y-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">Panorama operativo</p>
-          <h2 id="operacion-titulo" className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">Servicios, rutas y salidas</h2>
-          <p className="mt-1 text-sm text-text-500">Ingresos por servicio y ruta, ocupación y próximas salidas que requieren atención.</p>
-        </div>
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-500">Ocupación del período</p>
+          <p className="mt-3 font-display text-3xl font-bold tabular-nums text-text-900">{total.porcentaje.toFixed(1)} %</p>
+          <p className="mt-2 text-xs text-text-500">{numero.format(total.vendidos)} asientos ocupados de {numero.format(total.capacidad)} disponibles · salidas de los últimos {periodo} días</p>
+        </article>
+        <article className="rounded-2xl border border-warning-500/30 bg-warning-50 p-5 shadow-sm">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-warning-text"><AlertTriangle size={16} aria-hidden="true" />Próximas salidas con baja venta</p>
+          <p className="mt-3 font-display text-3xl font-bold tabular-nums text-text-900">{datos.salidasEnRiesgo.length}</p>
+          <p className="mt-2 text-xs text-text-700">Salidas por debajo del 40 % de ocupación. Revisar promoción o capacidad.</p>
+        </article>
+      </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-500">Ocupación del período</p>
-            <p className="mt-3 font-display text-3xl font-bold tabular-nums text-text-900">{ocupacionTotal.toFixed(1)} %</p>
-            <p className="mt-2 text-xs text-text-500">{numero.format(vendidos)} asientos ocupados de {numero.format(capacidad)} disponibles · salidas de los últimos {periodo} días</p>
-          </article>
-          <article className="rounded-2xl border border-warning-500/30 bg-warning-50 p-5 shadow-sm">
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-warning-text"><AlertTriangle size={16} aria-hidden="true" />Próximas salidas con baja venta</p>
-            <p className="mt-3 font-display text-3xl font-bold tabular-nums text-text-900">{datos.salidasEnRiesgo.length}</p>
-            <p className="mt-2 text-xs text-text-700">Salidas por debajo del 40 % de ocupación. Revisar promoción o capacidad.</p>
-          </article>
-        </div>
+      <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
+        <h3 className="font-display text-lg font-bold">Ocupación por ruta</h3>
+        <p className="mt-1 text-sm text-text-500">Asientos ocupados ÷ capacidad de salidas realizadas en el período</p>
+        <ul className="mt-6 grid gap-x-8 gap-y-5 md:grid-cols-2">{datos.ocupacionPorRuta.map((fila) => <BarraOcupacion key={fila.nombre} fila={fila} />)}</ul>
+      </article>
 
-        <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
-            <h3 className="font-display text-lg font-bold">Ocupación por ruta</h3>
-            <p className="mt-1 text-sm text-text-500">Asientos ocupados ÷ capacidad de salidas realizadas en el período</p>
-            <ul className="mt-6 space-y-5">{datos.ocupacionPorRuta.map((fila) => <BarraOcupacion key={fila.nombre} fila={fila} />)}</ul>
-          </article>
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
-            <h3 className="font-display text-lg font-bold">Salidas que necesitan impulso</h3>
-            <p className="mt-1 text-sm text-text-500">Próximos días · ordenadas por menor ocupación</p>
-            <ul className="mt-5 space-y-3">{datos.salidasEnRiesgo.map((fila) => <Salida key={`${fila.ruta}-${fila.salida}`} fila={fila} />)}</ul>
-          </article>
-        </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Ranking titulo="Rutas de mayor ingreso" detalle={`5 rutas principales de ambos canales · últimos ${periodo} días`} filas={datos.rutasPorIngreso} color="var(--color-accent-500)" />
+        <Servicios filas={datos.servicios} />
+      </div>
+      <TablaRutas filas={datos.rutasPorIngreso} />
+    </div>
+  )
+}
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Ranking titulo="Rutas de mayor ingreso" detalle={`5 rutas principales de ambos canales · últimos ${periodo} días`} filas={datos.rutasPorIngreso} color="var(--color-accent-500)" />
-          <Servicios filas={datos.servicios} />
-        </div>
-        <TablaRutas filas={datos.rutasPorIngreso} />
-      </section>
-
-      <section aria-labelledby="incidencias-titulo" className="space-y-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">Seguimiento</p>
-          <h2 id="incidencias-titulo" className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">Incidencias del período</h2>
-          <p className="mt-1 text-sm text-text-500">Casos registrados en los últimos {periodo} días.</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm"><RotateCcw size={20} className="text-route-500" aria-hidden="true" /><p className="mt-4 text-xs font-semibold uppercase tracking-wide text-text-500">Devoluciones aprobadas</p><p className="mt-2 font-display text-3xl font-bold tabular-nums">{datos.incidencias.devoluciones}</p></article>
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm"><CalendarClock size={20} className="text-route-500" aria-hidden="true" /><p className="mt-4 text-xs font-semibold uppercase tracking-wide text-text-500">Cambios de fecha</p><p className="mt-2 font-display text-3xl font-bold tabular-nums">{datos.incidencias.cambiosFecha}</p></article>
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm"><CreditCard size={20} className="text-route-500" aria-hidden="true" /><p className="mt-4 text-xs font-semibold uppercase tracking-wide text-text-500">Pagos fallidos</p><p className="mt-2 font-display text-3xl font-bold tabular-nums">{datos.incidencias.pagosFallidos}</p></article>
-        </div>
-      </section>
-
-      <section aria-labelledby="conversion-titulo" className="rounded-2xl border border-dashed border-border-strong bg-surface-card p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-text-500">Siguiente etapa</p><h2 id="conversion-titulo" className="mt-1 font-display text-xl font-bold">Conversión del portal</h2><p className="mt-1 text-sm text-text-500">Disponible cuando el portal registre cada paso de la compra.</p></div><span className="rounded-full bg-surface-sunken px-3 py-1 text-xs font-semibold text-text-700">Pendiente de datos</span></div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><Search size={18} aria-hidden="true" />Búsquedas <ArrowRight size={15} className="ml-auto text-text-400" aria-hidden="true" /></div>
-          <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><Ticket size={18} aria-hidden="true" />Reservas <ArrowRight size={15} className="ml-auto text-text-400" aria-hidden="true" /></div>
-          <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><CreditCard size={18} aria-hidden="true" />Pagos confirmados</div>
-        </div>
-      </section>
-    </>
+/** Solo aplica a la web: se muestra en su detalle. */
+export function ConversionPortal() {
+  return (
+    <section aria-labelledby="conversion-titulo" className="rounded-2xl border border-dashed border-border-strong bg-surface-card p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-text-500">Siguiente etapa</p><h2 id="conversion-titulo" className="mt-1 font-display text-xl font-bold">Conversión del portal</h2><p className="mt-1 text-sm text-text-500">Disponible cuando el portal registre cada paso de la compra.</p></div><span className="rounded-full bg-surface-sunken px-3 py-1 text-xs font-semibold text-text-700">Pendiente de datos</span></div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><Search size={18} aria-hidden="true" />Búsquedas <ArrowRight size={15} className="ml-auto text-text-400" aria-hidden="true" /></div>
+        <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><Ticket size={18} aria-hidden="true" />Reservas <ArrowRight size={15} className="ml-auto text-text-400" aria-hidden="true" /></div>
+        <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><CreditCard size={18} aria-hidden="true" />Pagos confirmados</div>
+      </div>
+    </section>
   )
 }

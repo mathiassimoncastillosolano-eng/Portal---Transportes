@@ -102,3 +102,9 @@ export function datosOperacionEjemplo(periodo: 7 | 30 | 90, total: Totales, agen
     },
   }
 }
+
+export function ocupacionTotal(datos: DatosOperacion) {
+  const vendidos = datos.ocupacionPorRuta.reduce((suma, fila) => suma + fila.vendidos, 0)
+  const capacidad = datos.ocupacionPorRuta.reduce((suma, fila) => suma + fila.capacidad, 0)
+  return { vendidos, capacidad, porcentaje: capacidad === 0 ? 0 : (vendidos / capacidad) * 100 }
+}

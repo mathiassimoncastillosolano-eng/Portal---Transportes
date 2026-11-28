@@ -1,17 +1,18 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowDownRight, ArrowRight, ArrowUpRight, Building2, CalendarDays, Globe2, Minus, ShoppingBag, Ticket, Wallet } from 'lucide-react'
-import type { Totales, VentasDia } from './modelo'
+import { ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, Armchair, Building2, CalendarDays, Globe2, Map as MapIcon, Minus, Receipt, Ticket, Wallet } from 'lucide-react'
+import type { Canal, Totales, VentasDia } from './modelo'
 import { participacion, resumir, variacion } from './modelo'
-import { datosOperacionEjemplo } from './datosOperacionEjemplo'
+import { datosOperacionEjemplo, ocupacionTotal } from './datosOperacionEjemplo'
 import { serviciosGlobalesEjemplo } from './datosDetalleEjemplo'
-import { OperacionDashboard } from './OperacionDashboard'
+import { IncidenciasResumen, PanoramaRutas, SalidasImpulso } from './OperacionDashboard'
 import { DetalleCanal } from './DetalleCanal'
 import { TemaComercial } from './TemaComercial'
 import './comparacion-canales.css'
 
 type Periodo = 7 | 30 | 90
 type MetricaCanal = 'pasajes' | 'ingresos'
+type Vista = Canal | 'rutas' | null
 
 interface Props {
   dias: VentasDia[]
@@ -21,6 +22,7 @@ interface Props {
 }
 
 const moneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 })
+const precio = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 })
 const numero = new Intl.NumberFormat('es-PE')
 const compacto = new Intl.NumberFormat('es-PE', { notation: 'compact', maximumFractionDigits: 1 })
 
@@ -34,101 +36,117 @@ function cifra(valor: number, metrica: MetricaCanal): string {
   return metrica === 'ingresos' ? moneda.format(valor) : numero.format(valor)
 }
 
-function Cambio({ valor, oscuro = false }: { valor: number | null; oscuro?: boolean }) {
-  const Icono = valor === null || valor === 0 ? Minus : valor > 0 ? ArrowUpRight : ArrowDownRight
-  const texto = valor === null ? 'Sin comparación' : `${valor > 0 ? '+' : ''}${valor.toFixed(1)} % vs. período anterior`
+function ticket(totales: Totales): number {
+  return totales.pasajes === 0 ? 0 : totales.ingresos / totales.pasajes
+}
+
+function Cambio({ valor, oscuro = false, unidad = '%', prefijo = '' }: { valor: number | null; oscuro?: boolean; unidad?: '%' | 'pp'; prefijo?: string }) {
+  const Icono = valor === null || Math.abs(valor) < 0.05 ? Minus : valor > 0 ? ArrowUpRight : ArrowDownRight
+  const texto = valor === null ? 'Sin comparación' : `${prefijo}${valor > 0 ? '+' : ''}${valor.toFixed(1)} ${unidad === 'pp' ? 'pp' : '%'} vs. período anterior`
   const color = oscuro ? 'text-emerald-200' : valor !== null && valor < 0 ? 'text-red-600' : 'text-accent-text'
   return <span className={`inline-flex items-center gap-1 text-xs font-semibold ${color}`}><Icono size={15} aria-hidden="true" />{texto}</span>
 }
 
-function Indicador({ titulo, valor, cambio, icono, principal = false }: {
+function Indicador({ titulo, valor, cambio, nota, icono, principal = false }: {
   titulo: string
   valor: string
-  cambio: number | null
+  cambio?: number | null
+  nota?: string
   icono: ReactNode
   principal?: boolean
 }) {
   return (
-    <article className={`flex min-h-44 flex-col justify-between rounded-2xl border p-5 shadow-sm ${principal ? 'comercial-indicador-principal text-white' : 'border-border bg-surface-card text-text-900'}`}>
+    <article className={`flex min-h-40 flex-col justify-between rounded-2xl border p-5 shadow-sm ${principal ? 'comercial-indicador-principal text-white' : 'border-border bg-surface-card text-text-900'}`}>
       <div className="flex items-start justify-between gap-3">
         <p className={`text-xs font-semibold uppercase tracking-[0.1em] ${principal ? 'text-white/85' : 'text-text-500'}`}>{titulo}</p>
         <span className={`rounded-xl p-2 ${principal ? 'bg-white/15 text-white' : 'bg-accent-50 text-accent-text'}`}>{icono}</span>
       </div>
       <div>
-        <p className="font-display text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">{valor}</p>
-        <div className="mt-3"><Cambio valor={cambio} oscuro={principal} /></div>
+        <p className="font-display text-3xl font-semibold tracking-tight tabular-nums">{valor}</p>
+        <div className="mt-3">{cambio !== undefined ? <Cambio valor={cambio} oscuro={principal} /> : <span className="text-xs text-text-500">{nota}</span>}</div>
       </div>
     </article>
   )
 }
 
-function ComparacionCanales({ web, agencia, metrica }: { web: Totales; agencia: Totales; metrica: MetricaCanal }) {
-  const total = web[metrica] + agencia[metrica]
-  const canales = [
-    { nombre: 'Web', valor: web[metrica], color: 'var(--color-accent-500)' },
-    { nombre: 'Agencia', valor: agencia[metrica], color: 'var(--color-route-500)' },
-  ]
-
-  return (
-    <div className="mt-6 rounded-xl border border-border bg-surface-sunken p-4 sm:p-5" role="img" aria-label={`Comparación de ${metrica}: Web ${cifra(web[metrica], metrica)}, Agencia ${cifra(agencia[metrica], metrica)}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-text-500">Comparación del período</p>
-      <div className="mt-4 space-y-5">
-        {canales.map((canal) => {
-          const porcentaje = participacion(canal.valor, total)
-          return (
-            <div key={canal.nombre}>
-              <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-                <span className="font-semibold text-text-900">{canal.nombre}</span>
-                <span className="flex flex-wrap items-baseline justify-between gap-x-2 tabular-nums text-text-900"><strong>{cifra(canal.valor, metrica)}{metrica === 'pasajes' ? ' pasajes' : ''}</strong><span className="text-xs text-text-500">{porcentaje.toFixed(1)} % del total</span></span>
-              </div>
-              <div className="comparacion-canal-pista mt-2" aria-hidden="true">
-                <div className="comparacion-canal-barra" style={{ width: `${porcentaje}%`, '--barra-color': canal.color } as CSSProperties} />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function CanalCard({ nombre, icono, color, valor, total, anterior, metrica, onVerDetalles }: {
+function CanalCard({ nombre, icono, color, valor, total, anterior, totalAnterior, metrica, onVerDetalles }: {
   nombre: string
   icono: ReactNode
   color: string
   valor: Totales
   total: Totales
   anterior: Totales
+  totalAnterior: Totales
   metrica: MetricaCanal
   onVerDetalles: () => void
 }) {
   const porcentaje = participacion(valor[metrica], total[metrica])
+  const porcentajeAnterior = totalAnterior[metrica] === 0 ? null : participacion(anterior[metrica], totalAnterior[metrica])
+  const datos = [
+    { etiqueta: 'Pasajes', valor: numero.format(valor.pasajes) },
+    { etiqueta: 'Ingresos netos', valor: moneda.format(valor.ingresos) },
+    { etiqueta: 'Ticket promedio', valor: precio.format(ticket(valor)) },
+  ]
+
   return (
-    <article className="rounded-2xl border border-border bg-surface-card p-5">
+    <article className="flex flex-col rounded-2xl border border-border bg-surface-card p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${nombre === 'Web' ? 'text-on-cta' : 'text-white'}`} style={{ backgroundColor: color }}>{icono}</span>
           <div>
             <h3 className="font-display text-lg font-semibold text-text-900">{nombre}</h3>
-            <p className="text-xs text-text-500">Canal de venta</p>
+            <p className="text-xs text-text-500">Participación en {metrica}</p>
           </div>
         </div>
-        <span className="shrink-0 whitespace-nowrap font-display text-xl font-bold tabular-nums text-text-900 sm:text-2xl">{porcentaje.toFixed(1)} %</span>
+        <span className="shrink-0 whitespace-nowrap font-display text-2xl font-bold tabular-nums text-text-900">{porcentaje.toFixed(1)} %</span>
       </div>
-      <div className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-4">
-        <div><p className="text-xs text-text-500">Pasajes</p><p className="mt-1 text-lg font-semibold tabular-nums text-text-900">{numero.format(valor.pasajes)}</p></div>
-        <div><p className="text-xs text-text-500">Ingresos netos</p><p className="mt-1 text-lg font-semibold tabular-nums text-text-900">{moneda.format(valor.ingresos)}</p></div>
+      <div className="comparacion-canal-pista mt-4" aria-hidden="true">
+        <div className="comparacion-canal-barra" style={{ width: `${porcentaje}%`, '--barra-color': color } as CSSProperties} />
       </div>
-      <div className="mt-3"><Cambio valor={variacion(valor[metrica], anterior[metrica])} /></div>
-      <button type="button" onClick={onVerDetalles} className="mt-5 inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-lg border border-border px-3 py-2 text-xs font-semibold text-text-900 transition-colors hover:bg-surface-sunken sm:text-sm">Ver detalles de {nombre}<ArrowRight size={16} aria-hidden="true" /></button>
+      <div className="mt-2"><Cambio valor={porcentajeAnterior === null ? null : porcentaje - porcentajeAnterior} unidad="pp" prefijo="Participación " /></div>
+      <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-4">
+        {datos.map((dato) => <div key={dato.etiqueta}><dt className="text-xs text-text-500">{dato.etiqueta}</dt><dd className="mt-1 text-base font-semibold tabular-nums text-text-900 sm:text-lg">{dato.valor}</dd></div>)}
+      </dl>
+      <div className="mt-2"><Cambio valor={variacion(valor[metrica], anterior[metrica])} prefijo={metrica === 'pasajes' ? 'Pasajes ' : 'Ingresos '} /></div>
+      <button type="button" onClick={onVerDetalles} className="mt-5 inline-flex min-h-11 items-center gap-2 self-start whitespace-nowrap rounded-lg border border-border px-3 py-2 text-xs font-semibold text-text-900 transition-colors hover:bg-surface-sunken sm:text-sm">Ver detalles de {nombre}<ArrowRight size={16} aria-hidden="true" /></button>
     </article>
+  )
+}
+
+function Encabezado({ integrado }: { integrado: boolean }) {
+  if (integrado) return null
+  return (
+    <header className="border-b border-border bg-surface-card">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-ink-950 font-display text-sm font-bold text-accent-400">RL</span>
+          <div><p className="font-display text-base font-bold leading-tight">RutaLibre</p><p className="text-xs text-text-500">Sistema Empresarial · Gerencia</p></div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-border bg-surface-sunken px-3 py-1.5 text-xs font-medium text-text-700">Dashboard comercial</span>
+          <TemaComercial />
+        </div>
+      </div>
+    </header>
+  )
+}
+
+function SelectorPeriodo({ periodo, onChange }: { periodo: Periodo; onChange: (periodo: Periodo) => void }) {
+  return (
+    <label className="flex items-center gap-2 rounded-xl border border-border bg-surface-card px-3 py-2 text-sm font-medium shadow-sm">
+      <CalendarDays size={16} className="text-text-500" aria-hidden="true" />
+      <span>Período</span>
+      <select value={periodo} onChange={(evento) => onChange(Number(evento.target.value) as Periodo)} className="cursor-pointer bg-transparent font-semibold outline-none" aria-label="Período">
+        <option value={7}>7 días</option><option value={30}>30 días</option><option value={90}>90 días</option>
+      </select>
+    </label>
   )
 }
 
 export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, integrado = false }: Props) {
   const [periodo, setPeriodo] = useState<Periodo>(30)
   const [metrica, setMetrica] = useState<MetricaCanal>('pasajes')
-  const [canalAbierto, setCanalAbierto] = useState<'web' | 'agencia' | null>(null)
+  const [vista, setVista] = useState<Vista>(null)
 
   const datos = useMemo(() => [...dias].sort((a, b) => a.fecha.localeCompare(b.fecha)), [dias])
   const actual = datos.slice(-periodo)
@@ -136,6 +154,7 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, inte
   const hoy = resumir(actual)
   const antes = resumir(anterior)
   const operacion = datosOperacionEjemplo(periodo, hoy.total, hoy.agencia, serviciosGlobalesEjemplo(hoy.web, hoy.agencia))
+  const ocupacion = ocupacionTotal(operacion)
   const serie = actual.map((dia) => ({
     fecha: dia.fecha,
     Web: metrica === 'pasajes' ? dia.webPasajes : dia.webIngresos,
@@ -146,27 +165,51 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, inte
   const diferenciaCanales = Math.abs(hoy.web[metrica] - hoy.agencia[metrica])
   const inicio = actual[0]?.fecha ?? fechaCorte
   const Contenedor = integrado ? 'div' : 'main'
+  const claseContenedor = integrado ? 'mx-auto w-full max-w-[1400px] space-y-7' : 'mx-auto max-w-7xl space-y-7 px-4 py-8 sm:px-6 lg:px-8'
 
-  if (canalAbierto) {
-    return <DetalleCanal canal={canalAbierto} onClose={() => setCanalAbierto(null)} periodo={periodo} onPeriodoChange={setPeriodo} totales={canalAbierto === 'web' ? hoy.web : hoy.agencia} integrado={integrado} />
+  if (vista === 'web' || vista === 'agencia') {
+    return (
+      <DetalleCanal
+        canal={vista}
+        onClose={() => setVista(null)}
+        periodo={periodo}
+        onPeriodoChange={setPeriodo}
+        totales={vista === 'web' ? hoy.web : hoy.agencia}
+        anteriores={vista === 'web' ? antes.web : antes.agencia}
+        otroCanal={vista === 'web' ? hoy.agencia : hoy.web}
+        integrado={integrado}
+      />
+    )
+  }
+
+  if (vista === 'rutas') {
+    return (
+      <div className={integrado ? 'text-text-900' : 'min-h-screen bg-surface text-text-900'}>
+        <Encabezado integrado={integrado} />
+        <Contenedor className={claseContenedor}>
+          <button type="button" onClick={() => setVista(null)} className="inline-flex items-center gap-2 text-sm font-semibold text-accent-text hover:underline"><ArrowLeft size={17} aria-hidden="true" />Volver al resumen</button>
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div>
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-accent-text"><MapIcon size={16} aria-hidden="true" />Panorama operativo</p>
+              <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">Rutas y ocupación</h1>
+              <p className="mt-2 text-sm text-text-500">Ingresos por servicio y ruta, y ocupación de las salidas de ambos canales.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              {modoEjemplo && <span className="rounded-full bg-warning-50 px-3 py-1.5 text-xs font-bold text-warning-text">Datos de ejemplo</span>}
+              <SelectorPeriodo periodo={periodo} onChange={setPeriodo} />
+            </div>
+          </div>
+          <PanoramaRutas datos={operacion} periodo={periodo} />
+        </Contenedor>
+      </div>
+    )
   }
 
   return (
     <div className={integrado ? 'text-text-900' : 'min-h-screen bg-surface text-text-900'}>
-      {!integrado && <header className="border-b border-border bg-surface-card">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-ink-950 font-display text-sm font-bold text-accent-400">RL</span>
-            <div><p className="font-display text-base font-bold leading-tight">RutaLibre</p><p className="text-xs text-text-500">Sistema Empresarial · Gerencia</p></div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full border border-border bg-surface-sunken px-3 py-1.5 text-xs font-medium text-text-700">Dashboard comercial</span>
-            <TemaComercial />
-          </div>
-        </div>
-      </header>}
+      <Encabezado integrado={integrado} />
 
-      <Contenedor className={integrado ? 'mx-auto w-full max-w-[1400px] space-y-7' : 'mx-auto max-w-7xl space-y-7 px-4 py-8 sm:px-6 lg:px-8'}>
+      <Contenedor className={claseContenedor}>
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">Resumen de ventas</p>
@@ -175,38 +218,34 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, inte
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {modoEjemplo && <span className="rounded-full bg-warning-50 px-3 py-1.5 text-xs font-bold text-warning-text">Datos de ejemplo</span>}
-            <label className="flex items-center gap-2 rounded-xl border border-border bg-surface-card px-3 py-2 text-sm font-medium shadow-sm">
-              <CalendarDays size={16} className="text-text-500" aria-hidden="true" />
-              <span>Período</span>
-              <select value={periodo} onChange={(evento) => setPeriodo(Number(evento.target.value) as Periodo)} className="cursor-pointer bg-transparent font-semibold outline-none" aria-label="Período">
-                <option value={7}>7 días</option><option value={30}>30 días</option><option value={90}>90 días</option>
-              </select>
-            </label>
+            <SelectorPeriodo periodo={periodo} onChange={setPeriodo} />
           </div>
         </div>
 
-        {modoEjemplo && <p className="rounded-xl border border-warning-500/30 bg-warning-50 px-4 py-3 text-sm font-medium text-warning-text">Vista de ejemplo: estas cifras son ficticias y no representan ventas reales.</p>}
-
-        <section aria-label="Indicadores comerciales" className="grid gap-4 md:grid-cols-3">
+        <section aria-label="Indicadores comerciales" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Indicador titulo="Ingresos netos" valor={moneda.format(hoy.total.ingresos)} cambio={variacion(hoy.total.ingresos, antes.total.ingresos)} icono={<Wallet size={19} />} principal />
           <Indicador titulo="Pasajes vendidos" valor={numero.format(hoy.total.pasajes)} cambio={variacion(hoy.total.pasajes, antes.total.pasajes)} icono={<Ticket size={19} />} />
-          <Indicador titulo="Compras realizadas" valor={numero.format(hoy.total.compras)} cambio={variacion(hoy.total.compras, antes.total.compras)} icono={<ShoppingBag size={19} />} />
+          <Indicador titulo="Ticket promedio" valor={precio.format(ticket(hoy.total))} cambio={variacion(ticket(hoy.total), ticket(antes.total))} icono={<Receipt size={19} />} />
+          <Indicador titulo="Ocupación" valor={`${ocupacion.porcentaje.toFixed(1)} %`} nota={`${numero.format(ocupacion.vendidos)} de ${numero.format(ocupacion.capacidad)} asientos`} icono={<Armchair size={19} />} />
         </section>
 
         <section aria-labelledby="canales-titulo" className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-accent-text">Canales de venta</p><h2 id="canales-titulo" className="mt-1 font-display text-2xl font-bold">{metrica === 'pasajes' ? '¿Qué canal vendió más pasajes?' : '¿Qué canal generó más ingresos?'}</h2><p className="mt-1 text-sm text-text-500">Web frente a Agencia · ventas registradas durante el período seleccionado.</p></div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-accent-text">Canales de venta</p>
+              <h2 id="canales-titulo" className="mt-1 font-display text-2xl font-bold">{metrica === 'pasajes' ? '¿Qué canal vendió más pasajes?' : '¿Qué canal generó más ingresos?'}</h2>
+              <p className="mt-1 text-sm text-text-500">{diferenciaCanales === 0 ? 'Ambos canales registraron la misma cifra.' : <><strong className="text-text-900">{lider}</strong> lidera con el <strong className="text-text-900">{participacionLider.toFixed(1)} %</strong> del total: {cifra(diferenciaCanales, metrica)}{metrica === 'pasajes' ? ' pasajes' : ''} más que el otro canal.</>}</p>
+            </div>
             <div className="inline-flex rounded-xl border border-border bg-surface-sunken p-1" role="group" aria-label="Métrica de comparación">
-              <button type="button" onClick={() => setMetrica('pasajes')} aria-pressed={metrica === 'pasajes'} className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${metrica === 'pasajes' ? 'bg-surface-card text-text-900 shadow-sm' : 'text-text-500 hover:text-text-900'}`}>Pasajes</button>
-              <button type="button" onClick={() => setMetrica('ingresos')} aria-pressed={metrica === 'ingresos'} className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${metrica === 'ingresos' ? 'bg-surface-card text-text-900 shadow-sm' : 'text-text-500 hover:text-text-900'}`}>Ingresos</button>
+              {(['pasajes', 'ingresos'] as const).map((opcion) => (
+                <button key={opcion} type="button" onClick={() => setMetrica(opcion)} aria-pressed={metrica === opcion} className={`rounded-lg px-3 py-2 text-sm font-semibold capitalize transition-colors ${metrica === opcion ? 'bg-surface-card text-text-900 shadow-sm' : 'text-text-500 hover:text-text-900'}`}>{opcion}</button>
+              ))}
             </div>
           </div>
-          <ComparacionCanales web={hoy.web} agencia={hoy.agencia} metrica={metrica} />
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            <CanalCard nombre="Web" icono={<Globe2 size={20} />} color="var(--color-accent-500)" valor={hoy.web} total={hoy.total} anterior={antes.web} metrica={metrica} onVerDetalles={() => setCanalAbierto('web')} />
-            <CanalCard nombre="Agencia" icono={<Building2 size={20} />} color="var(--color-route-500)" valor={hoy.agencia} total={hoy.total} anterior={antes.agencia} metrica={metrica} onVerDetalles={() => setCanalAbierto('agencia')} />
+            <CanalCard nombre="Web" icono={<Globe2 size={20} />} color="var(--color-accent-500)" valor={hoy.web} total={hoy.total} anterior={antes.web} totalAnterior={antes.total} metrica={metrica} onVerDetalles={() => setVista('web')} />
+            <CanalCard nombre="Agencia" icono={<Building2 size={20} />} color="var(--color-route-500)" valor={hoy.agencia} total={hoy.total} anterior={antes.agencia} totalAnterior={antes.total} metrica={metrica} onVerDetalles={() => setVista('agencia')} />
           </div>
-          <p className="mt-5 rounded-xl bg-surface-sunken px-4 py-3 text-sm text-text-700">{diferenciaCanales === 0 ? 'Ambos canales registraron la misma cifra.' : <><strong>{lider}</strong> lidera con el <strong>{participacionLider.toFixed(1)} %</strong> del total: <strong>{cifra(diferenciaCanales, metrica)}</strong> {metrica === 'pasajes' ? 'pasajes' : 'en ingresos'} más que el otro canal.</>}</p>
         </section>
 
         <section aria-labelledby="tendencia-titulo" className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
@@ -225,7 +264,15 @@ export function DashboardComercial({ dias, fechaCorte, modoEjemplo = false, inte
           </div>
         </section>
 
-        <OperacionDashboard datos={operacion} periodo={periodo} />
+        <SalidasImpulso datos={operacion} />
+
+        <IncidenciasResumen datos={operacion} periodo={periodo} />
+
+        <button type="button" onClick={() => setVista('rutas')} className="flex w-full items-center gap-4 rounded-2xl border border-border bg-surface-card p-5 text-left shadow-sm transition-colors hover:bg-surface-sunken sm:p-6">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent-50 text-accent-text"><MapIcon size={20} aria-hidden="true" /></span>
+          <span className="min-w-0"><span className="block font-display text-lg font-bold text-text-900">Ver rutas y ocupación</span><span className="block text-sm text-text-500">Ocupación por ruta, rutas de mayor ingreso y distribución por servicio.</span></span>
+          <ArrowRight size={20} className="ml-auto shrink-0 text-text-500" aria-hidden="true" />
+        </button>
 
         <p className="text-xs text-text-500">{modoEjemplo ? 'Esta vista usa cifras simuladas para revisar el diseño. No representa ventas registradas en la base de datos.' : 'Los resultados se calculan con ventas confirmadas de ambos canales.'}</p>
       </Contenedor>
