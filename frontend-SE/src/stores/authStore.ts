@@ -68,6 +68,8 @@ interface AuthStoreState extends AuthSession {
   init: () => void
   login: (email: string, password: string) => Promise<LoginResult>
   logout: () => void
+  /** Actualiza el nombre mostrado tras editar el perfil (también en la sesión guardada). */
+  actualizarNombre: (nombre: string) => void
 }
 
 export const useAuthStore = create<AuthStoreState>()((set, get) => ({
@@ -105,6 +107,14 @@ export const useAuthStore = create<AuthStoreState>()((set, get) => ({
     // El siguiente usuario que entre empieza con los filtros del Dashboard limpios.
     useDashboardFiltrosStore.getState().limpiar()
     set({ user: null, token: null, status: 'unauthenticated' })
+  },
+
+  actualizarNombre: (nombre) => {
+    const { user, token } = get()
+    if (!user || !token) return
+    const actualizado = { ...user, name: nombre }
+    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token, user: actualizado } satisfies SesionGuardada))
+    set({ user: actualizado })
   },
 }))
 

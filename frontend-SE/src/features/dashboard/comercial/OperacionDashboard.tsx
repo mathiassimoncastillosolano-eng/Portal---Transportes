@@ -44,7 +44,7 @@ function MedidorOcupacion({ fila }: { fila: RutaOcupacion }) {
   const [origen, destino] = fila.nombre.split(' → ')
 
   return (
-    <li className="flex flex-col items-center rounded-xl bg-surface-sunken p-4 text-center">
+    <li className="hover-elevar flex flex-col items-center rounded-xl bg-surface-sunken p-4 text-center">
       <svg viewBox="0 0 100 100" className="size-32" role="img" aria-label={`${fila.nombre}: ${porcentaje.toFixed(0)} % de ocupación (${etiqueta}), ${fila.vendidos} de ${fila.capacidad} asientos`}>
         <circle cx="50" cy="50" r={radio} fill="none" stroke="var(--color-border)" strokeWidth="9" />
         <circle cx="50" cy="50" r={radio} fill="none" stroke={color} strokeWidth="9" strokeLinecap="round"
@@ -64,7 +64,7 @@ function Salida({ fila }: { fila: SalidaEnRiesgo }) {
   const porcentaje = ocupacion(fila.vendidos, fila.capacidad)
 
   return (
-    <li className="rounded-xl border border-border bg-surface-sunken p-3">
+    <li className="hover-elevar rounded-xl border border-border bg-surface-sunken p-3">
       <div className="flex items-start justify-between gap-3">
         <div><p className="text-sm font-semibold text-text-900">{fila.ruta}</p><p className="mt-1 text-xs text-text-500">{fila.salida}</p></div>
         <span className="rounded-full bg-warning-50 px-2 py-1 text-xs font-bold tabular-nums text-warning-text">{porcentaje.toFixed(0)} %</span>
@@ -88,13 +88,13 @@ function Ranking({ titulo, detalle, filas }: { titulo: string; detalle: string; 
     <article className="flex flex-col rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
       <h3 className="font-display text-lg font-bold text-text-900">{titulo}</h3>
       <p className="mt-1 text-sm text-text-500">{detalle}</p>
-      <ol className="mt-6 grid grid-cols-5 items-end gap-2 sm:gap-4" aria-label={titulo}>
+      <ol className="hover-grupo mt-6 grid grid-cols-5 items-end gap-2 sm:gap-4" aria-label={titulo}>
         {destacadas.map((fila, indice) => {
           const { fondo, texto } = coloresRanking[indice]
           const [origen, destino] = fila.nombre.split(' → ')
           const alto = Math.max((fila.ingresos / mayor) * 100, 16)
           return (
-            <li key={fila.nombre} title={fila.nombre} className="flex h-full flex-col items-center justify-end text-center">
+            <li key={fila.nombre} title={fila.nombre} className="hover-item flex h-full cursor-default flex-col items-center justify-end text-center">
               <div className="flex h-60 w-full flex-col items-center justify-end" role="img" aria-label={`${indice + 1}. ${fila.nombre}: ${moneda.format(fila.ingresos)}, ${fila.pasajes} pasajes`}>
                 <span className="text-xs font-bold tabular-nums text-text-900 sm:text-sm">{compacto.format(fila.ingresos)}</span>
                 <span className="mb-1.5 text-[11px] tabular-nums text-text-500">{numero.format(fila.pasajes)} pas.</span>
@@ -116,8 +116,8 @@ function Ranking({ titulo, detalle, filas }: { titulo: string; detalle: string; 
             <p className="text-sm font-semibold text-text-900">Concentración de ingresos</p>
             <p className="text-xs text-text-500">{filas.length} rutas en total</p>
           </div>
-          <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-surface-card" role="img" aria-label={`Las 5 rutas principales suman el ${cuotaTop.toFixed(0)} % de los ingresos`}>
-            {destacadas.map((fila, indice) => <div key={fila.nombre} className="h-full" style={{ width: `${totalRutas === 0 ? 0 : (fila.ingresos / totalRutas) * 100}%`, backgroundColor: coloresRanking[indice].fondo }} />)}
+          <div className="hover-grupo mt-3 flex h-4 rounded-full bg-surface-card" role="img" aria-label={`Las 5 rutas principales suman el ${cuotaTop.toFixed(0)} % de los ingresos`}>
+            {destacadas.map((fila, indice) => <div key={fila.nombre} title={`${fila.nombre}: ${moneda.format(fila.ingresos)}`} className="hover-item h-full cursor-default first:rounded-l-full" style={{ width: `${totalRutas === 0 ? 0 : (fila.ingresos / totalRutas) * 100}%`, backgroundColor: coloresRanking[indice].fondo }} />)}
           </div>
           <dl className="mt-3 grid grid-cols-3 gap-3 text-xs">
             <div><dt className="text-text-500">Top 5</dt><dd className="mt-0.5 text-base font-bold tabular-nums text-text-900">{cuotaTop.toFixed(0)} %</dd><dd className="tabular-nums text-text-500">{moneda.format(ingresosTop)}</dd></div>
@@ -268,7 +268,7 @@ function Servicios({ filas }: { filas: FilaRanking[] }) {
                   const apagado = activo !== null && servicio !== activo
                   return (
                     <Armchair key={columna} strokeWidth={2.4} aria-hidden="true"
-                      className={`mx-auto h-auto w-full max-w-[18px] transition-opacity duration-200 ${apagado ? 'opacity-15' : 'opacity-100'}`}
+                      className={`hover-celda mx-auto h-auto w-full max-w-[18px] cursor-pointer ${apagado ? 'opacity-15' : 'opacity-100'}`}
                       style={{ color: coloresServicio[servicio] ?? 'var(--color-border)' }}
                       onMouseEnter={() => setActivo(servicio)} onMouseLeave={() => setActivo(null)} />
                   )
@@ -352,7 +352,7 @@ export function IncidenciasResumen({ datos, periodo }: Props) {
       <p className="mt-1 text-sm text-text-500">Últimos {periodo} días · ambos canales</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-3">
         {items.map(({ titulo, valor, Icono }) => (
-          <li key={titulo} className="flex items-center gap-3 rounded-xl bg-surface-sunken px-4 py-3">
+          <li key={titulo} className="hover-elevar flex items-center gap-3 rounded-xl bg-surface-sunken px-4 py-3">
             <Icono size={18} className="shrink-0" style={{ color: 'var(--serie-neutra)' }} aria-hidden="true" />
             <span className="text-sm text-text-700">{titulo}</span>
             <strong className="ml-auto font-display text-xl tabular-nums text-text-900">{valor}</strong>

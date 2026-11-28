@@ -1,4 +1,4 @@
-import { LayoutDashboard, Receipt, Ticket, Users } from 'lucide-react'
+import { LayoutDashboard, Receipt, Ticket, UserRound, Users } from 'lucide-react'
 import type { AuthUser } from '@/types/auth'
 import type { NavEntry, NavItem } from '@/types/navigation'
 import { hasPermission } from '@/stores/authStore'
@@ -35,6 +35,15 @@ export const navigationConfig: NavEntry[] = [
       id: 'supervision',
       label: 'Supervisión',
       items: [{ id: 'dashboard', title: 'Dashboard', sectionId: 'dashboard', icon: LayoutDashboard, requiredPermission: 'dashboard:ver' }],
+    },
+  },
+  {
+    kind: 'section',
+    section: {
+      id: 'cuenta',
+      label: 'Cuenta',
+      // Sin permiso requerido: todo empleado puede ver y editar su perfil.
+      items: [{ id: 'perfil', title: 'Mi perfil', sectionId: 'perfil', icon: UserRound }],
     },
   },
 ]

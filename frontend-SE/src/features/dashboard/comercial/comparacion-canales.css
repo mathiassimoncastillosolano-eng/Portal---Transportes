@@ -56,3 +56,74 @@
 @media (prefers-reduced-motion: reduce) {
   .comparacion-canal-barra { animation: none; }
 }
+
+/* ---- Animaciones al pasar el cursor ----
+ * .hover-grupo: contenedor de un gráfico; al pasar por un elemento, los demás se atenúan.
+ * .hover-item: elemento del gráfico (columna, fila, sector) que se eleva y se intensifica.
+ * .hover-elevar: tarjetas y bloques que suben un poco con sombra.
+ * .hover-celda: celdas pequeñas (mapa de calor, asientos) que crecen. */
+.hover-grupo .hover-item {
+  transition: opacity 200ms ease, transform 200ms ease, filter 200ms ease;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+.hover-grupo:hover .hover-item {
+  opacity: 0.45;
+}
+
+.hover-grupo .hover-item:hover {
+  opacity: 1;
+  filter: brightness(1.08) saturate(1.25);
+  transform: translateY(-4px);
+}
+
+.hover-grupo .hover-item.hover-horizontal:hover {
+  transform: translateX(4px);
+}
+
+.hover-elevar {
+  transition: transform 200ms ease, box-shadow 200ms ease, filter 200ms ease;
+}
+
+.hover-elevar:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px -16px rgb(15 38 45 / 45%);
+  filter: saturate(1.15);
+}
+
+.hover-celda {
+  transition: transform 150ms ease, filter 150ms ease, box-shadow 150ms ease, opacity 200ms ease;
+}
+
+.hover-celda:hover {
+  position: relative;
+  z-index: 1;
+  transform: scale(1.12);
+  filter: brightness(1.1) saturate(1.3);
+  box-shadow: 0 6px 16px -8px rgb(15 38 45 / 50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hover-grupo .hover-item:hover,
+  .hover-elevar:hover,
+  .hover-celda:hover {
+    transform: none;
+  }
+}
+
+/* Listas desplegables (Período, Servicio, Ciudad): el menú nativo sigue el tema de la página,
+ * no el del sistema operativo, para que en modo claro no salga con fondo oscuro. */
+:root:not(.dark) {
+  color-scheme: light;
+}
+
+select option {
+  background-color: var(--color-surface-card);
+  color: var(--color-text-900);
+}
+
+select option:checked {
+  background-color: color-mix(in srgb, var(--canal-web) 22%, var(--color-surface-card));
+  color: var(--color-text-900);
+}
