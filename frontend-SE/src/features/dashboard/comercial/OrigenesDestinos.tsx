@@ -3,7 +3,6 @@ import { Flag, MapPin, Trophy } from 'lucide-react'
 import type { Canal, Totales } from './modelo'
 import { participacion } from './modelo'
 import { datosDetalleEjemplo, type VentaDetalle } from './datosDetalleEjemplo'
-import { coloresInfografia } from './paletaRanking'
 
 interface Props {
   web: Totales
@@ -20,8 +19,10 @@ type Filtro = 'todos' | Canal
 
 const numero = new Intl.NumberFormat('es-PE')
 const VISIBLES = 8
-/** Destinos con una paleta fría (azules y violetas) para distinguirlos de los orígenes. */
-const coloresDestino = ['#1f5fbf', '#7b3fc4', '#0f8fa8', '#4c6fe0', '#b0479b', '#6b7f8e']
+/** Paletas pastel: orígenes en tonos cálidos y destinos en tonos fríos. El texto encima va oscuro. */
+const coloresOrigen = ['#f6b38e', '#c9a7e8', '#9fd8b4', '#f7d48a', '#8fcfe0', '#c3ccd5']
+const coloresDestino = ['#9bbcf0', '#d3b3ef', '#93dcd2', '#f4b6cf', '#b9d98f', '#c3ccd5']
+const textoSobrePastel = '#1f2a37'
 
 function agruparCiudades(filas: VentaDetalle[], lado: 'origen' | 'destino'): Ciudad[] {
   const grupos = new Map<string, Ciudad>()
@@ -48,12 +49,12 @@ function RankingCiudades({ titulo, detalle, ciudades, Icono, paleta }: { titulo:
       <h3 className="flex items-center gap-2 font-display text-lg font-bold text-text-900"><Icono size={18} aria-hidden="true" />{titulo}</h3>
       <p className="mt-1 text-sm text-text-500">{detalle}</p>
       {lider && (
-        <div className="mt-4 flex items-center gap-3 rounded-xl p-4 text-white" style={{ backgroundColor: paleta[0] }}>
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/20"><Trophy size={22} aria-hidden="true" /></span>
+        <div className="mt-4 flex items-center gap-3 rounded-xl p-4" style={{ backgroundColor: paleta[0], color: textoSobrePastel }}>
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/45"><Trophy size={22} aria-hidden="true" /></span>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/80">Primer lugar</p>
+            <p className="text-xs font-semibold uppercase tracking-wide opacity-75">Primer lugar</p>
             <p className="truncate font-display text-xl font-bold">{lider.nombre}</p>
-            <p className="text-xs tabular-nums text-white/90">{numero.format(lider.pasajes)} pasajes · {participacion(lider.pasajes, total).toFixed(0)} % del total</p>
+            <p className="text-xs tabular-nums opacity-85">{numero.format(lider.pasajes)} pasajes · {participacion(lider.pasajes, total).toFixed(0)} % del total</p>
           </div>
         </div>
       )}
@@ -62,7 +63,7 @@ function RankingCiudades({ titulo, detalle, ciudades, Icono, paleta }: { titulo:
           const color = indice < 5 ? paleta[indice] : paleta[5]
           return (
             <li key={ciudad.nombre} className="grid grid-cols-[1.75rem_7.5rem_minmax(0,1fr)_5.5rem] items-center gap-3">
-              <span className="flex size-7 items-center justify-center rounded-full text-xs font-bold tabular-nums text-white" style={{ backgroundColor: color }}>{indice + 1}</span>
+              <span className="flex size-7 items-center justify-center rounded-full text-xs font-bold tabular-nums" style={{ backgroundColor: color, color: textoSobrePastel }}>{indice + 1}</span>
               <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-text-900"><MapPin size={14} className="shrink-0" style={{ color }} aria-hidden="true" /><span className="truncate">{ciudad.nombre}</span></span>
               <span className="h-3 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true"><span className="block h-full rounded-full" style={{ width: `${(ciudad.pasajes / mayor) * 100}%`, backgroundColor: color }} /></span>
               <span className="text-right text-xs tabular-nums text-text-700"><strong className="text-text-900">{numero.format(ciudad.pasajes)}</strong> · {participacion(ciudad.pasajes, total).toFixed(0)} %</span>
@@ -105,7 +106,7 @@ export function OrigenesDestinos({ web, agencia }: Props) {
         </div>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <RankingCiudades titulo="¿Desde dónde viajan más?" detalle="Ciudades de origen" ciudades={agruparCiudades(filas, 'origen')} Icono={MapPin} paleta={coloresInfografia} />
+        <RankingCiudades titulo="¿Desde dónde viajan más?" detalle="Ciudades de origen" ciudades={agruparCiudades(filas, 'origen')} Icono={MapPin} paleta={coloresOrigen} />
         <RankingCiudades titulo="¿A dónde llegan más?" detalle="Ciudades de destino" ciudades={agruparCiudades(filas, 'destino')} Icono={Flag} paleta={coloresDestino} />
       </div>
     </section>
