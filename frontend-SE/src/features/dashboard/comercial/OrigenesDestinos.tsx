@@ -20,7 +20,7 @@ type Filtro = 'todos' | Canal
 const numero = new Intl.NumberFormat('es-PE')
 const VISIBLES = 8
 /** Paletas pastel: orígenes en tonos cálidos y destinos en tonos fríos. El texto encima va oscuro. */
-const coloresOrigen = ['#f6b38e', '#c9a7e8', '#9fd8b4', '#f7d48a', '#8fcfe0', '#c3ccd5']
+const coloresOrigen = ['#8fd3a8', '#c9a7e8', '#f4b6cf', '#f7d48a', '#8fcfe0', '#c3ccd5']
 const coloresDestino = ['#9bbcf0', '#d3b3ef', '#93dcd2', '#f4b6cf', '#b9d98f', '#c3ccd5']
 const textoSobrePastel = '#1f2a37'
 
