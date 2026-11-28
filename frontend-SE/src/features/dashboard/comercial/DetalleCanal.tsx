@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowDownRight, ArrowLeft, ArrowUpRight, Building2, CalendarClock, CalendarDays, CreditCard, Globe2, Minus, Repeat, RotateCcw, Star } from 'lucide-react'
+import { ArrowDownRight, ArrowLeft, ArrowUpRight, Building2, CalendarClock, CalendarDays, CreditCard, Banknote, Smartphone, Globe2, Minus, Repeat, RotateCcw, Star } from 'lucide-react'
 import type { Canal, Totales } from './modelo'
 import { participacion, variacion } from './modelo'
 import { ciudadesSalidaEjemplo, datosDetalleEjemplo } from './datosDetalleEjemplo'
@@ -79,22 +79,45 @@ function BarrasSegmento({ filas, color }: { filas: Segmento[]; color: string }) 
   )
 }
 
+const iconosPago: Record<string, typeof CreditCard> = { Tarjeta: CreditCard, Yape: Smartphone, Efectivo: Banknote }
+
 function MetodosPago({ filas }: { filas: Segmento[] }) {
   const total = filas.reduce((suma, fila) => suma + fila.ingresos, 0)
+  const principal = [...filas].sort((a, b) => b.ingresos - a.ingresos)[0]
+  const IconoPrincipal = principal ? iconosPago[principal.nombre] ?? CreditCard : CreditCard
+
   return (
-    <>
-      <div className="mt-5 flex h-4 overflow-hidden rounded-full bg-surface-sunken" role="img" aria-label={filas.map((fila) => `${fila.nombre} ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
-        {filas.map((fila, indice) => <div key={fila.nombre} className="h-full" style={{ width: `${participacion(fila.ingresos, total)}%`, backgroundColor: coloresSegmento[indice] }} />)}
+    <div className="mt-5 flex flex-1 flex-col">
+      <div className="flex h-7 overflow-hidden rounded-lg" role="img" aria-label={filas.map((fila) => `${fila.nombre} ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
+        {filas.map((fila, indice) => {
+          const porcentaje = participacion(fila.ingresos, total)
+          return <div key={fila.nombre} className="flex h-full items-center justify-center text-xs font-bold text-white" style={{ width: `${porcentaje}%`, backgroundColor: coloresSegmento[indice] }}>{porcentaje >= 12 ? `${porcentaje.toFixed(0)} %` : ''}</div>
+        })}
       </div>
-      <ul className="mt-5 space-y-3">
-        {filas.map((fila, indice) => (
-          <li key={fila.nombre} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
-            <span className="flex items-center gap-2 text-text-900"><i className="size-2.5 rounded-full" style={{ backgroundColor: coloresSegmento[indice] }} />{fila.nombre}</span>
-            <span className="tabular-nums text-text-700">{moneda.format(fila.ingresos)} · <strong className="text-text-900">{participacion(fila.ingresos, total).toFixed(0)} %</strong></span>
-          </li>
-        ))}
+      <ul className={`mt-4 grid gap-3 ${filas.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+        {filas.map((fila, indice) => {
+          const Icono = iconosPago[fila.nombre] ?? CreditCard
+          const color = coloresSegmento[indice]
+          return (
+            <li key={fila.nombre} className="rounded-xl border border-border p-3" style={{ borderTop: `3px solid ${color}` }}>
+              <div className="flex items-center gap-2">
+                <span className="flex size-9 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, ${color} 18%, transparent)`, color }}><Icono size={18} aria-hidden="true" /></span>
+                <span className="text-sm font-semibold text-text-900">{fila.nombre}</span>
+              </div>
+              <p className="mt-3 font-display text-2xl font-bold tabular-nums text-text-900">{participacion(fila.ingresos, total).toFixed(0)} %</p>
+              <p className="text-xs tabular-nums text-text-700">{moneda.format(fila.ingresos)}</p>
+              <p className="text-xs tabular-nums text-text-500">{numero.format(fila.pasajes)} pasajes</p>
+            </li>
+          )
+        })}
       </ul>
-    </>
+      {principal && (
+        <div className="mt-auto pt-4"><p className="flex items-center gap-2 rounded-xl bg-surface-sunken px-3 py-2.5 text-xs text-text-700">
+          <IconoPrincipal size={16} className="shrink-0" style={{ color: coloresSegmento[filas.indexOf(principal)] }} aria-hidden="true" />
+          <span><strong className="text-text-900">{principal.nombre}</strong> es el medio más usado: {participacion(principal.ingresos, total).toFixed(0)} % de los ingresos.</span>
+        </p></div>
+      )}
+    </div>
   )
 }
 
@@ -291,7 +314,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
             <Tarjeta titulo="Anticipación de compra" detalle={esWeb ? 'Días entre la compra y la salida · útil para planificar promociones' : 'Días entre la compra y la salida · en mostrador predomina la venta del mismo día'}>
               <BarrasSegmento filas={anticipacion} color={color} />
             </Tarjeta>
-            <Tarjeta titulo="Método de pago" detalle={esWeb ? 'Participación en ingresos del portal' : 'Participación en ingresos · sirve para cuadrar caja por sede'}>
+            <Tarjeta className="flex flex-col" titulo="Método de pago" detalle={esWeb ? 'Participación en ingresos del portal' : 'Participación en ingresos · sirve para cuadrar caja por sede'}>
               <MetodosPago filas={metodos} />
             </Tarjeta>
           </div>
