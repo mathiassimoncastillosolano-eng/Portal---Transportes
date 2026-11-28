@@ -5,7 +5,7 @@ import { participacion, variacion } from './modelo'
 import { ciudadesSalidaEjemplo, datosDetalleEjemplo } from './datosDetalleEjemplo'
 import {
   anticipacionEjemplo, cambiosConDiferenciaEjemplo, comprasPorHorarioEjemplo, diasSemana, franjasHorarias,
-  incidenciasCanalEjemplo, metodosPagoEjemplo, vendedoresEjemplo, type Segmento,
+  agenciasEjemplo, incidenciasCanalEjemplo, metodosPagoEjemplo, participacionAgencia, vendedoresEjemplo, type Segmento,
 } from './datosCanalEjemplo'
 import { ConversionPortal } from './OperacionDashboard'
 import { TemaComercial } from './TemaComercial'
@@ -158,20 +158,37 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
   useEffect(() => { window.scrollTo(0, 0) }, [])
   const [servicio, setServicio] = useState('todos')
   const [ciudadSalida, setCiudadSalida] = useState('todas')
+  const [agenciaId, setAgenciaId] = useState('todas')
   const esWeb = canal === 'web'
+  const agenciasCiudad = agenciasEjemplo.filter((agencia) => agencia.ciudad === ciudadSalida)
+  const agenciaElegida = agenciasCiudad.find((agencia) => String(agencia.id) === agenciaId)
+  const factorAgencia = agenciaElegida ? participacionAgencia(ciudadSalida, agenciaElegida.id) : 1
   const filas = datosDetalleEjemplo(canal, totales)
   const servicios = [...new Set(filas.map((fila) => fila.servicio))].sort((a, b) => a.localeCompare(b, 'es'))
   const filtradas = filas.filter((fila) =>
     (servicio === 'todos' || fila.servicio === servicio) &&
     (esWeb || ciudadSalida === 'todas' || fila.ciudadSalida === ciudadSalida),
-  )
+  ).map((fila) => factorAgencia === 1 ? fila : {
+    ...fila,
+    pasajes: Math.round(fila.pasajes * factorAgencia),
+    ingresos: Math.round(fila.ingresos * factorAgencia),
+    viajes: Math.round(fila.viajes * factorAgencia),
+  })
   const pasajes = filtradas.reduce((suma, fila) => suma + fila.pasajes, 0)
   const ingresos = filtradas.reduce((suma, fila) => suma + fila.ingresos, 0)
   const proporcion = totales.pasajes === 0 ? 0 : pasajes / totales.pasajes
   const filtrado: Totales = { pasajes, ingresos, compras: Math.round(totales.compras * proporcion) }
 
   const rutas = agrupar(filtradas, 'ruta')
-  const sedes = agrupar(filtradas, 'ciudadSalida')
+  const sedes = ciudadSalida === 'todas' || esWeb
+    ? agrupar(filtradas, 'ciudadSalida')
+    : agenciasCiudad
+      .filter((agencia) => !agenciaElegida || agencia.id === agenciaElegida.id)
+      .map((agencia) => {
+        const factor = participacionAgencia(ciudadSalida, agencia.id) / factorAgencia
+        return { nombre: agencia.nombre, pasajes: Math.round(pasajes * factor), ingresos: Math.round(ingresos * factor), viajes: 0 }
+      })
+      .sort((a, b) => b.ingresos - a.ingresos)
   const ticket = pasajes === 0 ? 0 : ingresos / pasajes
   const ticketOtro = otroCanal.pasajes === 0 ? 0 : otroCanal.ingresos / otroCanal.pasajes
   const pasajesPorCompra = totales.compras === 0 ? 0 : totales.pasajes / totales.compras
@@ -218,12 +235,19 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
           </div>
         </div>
 
-        <section aria-label="Filtros del canal" className="grid gap-4 rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:grid-cols-2 sm:p-6">
+        <section aria-label="Filtros del canal" className={`grid gap-4 rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6 ${esWeb ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
           {!esWeb && <label className="space-y-2 text-sm font-semibold text-text-700">Sede (ciudad de salida)
-            <select value={ciudadSalida} onChange={(evento) => setCiudadSalida(evento.target.value)} className="block w-full rounded-xl border border-border bg-surface-card px-3 py-2.5 font-normal text-text-900 outline-none focus:border-accent-500">
+            <select value={ciudadSalida} onChange={(evento) => { setCiudadSalida(evento.target.value); setAgenciaId('todas') }} className="block w-full rounded-xl border border-border bg-surface-card px-3 py-2.5 font-normal text-text-900 outline-none focus:border-accent-500">
               <option value="todas">Todas las sedes</option>
               {ciudadesSalidaEjemplo.map((ciudad) => <option key={ciudad} value={ciudad}>{ciudad}</option>)}
             </select>
+          </label>}
+          {!esWeb && <label className="space-y-2 text-sm font-semibold text-text-700">Agencia
+            <select value={agenciaId} onChange={(evento) => setAgenciaId(evento.target.value)} disabled={ciudadSalida === 'todas'} className="block w-full rounded-xl border border-border bg-surface-card px-3 py-2.5 font-normal text-text-900 outline-none focus:border-accent-500 disabled:cursor-not-allowed disabled:opacity-60">
+              <option value="todas">{ciudadSalida === 'todas' ? 'Elige primero una sede' : `Todas las agencias de ${ciudadSalida} (${agenciasCiudad.length})`}</option>
+              {agenciasCiudad.map((agencia) => <option key={agencia.id} value={agencia.id}>{agencia.nombre}</option>)}
+            </select>
+            {agenciaElegida && <span className="block text-xs font-normal text-text-500">{agenciaElegida.direccion}</span>}
           </label>}
           <label className="space-y-2 text-sm font-semibold text-text-700">Servicio
             <select value={servicio} onChange={(evento) => setServicio(evento.target.value)} className="block w-full rounded-xl border border-border bg-surface-card px-3 py-2.5 font-normal text-text-900 outline-none focus:border-accent-500">
@@ -240,7 +264,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
           <Indicador titulo="Pasajes por compra" valor={decimal.format(pasajesPorCompra)} pie={<Variacion valor={variacion(pasajesPorCompra, pasajesPorCompraAntes)} texto="vs. período anterior" />} />
         </section>
 
-        {sinVentas ? <p className="rounded-xl bg-surface-sunken p-4 text-sm text-text-500">{esWeb ? 'No hay ventas simuladas para este servicio.' : 'No hay ventas simuladas para esta sede y servicio.'}</p> : <>
+        {sinVentas ? <p className="rounded-xl bg-surface-sunken p-4 text-sm text-text-500">{esWeb ? 'No hay ventas simuladas para este servicio.' : 'No hay ventas simuladas para esta sede, agencia y servicio.'}</p> : <>
           <div className="grid gap-4 lg:grid-cols-2">
             <Tarjeta titulo="Anticipación de compra" detalle={esWeb ? 'Días entre la compra y la salida · útil para planificar promociones' : 'Días entre la compra y la salida · en mostrador predomina la venta del mismo día'}>
               <BarrasSegmento filas={anticipacion} color={color} />
@@ -256,7 +280,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
             </Tarjeta>
           ) : (
             <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-              <Tarjeta titulo="Ventas por sede" detalle="Ordenado por ingresos netos">
+              <Tarjeta titulo={ciudadSalida === 'todas' ? 'Ventas por sede' : `Ventas por agencia · ${ciudadSalida}`} detalle="Ordenado por ingresos netos">
                 <RankingBarras filas={sedes.slice(0, 6)} color={color} unaColumna />
               </Tarjeta>
               <Tarjeta titulo="Ranking de vendedores" detalle="Pasajes e ingresos por empleado (id_empleado)">

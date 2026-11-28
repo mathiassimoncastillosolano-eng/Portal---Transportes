@@ -102,3 +102,57 @@ export function cambiosConDiferenciaEjemplo(totales: Totales): CambiosConDiferen
   const conCobro = Math.round(cambios * 0.45)
   return { cambios, conCobro, montoCobrado: conCobro * 18 }
 }
+
+export interface AgenciaEjemplo {
+  ciudad: string
+  id: number
+  nombre: string
+  direccion: string
+}
+
+/** Agencias activas registradas en la base (copiadas el 28-nov-2026). Se reemplazan por la API. */
+export const agenciasEjemplo: AgenciaEjemplo[] = [
+  { ciudad: 'Arequipa', id: 2, nombre: 'Ruta Libre - Arequipa', direccion: 'Dirección de prueba' },
+  { ciudad: 'Arequipa', id: 14, nombre: 'RutaLibre Arequipa', direccion: 'Av. Andres Avelino Caceres 600' },
+  { ciudad: 'Cajamarca', id: 12, nombre: 'RutaLibre Cajamarca', direccion: 'Av. Atahualpa 850' },
+  { ciudad: 'Cajamarca', id: 24, nombre: 'RutaLibre Cajamarca – Amalia Puga', direccion: 'Jr. Amalia Puga 455' },
+  { ciudad: 'Chepén', id: 18, nombre: 'Ruta Libre - Chepén', direccion: 'Terminal Terrestre de Chepén' },
+  { ciudad: 'Chepén', id: 25, nombre: 'RutaLibre Chepén – Jr. Lima', direccion: 'Jr. Lima 310' },
+  { ciudad: 'Chiclayo', id: 7, nombre: 'Ruta Libre - Chiclayo', direccion: 'Av. Bolognesi 800' },
+  { ciudad: 'Chiclayo', id: 10, nombre: 'RutaLibre Chiclayo', direccion: 'Av. Bolognesi 720' },
+  { ciudad: 'Chimbote', id: 13, nombre: 'RutaLibre Chimbote', direccion: 'Av. Jose Pardo 1500' },
+  { ciudad: 'Chimbote', id: 26, nombre: 'RutaLibre Chimbote – Meiggs', direccion: 'Av. Enrique Meiggs 1250' },
+  { ciudad: 'Cusco', id: 5, nombre: 'Ruta Libre - Cusco', direccion: 'Av. El Sol 600' },
+  { ciudad: 'Cusco', id: 27, nombre: 'RutaLibre Cusco – Av. de la Cultura', direccion: 'Av. de la Cultura 1020' },
+  { ciudad: 'Huaraz', id: 15, nombre: 'Ruta Libre - Huaraz', direccion: 'Terminal Terrestre de Huaraz' },
+  { ciudad: 'Huaraz', id: 28, nombre: 'RutaLibre Huaraz – Luzuriaga', direccion: 'Av. Luzuriaga 650' },
+  { ciudad: 'Jaén', id: 19, nombre: 'Ruta Libre - Jaén', direccion: 'Terminal Terrestre de Jaén' },
+  { ciudad: 'Jaén', id: 29, nombre: 'RutaLibre Jaén – Mesones Muro', direccion: 'Av. Mesones Muro 420' },
+  { ciudad: 'Lima', id: 1, nombre: 'Ruta Libre - Lima', direccion: 'Dirección de prueba' },
+  { ciudad: 'Lima', id: 9, nombre: 'RutaLibre Lima', direccion: 'Av. Javier Prado Este 1050' },
+  { ciudad: 'Máncora', id: 22, nombre: 'Ruta Libre - Máncora', direccion: 'Terminal Terrestre de Máncora' },
+  { ciudad: 'Máncora', id: 30, nombre: 'RutaLibre Máncora – Av. Piura', direccion: 'Av. Piura 230' },
+  { ciudad: 'Pacasmayo', id: 16, nombre: 'Ruta Libre - Pacasmayo', direccion: 'Terminal Terrestre de Pacasmayo' },
+  { ciudad: 'Pacasmayo', id: 31, nombre: 'RutaLibre Pacasmayo – Leoncio Prado', direccion: 'Calle Leoncio Prado 120' },
+  { ciudad: 'Paita', id: 17, nombre: 'Ruta Libre - Paita', direccion: 'Terminal Terrestre de Paita' },
+  { ciudad: 'Paita', id: 32, nombre: 'RutaLibre Paita – Av. Grau', direccion: 'Av. Grau 310, El Tablazo' },
+  { ciudad: 'Piura', id: 11, nombre: 'RutaLibre Piura', direccion: 'Av. Sanchez Cerro 1200' },
+  { ciudad: 'Piura', id: 33, nombre: 'RutaLibre Piura – Av. Grau', direccion: 'Av. Grau 1150' },
+  { ciudad: 'Sullana', id: 20, nombre: 'Ruta Libre - Sullana', direccion: 'Terminal Terrestre de Sullana' },
+  { ciudad: 'Sullana', id: 34, nombre: 'RutaLibre Sullana – José de Lama', direccion: 'Av. José de Lama 850' },
+  { ciudad: 'Talara', id: 21, nombre: 'Ruta Libre - Talara', direccion: 'Terminal Terrestre de Talara' },
+  { ciudad: 'Talara', id: 35, nombre: 'RutaLibre Talara – Aviación', direccion: 'Av. Aviación 375' },
+  { ciudad: 'Trujillo', id: 6, nombre: 'Ruta Libre - Trujillo', direccion: 'Av. América Sur 700' },
+  { ciudad: 'Trujillo', id: 8, nombre: 'RutaLibre Trujillo', direccion: 'Av. America Sur 1250' },
+  { ciudad: 'Tumbes', id: 23, nombre: 'Ruta Libre - Tumbes', direccion: 'Terminal Terrestre de Tumbes' },
+  { ciudad: 'Tumbes', id: 36, nombre: 'RutaLibre Tumbes – Tumbes Norte', direccion: 'Av. Tumbes Norte 760' },
+]
+
+/** Parte de las ventas de la ciudad que corresponde a cada agencia (simulado: la más antigua vende más). */
+export function participacionAgencia(ciudad: string, id: number): number {
+  const lista = agenciasEjemplo.filter((agencia) => agencia.ciudad === ciudad)
+  if (lista.length <= 1) return 1
+  const pesos = lista.map((_, indice) => (indice === 0 ? 0.58 : 0.42 / (lista.length - 1)))
+  const indice = lista.findIndex((agencia) => agencia.id === id)
+  return indice < 0 ? 0 : pesos[indice]
+}
