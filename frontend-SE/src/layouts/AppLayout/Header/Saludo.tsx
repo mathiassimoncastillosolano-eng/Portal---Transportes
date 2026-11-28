@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Moon, Sun, Sunset } from 'lucide-react'
-import { TODAS_LAS_SEDES, useAuthStore } from '@/stores/authStore'
-
-const rolVisible: Record<string, string> = { manager: 'Gerente', staff: 'Personal de agencia', admin: 'Administrador', owner: 'Propietario' }
+import { useAuthStore } from '@/stores/authStore'
 
 /** Saludo según la hora de Perú: mañana (5–11), tarde (12–18) o noche. */
 function momentoDelDia(fecha: Date) {
@@ -12,10 +10,7 @@ function momentoDelDia(fecha: Date) {
   return { texto: 'Buenas noches', Icono: Moon, color: '#7c5cd6' }
 }
 
-/**
- * Bienvenida del header: saluda al usuario por su nombre y muestra su rol y alcance
- * (reemplaza la etiqueta "Alcance · Todas las sedes").
- */
+/** Bienvenida del header: saluda al usuario por su nombre y muestra la fecha de hoy. */
 export function Saludo() {
   const user = useAuthStore((s) => s.user)
   const [ahora, setAhora] = useState(() => new Date())
@@ -30,17 +25,16 @@ export function Saludo() {
 
   const { texto, Icono, color } = momentoDelDia(ahora)
   const primerNombre = user.name.split(' ')[0]
-  const alcance = user.agenciaId === TODAS_LAS_SEDES ? 'Todas las sedes' : (user.agenciaNombre ?? 'Sede asignada')
+  const fecha = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Lima' }).format(ahora)
 
+  // Texto simple (sin borde ni fondo) para que no parezca un botón o un selector.
   return (
-    <div className="hidden h-10 items-center gap-2.5 rounded-[10px] border border-border bg-surface-sunken pl-1.5 pr-3.5 md:flex" role="status" aria-label={`${texto}, ${primerNombre}. ${rolVisible[user.role] ?? user.role}, ${alcance}`}>
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, ${color} 18%, transparent)`, color }}>
-        <Icono className="h-4 w-4" aria-hidden="true" />
-      </span>
+    <p className="hidden min-w-0 items-center gap-2.5 md:flex">
+      <Icono className="h-5 w-5 shrink-0" style={{ color }} aria-hidden="true" />
       <span className="min-w-0 leading-tight">
-        <span className="block max-w-[220px] truncate text-[13px] font-semibold text-text-900">{texto}, {primerNombre}</span>
-        <span className="block max-w-[220px] truncate text-[11px] text-text-500">Bienvenido · {rolVisible[user.role] ?? user.role} · {alcance}</span>
+        <span className="block truncate text-sm font-semibold text-text-900">{texto}, {primerNombre}</span>
+        <span className="block truncate text-xs first-letter:uppercase text-text-500">{fecha}</span>
       </span>
-    </div>
+    </p>
   )
 }
