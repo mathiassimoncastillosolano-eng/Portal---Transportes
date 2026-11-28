@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowDownRight, ArrowLeft, ArrowUpRight, Building2, CalendarClock, CalendarDays, CreditCard, Banknote, Smartphone, CalendarCheck, Clock, MapPin, Zap, Globe2, Minus, Repeat, RotateCcw, Star, Wallet } from 'lucide-react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { ArrowDownRight, ArrowLeft, ArrowUpRight, Building2, CalendarClock, CalendarDays, CreditCard, Banknote, Smartphone, CalendarCheck, Clock, MapPin, Zap, Globe2, Minus, Repeat, RotateCcw, Star, Trophy, Wallet } from 'lucide-react'
 import type { Canal, Totales } from './modelo'
 import { participacion, variacion } from './modelo'
 import { ciudadesSalidaEjemplo, datosDetalleEjemplo } from './datosDetalleEjemplo'
@@ -219,6 +219,74 @@ const coloresInfografia = ['#d9544a', '#a8457a', '#7cb35a', '#e08a3c', '#3a9aa3'
  * Columnas con punta de flecha, piso en perspectiva y líneas guía hacia la leyenda.
  * La más alta va al centro, como en la referencia (orden 05 · 02 · 01 · 04 · 03).
  */
+/** Ranking de ciudades de origen (web): resalta la ciudad elegida en el filtro y permite elegir con un clic. */
+function OrigenesWeb({ filas, elegida, onElegir }: { filas: Resumen[]; elegida: string | null; onElegir: (ciudad: string) => void }) {
+  const total = filas.reduce((suma, fila) => suma + fila.pasajes, 0)
+  const mayor = Math.max(...filas.map((fila) => fila.pasajes), 1)
+  const lider = filas[0]
+  const puesto = elegida ? filas.findIndex((fila) => fila.nombre === elegida) : -1
+  const seleccion = puesto >= 0 ? filas[puesto] : null
+
+  return (
+    <div className="mt-5 flex flex-1 flex-col">
+      <div className="grid gap-3 sm:grid-cols-2">
+        {lider && (
+          <div className="flex items-center gap-3 rounded-xl p-4 text-white" style={{ backgroundColor: coloresInfografia[0] }}>
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/20"><Trophy size={22} aria-hidden="true" /></span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/80">Origen con más pasajes</p>
+              <p className="truncate font-display text-xl font-bold">{lider.nombre}</p>
+              <p className="text-xs tabular-nums text-white/90">{numero.format(lider.pasajes)} pasajes · {participacion(lider.pasajes, total).toFixed(0)} % del total web</p>
+            </div>
+          </div>
+        )}
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-surface-sunken p-4">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--canal-web) 18%, transparent)', color: 'var(--canal-web)' }}><MapPin size={22} aria-hidden="true" /></span>
+          <div className="min-w-0">
+            {seleccion ? (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-wide text-text-500">Origen elegido</p>
+                <p className="truncate font-display text-xl font-bold text-text-900">{seleccion.nombre} · puesto {puesto + 1} de {filas.length}</p>
+                <p className="text-xs tabular-nums text-text-700">{numero.format(seleccion.pasajes)} pasajes · {participacion(seleccion.pasajes, total).toFixed(0)} % · {moneda.format(seleccion.ingresos)}</p>
+              </>
+            ) : elegida ? (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-wide text-text-500">Origen elegido</p>
+                <p className="font-display text-xl font-bold text-text-900">{elegida}</p>
+                <p className="text-xs text-text-700">Sin compras web desde esta ciudad en el período.</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-wide text-text-500">Elige un origen</p>
+                <p className="text-sm text-text-700">Usa el filtro "Ciudad de origen" o haz clic en una ciudad de la lista para ver su puesto.</p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      <ol className="mt-5 space-y-2.5">
+        {filas.map((fila, indice) => {
+          const activa = fila.nombre === elegida
+          const atenuada = elegida !== null && !activa
+          const color = indice < 5 ? coloresInfografia[indice] : '#6b7f8e'
+          return (
+            <li key={fila.nombre}>
+              <button type="button" onClick={() => onElegir(activa ? 'todas' : fila.nombre)} aria-pressed={activa}
+                className={`grid w-full grid-cols-[2rem_8rem_minmax(0,1fr)_5.5rem] items-center gap-3 rounded-lg px-2 py-1.5 text-left transition ${activa ? 'bg-surface-sunken ring-2' : 'hover:bg-surface-sunken'} ${atenuada ? 'opacity-45' : ''}`}
+                style={activa ? { '--tw-ring-color': color } as CSSProperties : undefined}>
+                <span className="flex size-7 items-center justify-center rounded-full text-xs font-bold tabular-nums text-white" style={{ backgroundColor: color }}>{indice + 1}</span>
+                <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-text-900"><MapPin size={14} className="shrink-0" style={{ color }} aria-hidden="true" /><span className="truncate">{fila.nombre}</span></span>
+                <span className="h-3 overflow-hidden rounded-full bg-surface-sunken"><span className="block h-full rounded-full" style={{ width: `${(fila.pasajes / mayor) * 100}%`, backgroundColor: color }} /></span>
+                <span className="text-right text-xs tabular-nums text-text-700"><strong className="text-text-900">{numero.format(fila.pasajes)}</strong> · {participacion(fila.pasajes, total).toFixed(0)} %</span>
+              </button>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
+}
+
 function VentasPorSede({ filas }: { filas: Resumen[] }) {
   const total = filas.reduce((suma, fila) => suma + fila.ingresos, 0)
   const top = filas.slice(0, 5)
@@ -329,7 +397,7 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
   const servicios = [...new Set(filas.map((fila) => fila.servicio))].sort((a, b) => a.localeCompare(b, 'es'))
   const filtradas = filas.filter((fila) =>
     (servicio === 'todos' || fila.servicio === servicio) &&
-    (esWeb || ciudadSalida === 'todas' || fila.ciudadSalida === ciudadSalida),
+    (ciudadSalida === 'todas' || fila.ciudadSalida === ciudadSalida),
   )
   const pasajes = filtradas.reduce((suma, fila) => suma + fila.pasajes, 0)
   const ingresos = filtradas.reduce((suma, fila) => suma + fila.ingresos, 0)
@@ -338,6 +406,10 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
 
   const rutas = agrupar(filtradas, 'ruta')
   const sedes = agrupar(filtradas, 'ciudadSalida')
+  // Ranking de orígenes: respeta el servicio pero no la ciudad, para ver en qué puesto queda la elegida.
+  const origenes = agrupar(filas.filter((fila) => servicio === 'todos' || fila.servicio === servicio), 'ciudadSalida')
+    .sort((a, b) => b.pasajes - a.pasajes)
+  const ciudadesFiltro = esWeb ? [...new Set(filas.map((fila) => fila.ciudadSalida))].sort((a, b) => a.localeCompare(b, 'es')) : ciudadesSalidaEjemplo
   const ticket = pasajes === 0 ? 0 : ingresos / pasajes
   const ticketOtro = otroCanal.pasajes === 0 ? 0 : otroCanal.ingresos / otroCanal.pasajes
   const pasajesPorCompra = totales.compras === 0 ? 0 : totales.pasajes / totales.compras
@@ -385,12 +457,12 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
         </div>
 
         <section aria-label="Filtros del canal" className="grid gap-4 rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:grid-cols-2 sm:p-6">
-          {!esWeb && <label className="space-y-2 text-sm font-semibold text-text-700">Sede (ciudad de salida)
+          <label className="space-y-2 text-sm font-semibold text-text-700">{esWeb ? 'Ciudad de origen' : 'Sede (ciudad de salida)'}
             <select value={ciudadSalida} onChange={(evento) => setCiudadSalida(evento.target.value)} className="block w-full rounded-xl border border-border bg-surface-card px-3 py-2.5 font-normal text-text-900 outline-none focus:border-accent-500">
-              <option value="todas">Todas las sedes</option>
-              {ciudadesSalidaEjemplo.map((ciudad) => <option key={ciudad} value={ciudad}>{ciudad}</option>)}
+              <option value="todas">{esWeb ? 'Todos los orígenes' : 'Todas las sedes'}</option>
+              {ciudadesFiltro.map((ciudad) => <option key={ciudad} value={ciudad}>{ciudad}</option>)}
             </select>
-          </label>}
+          </label>
           <label className="space-y-2 text-sm font-semibold text-text-700">Servicio
             <select value={servicio} onChange={(evento) => setServicio(evento.target.value)} className="block w-full rounded-xl border border-border bg-surface-card px-3 py-2.5 font-normal text-text-900 outline-none focus:border-accent-500">
               <option value="todos">Todos los servicios</option>
@@ -415,6 +487,12 @@ export function DetalleCanal({ canal, onClose, periodo, onPeriodoChange, totales
               <MetodosPago filas={metodos} />
             </Tarjeta>
           </div>
+
+          {esWeb && (
+            <Tarjeta className="flex flex-col" titulo="¿Desde dónde viajan más?" detalle="Ciudades de origen ordenadas por pasajes comprados en la web">
+              <OrigenesWeb filas={origenes} elegida={ciudadSalida === 'todas' ? null : ciudadSalida} onElegir={setCiudadSalida} />
+            </Tarjeta>
+          )}
 
           {esWeb ? (
             <Tarjeta titulo="¿Cuándo compran en la web?" detalle="Pasajes por día de la semana y franja horaria de compra">
