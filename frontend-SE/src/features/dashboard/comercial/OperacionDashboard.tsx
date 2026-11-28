@@ -68,14 +68,20 @@ function Salida({ fila }: { fila: SalidaEnRiesgo }) {
 }
 
 function Ranking({ titulo, detalle, filas }: { titulo: string; detalle: string; filas: FilaRanking[] }) {
-  const destacadas = [...filas].sort((a, b) => b.ingresos - a.ingresos).slice(0, 5)
+  const ordenadas = [...filas].sort((a, b) => b.ingresos - a.ingresos)
+  const destacadas = ordenadas.slice(0, 5)
+  const resto = ordenadas.slice(5)
   const mayor = Math.max(...destacadas.map((fila) => fila.ingresos), 1)
+  const totalRutas = filas.reduce((suma, fila) => suma + fila.ingresos, 0)
+  const ingresosTop = destacadas.reduce((suma, fila) => suma + fila.ingresos, 0)
+  const cuotaTop = totalRutas === 0 ? 0 : (ingresosTop / totalRutas) * 100
+  const mejorPrecio = [...filas].filter((fila) => fila.pasajes > 0).sort((a, b) => b.ingresos / b.pasajes - a.ingresos / a.pasajes)[0]
 
   return (
     <article className="flex flex-col rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
       <h3 className="font-display text-lg font-bold text-text-900">{titulo}</h3>
       <p className="mt-1 text-sm text-text-500">{detalle}</p>
-      <ol className="mt-6 grid flex-1 grid-cols-5 items-end gap-2 sm:gap-4" aria-label={titulo}>
+      <ol className="mt-6 grid grid-cols-5 items-end gap-2 sm:gap-4" aria-label={titulo}>
         {destacadas.map((fila, indice) => {
           const { fondo, texto } = coloresRanking[indice]
           const [origen, destino] = fila.nombre.split(' → ')
@@ -97,6 +103,22 @@ function Ranking({ titulo, detalle, filas }: { titulo: string; detalle: string; 
           )
         })}
       </ol>
+      <div className="mt-auto pt-6">
+        <div className="rounded-xl bg-surface-sunken p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm font-semibold text-text-900">Concentración de ingresos</p>
+            <p className="text-xs text-text-500">{filas.length} rutas en total</p>
+          </div>
+          <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-surface-card" role="img" aria-label={`Las 5 rutas principales suman el ${cuotaTop.toFixed(0)} % de los ingresos`}>
+            {destacadas.map((fila, indice) => <div key={fila.nombre} className="h-full" style={{ width: `${totalRutas === 0 ? 0 : (fila.ingresos / totalRutas) * 100}%`, backgroundColor: coloresRanking[indice].fondo }} />)}
+          </div>
+          <dl className="mt-3 grid grid-cols-3 gap-3 text-xs">
+            <div><dt className="text-text-500">Top 5</dt><dd className="mt-0.5 text-base font-bold tabular-nums text-text-900">{cuotaTop.toFixed(0)} %</dd><dd className="tabular-nums text-text-500">{moneda.format(ingresosTop)}</dd></div>
+            <div><dt className="text-text-500">Otras {resto.length} rutas</dt><dd className="mt-0.5 text-base font-bold tabular-nums text-text-900">{(100 - cuotaTop).toFixed(0)} %</dd><dd className="tabular-nums text-text-500">{moneda.format(totalRutas - ingresosTop)}</dd></div>
+            <div><dt className="text-text-500">Mejor precio prom.</dt><dd className="mt-0.5 text-base font-bold tabular-nums text-text-900">{mejorPrecio ? moneda.format(mejorPrecio.ingresos / mejorPrecio.pasajes) : '—'}</dd><dd className="truncate text-text-500" title={mejorPrecio?.nombre}>{mejorPrecio?.nombre ?? ''}</dd></div>
+          </dl>
+        </div>
+      </div>
     </article>
   )
 }
@@ -203,6 +225,9 @@ function Servicios({ filas }: { filas: FilaRanking[] }) {
   const cantidades = asientosPorServicio(filas.map((fila) => fila[metrica]))
   const asientos = cantidades.flatMap((cantidad, indice) => Array.from({ length: cantidad }, () => indice))
   const elegido = activo ?? 0
+  const porPrecio = [...filas].filter((f) => f.pasajes > 0).sort((a, b) => b.ingresos / b.pasajes - a.ingresos / a.pasajes)
+  const caro = porPrecio[0]
+  const barato = porPrecio[porPrecio.length - 1]
   const fila = filas[elegido]
   const porcentaje = total === 0 ? 0 : (fila[metrica] / total) * 100
   // Bus visto desde arriba: 4 filas de asientos (2 + pasillo + 2) y 25 columnas.
@@ -210,7 +235,7 @@ function Servicios({ filas }: { filas: FilaRanking[] }) {
   const filasBus = [0, 1, 2, 3]
 
   return (
-    <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
+    <article className="flex flex-col rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-display text-lg font-bold text-text-900">Distribución por servicio</h3>
@@ -270,6 +295,12 @@ function Servicios({ filas }: { filas: FilaRanking[] }) {
             <div className="flex justify-between gap-2"><dt>Precio promedio</dt><dd className="font-semibold tabular-nums text-text-900">{fila.pasajes === 0 ? '—' : moneda.format(fila.ingresos / fila.pasajes)}</dd></div>
           </dl>
           {activo === null && <p className="mt-2 text-[11px] text-text-400">Pasa el mouse por un asiento o servicio</p>}
+        </div>
+      </div>
+      <div className="mt-auto pt-5">
+        <div className="grid grid-cols-2 gap-3 rounded-xl bg-surface-sunken p-4 text-xs">
+          <div><p className="text-text-500">Precio más alto</p><p className="mt-0.5 text-base font-bold tabular-nums text-text-900">{caro ? moneda.format(caro.ingresos / caro.pasajes) : '—'}</p><p className="text-text-500">{caro?.nombre}</p></div>
+          <div><p className="text-text-500">Precio más bajo</p><p className="mt-0.5 text-base font-bold tabular-nums text-text-900">{barato ? moneda.format(barato.ingresos / barato.pasajes) : '—'}</p><p className="text-text-500">{barato?.nombre}</p></div>
         </div>
       </div>
     </article>
@@ -356,7 +387,7 @@ export function PanoramaRutas({ datos, periodo }: Props) {
         <ul className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">{datos.ocupacionPorRuta.map((fila) => <MedidorOcupacion key={fila.nombre} fila={fila} />)}</ul>
       </article>
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Ranking titulo="Rutas de mayor ingreso" detalle={`5 rutas principales de ambos canales · últimos ${periodo} días`} filas={datos.rutasPorIngreso} />
         <Servicios filas={datos.servicios} />
       </div>
