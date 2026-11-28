@@ -77,8 +77,8 @@ function MetodosPago({ filas }: { filas: Segmento[] }) {
 
   return (
     <div className="mt-5 flex flex-1 flex-col">
-      <div className="grid items-center gap-5 sm:grid-cols-[11rem_minmax(0,1fr)]">
-        <div className="relative mx-auto size-44" role="img" aria-label={filas.map((fila) => `${fila.nombre} ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
+      <div className="grid flex-1 items-stretch gap-5 sm:grid-cols-[13rem_minmax(0,1fr)]">
+        <div className="relative mx-auto size-52 self-center" role="img" aria-label={filas.map((fila) => `${fila.nombre} ${participacion(fila.ingresos, total).toFixed(0)} %`).join(', ')}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={filas} dataKey="ingresos" nameKey="nombre" innerRadius="64%" outerRadius="100%" paddingAngle={3} stroke="none" isAnimationActive={false}
@@ -93,20 +93,25 @@ function MetodosPago({ filas }: { filas: Segmento[] }) {
             <span className="text-[11px] text-text-500">{centro ? centro.nombre : 'Total'}</span>
           </div>
         </div>
-        <ul className="space-y-2">
+        <ul className="flex flex-col gap-2">
           {filas.map((fila, indice) => {
             const Icono = iconosPago[fila.nombre] ?? CreditCard
             const color = colorPago(fila.nombre)
+            const cuota = participacion(fila.ingresos, total)
             return (
-              <li key={fila.nombre}>
+              <li key={fila.nombre} className="flex flex-1">
                 <button type="button" onMouseEnter={() => setActivo(indice)} onMouseLeave={() => setActivo(null)} onFocus={() => setActivo(indice)} onBlur={() => setActivo(null)}
-                  className={`flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-colors ${activo === indice ? 'bg-surface-sunken' : 'border-border'}`} style={activo === indice ? { borderColor: color } : undefined}>
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, ${color} 18%, transparent)`, color }}><Icono size={18} aria-hidden="true" /></span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-text-900">{fila.nombre}</span>
-                    <span className="block text-xs tabular-nums text-text-500">{moneda.format(fila.ingresos)} · {numero.format(fila.pasajes)} pasajes</span>
+                  className={`flex w-full flex-col justify-center gap-2.5 rounded-xl border p-3 text-left transition-colors ${activo === indice ? 'bg-surface-sunken' : 'border-border'}`} style={activo === indice ? { borderColor: color } : undefined}>
+                  <span className="flex w-full items-center gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `color-mix(in srgb, ${color} 18%, transparent)`, color }}><Icono size={20} aria-hidden="true" /></span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-text-900">{fila.nombre}</span>
+                      <span className="block text-xs tabular-nums text-text-500">{numero.format(fila.pasajes)} pasajes</span>
+                    </span>
+                    <span className="ml-auto font-display text-2xl font-bold tabular-nums" style={{ color }}>{cuota.toFixed(0)} %</span>
                   </span>
-                  <span className="ml-auto font-display text-lg font-bold tabular-nums text-text-900">{participacion(fila.ingresos, total).toFixed(0)} %</span>
+                  <span className="block h-2 w-full overflow-hidden rounded-full bg-surface-sunken"><span className="block h-full rounded-full" style={{ width: `${cuota}%`, backgroundColor: color }} /></span>
+                  <span className="text-xs tabular-nums text-text-700"><strong className="text-text-900">{moneda.format(fila.ingresos)}</strong> en ingresos</span>
                 </button>
               </li>
             )
