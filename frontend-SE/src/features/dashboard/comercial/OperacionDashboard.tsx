@@ -1,35 +1,61 @@
 import { useState } from 'react'
-import { AlertTriangle, ArrowRight, CalendarClock, CreditCard, RotateCcw, Search, Ticket } from 'lucide-react'
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { AlertTriangle, Armchair, ArrowRight, CalendarClock, CreditCard, RotateCcw, Search, Ticket } from 'lucide-react'
 import type { DatosOperacion, FilaRanking, RutaOcupacion, SalidaEnRiesgo } from './datosOperacionEjemplo'
+import { ocupacionTotal } from './datosOperacionEjemplo'
+import { coloresRanking } from './paletaRanking'
+import { OrigenesDestinos } from './OrigenesDestinos'
+import type { Totales } from './modelo'
 
 interface Props {
   datos: DatosOperacion
   periodo: number
 }
 
+interface PropsPanorama extends Props {
+  web: Totales
+  agencia: Totales
+}
+
 const moneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 })
 const numero = new Intl.NumberFormat('es-PE')
-const coloresServicio = ['var(--color-chart-1)', 'var(--color-chart-2)', 'var(--color-chart-3)', 'var(--color-chart-4)']
+const compacto = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', notation: 'compact', maximumFractionDigits: 1 })
+const coloresServicio = ['var(--serie-1)', 'var(--serie-2)', 'var(--serie-3)', 'var(--serie-4)']
 
 function ocupacion(vendidos: number, capacidad: number): number {
   return capacidad === 0 ? 0 : (vendidos / capacidad) * 100
 }
 
-function BarraOcupacion({ fila }: { fila: RutaOcupacion }) {
+const META_OCUPACION = 75
+
+function nivelOcupacion(porcentaje: number) {
+  if (porcentaje >= META_OCUPACION) return { etiqueta: 'Buena', color: 'var(--color-success-500)' }
+  if (porcentaje >= 60) return { etiqueta: 'Regular', color: 'var(--color-warning-500)' }
+  return { etiqueta: 'Baja', color: 'var(--color-danger-500)' }
+}
+
+/** Medidor circular: el anillo muestra la ocupación y la marca indica la meta. */
+function MedidorOcupacion({ fila }: { fila: RutaOcupacion }) {
   const porcentaje = ocupacion(fila.vendidos, fila.capacidad)
-  const color = porcentaje < 60 ? 'var(--color-warning-text)' : 'var(--color-accent-500)'
+  const { etiqueta, color } = nivelOcupacion(porcentaje)
+  const radio = 42
+  const circunferencia = 2 * Math.PI * radio
+  const anguloMeta = (META_OCUPACION / 100) * 2 * Math.PI - Math.PI / 2
+  const vacios = fila.capacidad - fila.vendidos
+  const [origen, destino] = fila.nombre.split(' → ')
 
   return (
-    <li className="space-y-2">
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="font-semibold text-text-900">{fila.nombre}</span>
-        <span className="font-semibold tabular-nums text-text-900">{porcentaje.toFixed(0)} %</span>
-      </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-surface-sunken" role="img" aria-label={`${fila.nombre}: ${fila.vendidos} de ${fila.capacidad} asientos ocupados`}>
-        <div className="h-full rounded-full" style={{ width: `${porcentaje}%`, backgroundColor: color }} />
-      </div>
-      <p className="text-xs tabular-nums text-text-500">{numero.format(fila.vendidos)} de {numero.format(fila.capacidad)} asientos</p>
+    <li className="flex flex-col items-center rounded-xl bg-surface-sunken p-4 text-center">
+      <svg viewBox="0 0 100 100" className="size-32" role="img" aria-label={`${fila.nombre}: ${porcentaje.toFixed(0)} % de ocupación (${etiqueta}), ${fila.vendidos} de ${fila.capacidad} asientos`}>
+        <circle cx="50" cy="50" r={radio} fill="none" stroke="var(--color-border)" strokeWidth="9" />
+        <circle cx="50" cy="50" r={radio} fill="none" stroke={color} strokeWidth="9" strokeLinecap="round"
+          strokeDasharray={`${(porcentaje / 100) * circunferencia} ${circunferencia}`} transform="rotate(-90 50 50)" />
+        <line x1={50 + 34 * Math.cos(anguloMeta)} y1={50 + 34 * Math.sin(anguloMeta)} x2={50 + 50 * Math.cos(anguloMeta)} y2={50 + 50 * Math.sin(anguloMeta)} stroke="var(--color-text-900)" strokeWidth="2" strokeLinecap="round" />
+        <text x="50" y="50" textAnchor="middle" className="fill-text-900 font-display" fontSize="20" fontWeight="700">{porcentaje.toFixed(0)}%</text>
+        <text x="50" y="65" textAnchor="middle" fontSize="9" fontWeight="600" fill={color}>{etiqueta}</text>
+      </svg>
+      <p className="mt-2 text-sm font-semibold text-text-900">{origen} <span className="font-normal text-text-400">→</span> {destino}</p>
+      <p className="mt-1 text-xs tabular-nums text-text-500">{numero.format(fila.vendidos)} de {numero.format(fila.capacidad)} asientos</p>
+      <p className="mt-1 text-xs font-semibold tabular-nums text-text-700">{numero.format(vacios)} asientos vacíos</p>
     </li>
   )
 }
@@ -48,27 +74,58 @@ function Salida({ fila }: { fila: SalidaEnRiesgo }) {
   )
 }
 
-function Ranking({ titulo, detalle, filas, color }: { titulo: string; detalle: string; filas: FilaRanking[]; color: string }) {
-  const destacadas = [...filas].sort((a, b) => b.ingresos - a.ingresos).slice(0, 5)
+function Ranking({ titulo, detalle, filas }: { titulo: string; detalle: string; filas: FilaRanking[] }) {
+  const ordenadas = [...filas].sort((a, b) => b.ingresos - a.ingresos)
+  const destacadas = ordenadas.slice(0, 5)
+  const resto = ordenadas.slice(5)
   const mayor = Math.max(...destacadas.map((fila) => fila.ingresos), 1)
+  const totalRutas = filas.reduce((suma, fila) => suma + fila.ingresos, 0)
+  const ingresosTop = destacadas.reduce((suma, fila) => suma + fila.ingresos, 0)
+  const cuotaTop = totalRutas === 0 ? 0 : (ingresosTop / totalRutas) * 100
+  const mejorPrecio = [...filas].filter((fila) => fila.pasajes > 0).sort((a, b) => b.ingresos / b.pasajes - a.ingresos / a.pasajes)[0]
 
   return (
-    <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
+    <article className="flex flex-col rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
       <h3 className="font-display text-lg font-bold text-text-900">{titulo}</h3>
       <p className="mt-1 text-sm text-text-500">{detalle}</p>
-      <ol className="mt-5 space-y-5">
-        {destacadas.map((fila, indice) => (
-          <li key={fila.nombre}>
-            <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 text-sm">
-              <span className="min-w-0 font-medium text-text-900"><span className="mr-2 text-text-400">{indice + 1}.</span>{fila.nombre}</span>
-              <span className="ml-auto text-right tabular-nums"><strong className="block text-text-900">{moneda.format(fila.ingresos)}</strong><span className="text-xs text-text-500">{numero.format(fila.pasajes)} pasajes</span></span>
-            </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
-              <div className="h-full rounded-full" style={{ width: `${(fila.ingresos / mayor) * 100}%`, backgroundColor: color }} />
-            </div>
-          </li>
-        ))}
+      <ol className="mt-6 grid grid-cols-5 items-end gap-2 sm:gap-4" aria-label={titulo}>
+        {destacadas.map((fila, indice) => {
+          const { fondo, texto } = coloresRanking[indice]
+          const [origen, destino] = fila.nombre.split(' → ')
+          const alto = Math.max((fila.ingresos / mayor) * 100, 16)
+          return (
+            <li key={fila.nombre} title={fila.nombre} className="flex h-full flex-col items-center justify-end text-center">
+              <div className="flex h-60 w-full flex-col items-center justify-end" role="img" aria-label={`${indice + 1}. ${fila.nombre}: ${moneda.format(fila.ingresos)}, ${fila.pasajes} pasajes`}>
+                <span className="text-xs font-bold tabular-nums text-text-900 sm:text-sm">{compacto.format(fila.ingresos)}</span>
+                <span className="mb-1.5 text-[11px] tabular-nums text-text-500">{numero.format(fila.pasajes)} pas.</span>
+                <div className="flex w-full items-end justify-center rounded-t-xl pb-2 transition-[height] duration-500" style={{ height: `${alto * 0.78}%`, backgroundColor: fondo }}>
+                  <span className="flex size-7 items-center justify-center rounded-full border-2 font-display text-xs font-bold tabular-nums" style={{ borderColor: texto, color: texto }}>{String(indice + 1).padStart(2, '0')}</span>
+                </div>
+              </div>
+              <div className="mt-2 w-full rounded-lg bg-surface-sunken px-1 py-1.5">
+                <p className="truncate text-xs font-semibold text-text-900">{origen}</p>
+                <p className="truncate text-[11px] text-text-500">→ {destino}</p>
+              </div>
+            </li>
+          )
+        })}
       </ol>
+      <div className="mt-auto pt-6">
+        <div className="rounded-xl bg-surface-sunken p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm font-semibold text-text-900">Concentración de ingresos</p>
+            <p className="text-xs text-text-500">{filas.length} rutas en total</p>
+          </div>
+          <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-surface-card" role="img" aria-label={`Las 5 rutas principales suman el ${cuotaTop.toFixed(0)} % de los ingresos`}>
+            {destacadas.map((fila, indice) => <div key={fila.nombre} className="h-full" style={{ width: `${totalRutas === 0 ? 0 : (fila.ingresos / totalRutas) * 100}%`, backgroundColor: coloresRanking[indice].fondo }} />)}
+          </div>
+          <dl className="mt-3 grid grid-cols-3 gap-3 text-xs">
+            <div><dt className="text-text-500">Top 5</dt><dd className="mt-0.5 text-base font-bold tabular-nums text-text-900">{cuotaTop.toFixed(0)} %</dd><dd className="tabular-nums text-text-500">{moneda.format(ingresosTop)}</dd></div>
+            <div><dt className="text-text-500">Otras {resto.length} rutas</dt><dd className="mt-0.5 text-base font-bold tabular-nums text-text-900">{(100 - cuotaTop).toFixed(0)} %</dd><dd className="tabular-nums text-text-500">{moneda.format(totalRutas - ingresosTop)}</dd></div>
+            <div><dt className="text-text-500">Mejor precio prom.</dt><dd className="mt-0.5 text-base font-bold tabular-nums text-text-900">{mejorPrecio ? moneda.format(mejorPrecio.ingresos / mejorPrecio.pasajes) : '—'}</dd><dd className="truncate text-text-500" title={mejorPrecio?.nombre}>{mejorPrecio?.nombre ?? ''}</dd></div>
+          </dl>
+        </div>
+      </div>
     </article>
   )
 }
@@ -157,113 +214,207 @@ function TablaRutas({ filas }: { filas: FilaRanking[] }) {
   )
 }
 
+/** Reparte 100 asientos entre los servicios según su participación (conserva el total). */
+function asientosPorServicio(valores: number[]): number[] {
+  const total = valores.reduce((suma, valor) => suma + valor, 0)
+  if (total === 0) return valores.map(() => 0)
+  const cuotas = valores.map((valor) => (valor / total) * 100)
+  const enteros = cuotas.map(Math.floor)
+  const orden = cuotas.map((cuota, indice) => ({ indice, resto: cuota - enteros[indice] })).sort((a, b) => b.resto - a.resto)
+  for (let i = 0; i < 100 - enteros.reduce((suma, valor) => suma + valor, 0); i++) enteros[orden[i].indice]++
+  return enteros
+}
+
 function Servicios({ filas }: { filas: FilaRanking[] }) {
-  const total = filas.reduce((suma, fila) => suma + fila.ingresos, 0)
+  const [metrica, setMetrica] = useState<'ingresos' | 'pasajes'>('ingresos')
+  const [activo, setActivo] = useState<number | null>(null)
+  const total = filas.reduce((suma, fila) => suma + fila[metrica], 0)
+  const cantidades = asientosPorServicio(filas.map((fila) => fila[metrica]))
+  const asientos = cantidades.flatMap((cantidad, indice) => Array.from({ length: cantidad }, () => indice))
+  const elegido = activo ?? 0
+  const porPrecio = [...filas].filter((f) => f.pasajes > 0).sort((a, b) => b.ingresos / b.pasajes - a.ingresos / a.pasajes)
+  const caro = porPrecio[0]
+  const barato = porPrecio[porPrecio.length - 1]
+  const fila = filas[elegido]
+  const porcentaje = total === 0 ? 0 : (fila[metrica] / total) * 100
+  // Bus visto desde arriba: 4 filas de asientos (2 + pasillo + 2) y 25 columnas.
+  const columnas = 25
+  const filasBus = [0, 1, 2, 3]
 
   return (
-    <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
-      <h3 className="font-display text-lg font-bold text-text-900">Distribución por servicio</h3>
-      <p className="mt-1 text-sm text-text-500">Participación en ingresos de ambos canales</p>
-      <div className="relative mx-auto mt-3 h-48 max-w-64" role="img" aria-label="Distribución de ingresos por tipo de servicio">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie data={filas} dataKey="ingresos" nameKey="nombre" innerRadius={66} outerRadius={89} paddingAngle={3} stroke="none">
-              {filas.map((fila, indice) => <Cell key={fila.nombre} fill={coloresServicio[indice]} />)}
-            </Pie>
-            <Tooltip formatter={(valor, nombre) => [moneda.format(Number(valor)), nombre]} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xs text-text-500">Total</span>
-          <strong className="font-display text-lg text-text-900">{moneda.format(total)}</strong>
+    <article className="flex flex-col rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-display text-lg font-bold text-text-900">Distribución por servicio</h3>
+          <p className="mt-1 text-sm text-text-500">Un bus de 100 asientos: cada asiento es 1 % de los {metrica}</p>
+        </div>
+        <div className="inline-flex rounded-xl border border-border bg-surface-sunken p-1" role="group" aria-label="Distribuir por">
+          {(['ingresos', 'pasajes'] as const).map((opcion) => (
+            <button key={opcion} type="button" onClick={() => setMetrica(opcion)} aria-pressed={metrica === opcion} className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${metrica === opcion ? 'bg-surface-card text-text-900 shadow-sm' : 'text-text-500 hover:text-text-900'}`}>{opcion}</button>
+          ))}
         </div>
       </div>
-      <ul className="mt-2 space-y-3">
-        {filas.map((fila, indice) => {
-          const porcentaje = total === 0 ? 0 : (fila.ingresos / total) * 100
-          return (
-            <li key={fila.nombre}>
-              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
-                <span className="flex items-center gap-2 text-text-900"><i className="size-2.5 rounded-full" style={{ backgroundColor: coloresServicio[indice] }} />{fila.nombre}</span>
-                <span className="ml-auto tabular-nums text-text-700">{moneda.format(fila.ingresos)} · <strong>{porcentaje.toFixed(1)} %</strong></span>
+
+      <div className="mt-5">
+        <div className="flex items-stretch rounded-[1.25rem] border-2 border-border-strong bg-surface-sunken p-2" role="img" aria-label={filas.map((f, i) => `${f.nombre}: ${cantidades[i]} %`).join(', ')}>
+          <div className="mr-1.5 flex w-7 shrink-0 flex-col items-center justify-center rounded-l-xl border-r-2 border-dashed border-border-strong text-text-400">
+            <SteeringWheel />
+          </div>
+          <div className="grid flex-1 gap-y-0.5" style={{ gridTemplateRows: '1fr 1fr 0.6fr 1fr 1fr' }}>
+            {filasBus.map((filaBus) => (
+              <div key={filaBus} className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${columnas}, minmax(0, 1fr))`, gridRow: filaBus < 2 ? filaBus + 1 : filaBus + 2 }}>
+                {Array.from({ length: columnas }, (_, columna) => {
+                  const servicio = asientos[columna * 4 + filaBus]
+                  const apagado = activo !== null && servicio !== activo
+                  return (
+                    <Armchair key={columna} strokeWidth={2.4} aria-hidden="true"
+                      className={`mx-auto h-auto w-full max-w-[18px] transition-opacity duration-200 ${apagado ? 'opacity-15' : 'opacity-100'}`}
+                      style={{ color: coloresServicio[servicio] ?? 'var(--color-border)' }}
+                      onMouseEnter={() => setActivo(servicio)} onMouseLeave={() => setActivo(null)} />
+                  )
+                })}
               </div>
-              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true"><div className="h-full" style={{ width: `${porcentaje}%`, backgroundColor: coloresServicio[indice] }} /></div>
+            ))}
+            <div className="flex items-center justify-center text-[10px] font-semibold uppercase tracking-[0.3em] text-text-400" style={{ gridRow: 3 }}>pasillo</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <ul className="space-y-1.5">
+          {filas.map((servicio, indice) => (
+            <li key={servicio.nombre}>
+              <button type="button" onMouseEnter={() => setActivo(indice)} onMouseLeave={() => setActivo(null)} onFocus={() => setActivo(indice)} onBlur={() => setActivo(null)}
+                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors ${elegido === indice ? 'bg-surface-sunken' : 'hover:bg-surface-sunken'}`}>
+                <Armchair size={16} strokeWidth={2.4} style={{ color: coloresServicio[indice] }} aria-hidden="true" />
+                <span className="font-medium text-text-900">{servicio.nombre}</span>
+                <span className="ml-auto font-semibold tabular-nums text-text-900">{cantidades[indice]} %</span>
+              </button>
             </li>
-          )
-        })}
-      </ul>
+          ))}
+        </ul>
+        <div className="rounded-xl border p-4" style={{ borderColor: coloresServicio[elegido] }} aria-live="polite">
+          <p className="flex items-center gap-2 text-sm font-bold text-text-900"><Armchair size={18} strokeWidth={2.4} style={{ color: coloresServicio[elegido] }} aria-hidden="true" />{fila.nombre}</p>
+          <p className="mt-2 font-display text-3xl font-bold tabular-nums text-text-900">{porcentaje.toFixed(1)} %</p>
+          <dl className="mt-2 space-y-1 text-xs text-text-700">
+            <div className="flex justify-between gap-2"><dt>Ingresos</dt><dd className="font-semibold tabular-nums text-text-900">{moneda.format(fila.ingresos)}</dd></div>
+            <div className="flex justify-between gap-2"><dt>Pasajes</dt><dd className="font-semibold tabular-nums text-text-900">{numero.format(fila.pasajes)}</dd></div>
+            <div className="flex justify-between gap-2"><dt>Precio promedio</dt><dd className="font-semibold tabular-nums text-text-900">{fila.pasajes === 0 ? '—' : moneda.format(fila.ingresos / fila.pasajes)}</dd></div>
+          </dl>
+          {activo === null && <p className="mt-2 text-[11px] text-text-400">Pasa el mouse por un asiento o servicio</p>}
+        </div>
+      </div>
+      <div className="mt-auto pt-5">
+        <div className="grid grid-cols-2 gap-3 rounded-xl bg-surface-sunken p-4 text-xs">
+          <div><p className="text-text-500">Precio más alto</p><p className="mt-0.5 text-base font-bold tabular-nums text-text-900">{caro ? moneda.format(caro.ingresos / caro.pasajes) : '—'}</p><p className="text-text-500">{caro?.nombre}</p></div>
+          <div><p className="text-text-500">Precio más bajo</p><p className="mt-0.5 text-base font-bold tabular-nums text-text-900">{barato ? moneda.format(barato.ingresos / barato.pasajes) : '—'}</p><p className="text-text-500">{barato?.nombre}</p></div>
+        </div>
+      </div>
     </article>
   )
 }
 
-export function OperacionDashboard({ datos, periodo }: Props) {
-  const vendidos = datos.ocupacionPorRuta.reduce((suma, fila) => suma + fila.vendidos, 0)
-  const capacidad = datos.ocupacionPorRuta.reduce((suma, fila) => suma + fila.capacidad, 0)
-  const ocupacionTotal = ocupacion(vendidos, capacidad)
+function SteeringWheel() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="2.5" /><path d="M12 14.5V21M9.6 11.2 3.5 9.5M14.4 11.2l6.1-1.7" />
+    </svg>
+  )
+}
+
+/** Única alerta accionable de la vista general. */
+export function SalidasImpulso({ datos }: { datos: DatosOperacion }) {
+  return (
+    <article className="rounded-2xl border border-warning-500/30 bg-surface-card p-5 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-warning-text"><AlertTriangle size={15} aria-hidden="true" />Requiere atención</p>
+          <h2 className="mt-1 font-display text-xl font-bold">Salidas que necesitan impulso</h2>
+          <p className="mt-1 text-sm text-text-500">Próximos días · por debajo del 40 % de ocupación</p>
+        </div>
+        <span className="rounded-full bg-warning-50 px-3 py-1 text-sm font-bold tabular-nums text-warning-text">{datos.salidasEnRiesgo.length}</span>
+      </div>
+      <ul className="mt-5 grid gap-3 md:grid-cols-3">{datos.salidasEnRiesgo.map((fila) => <Salida key={`${fila.ruta}-${fila.salida}`} fila={fila} />)}</ul>
+    </article>
+  )
+}
+
+/** Resumen compacto: el desglose por canal está en cada detalle. */
+export function IncidenciasResumen({ datos, periodo }: Props) {
+  const items = [
+    { titulo: 'Devoluciones aprobadas', valor: datos.incidencias.devoluciones, Icono: RotateCcw },
+    { titulo: 'Cambios de fecha', valor: datos.incidencias.cambiosFecha, Icono: CalendarClock },
+    { titulo: 'Pagos fallidos', valor: datos.incidencias.pagosFallidos, Icono: CreditCard },
+  ]
+  return (
+    <section aria-labelledby="incidencias-titulo" className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
+      <h2 id="incidencias-titulo" className="font-display text-lg font-bold">Incidencias del período</h2>
+      <p className="mt-1 text-sm text-text-500">Últimos {periodo} días · ambos canales</p>
+      <ul className="mt-4 grid gap-3 sm:grid-cols-3">
+        {items.map(({ titulo, valor, Icono }) => (
+          <li key={titulo} className="flex items-center gap-3 rounded-xl bg-surface-sunken px-4 py-3">
+            <Icono size={18} className="shrink-0" style={{ color: 'var(--serie-neutra)' }} aria-hidden="true" />
+            <span className="text-sm text-text-700">{titulo}</span>
+            <strong className="ml-auto font-display text-xl tabular-nums text-text-900">{valor}</strong>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/** Contenido de la vista "Rutas y ocupación". */
+export function PanoramaRutas({ datos, periodo, web, agencia }: PropsPanorama) {
+  const total = ocupacionTotal(datos)
 
   return (
-    <>
-      <section aria-labelledby="operacion-titulo" className="space-y-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">Panorama operativo</p>
-          <h2 id="operacion-titulo" className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">Servicios, rutas y salidas</h2>
-          <p className="mt-1 text-sm text-text-500">Ingresos por servicio y ruta, ocupación y próximas salidas que requieren atención.</p>
-        </div>
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-500">Ocupación del período</p>
+          <p className="mt-3 font-display text-3xl font-bold tabular-nums text-text-900">{total.porcentaje.toFixed(1)} %</p>
+          <p className="mt-2 text-xs text-text-500">{numero.format(total.vendidos)} asientos ocupados de {numero.format(total.capacidad)} disponibles · salidas de los últimos {periodo} días</p>
+        </article>
+        <article className="rounded-2xl border border-warning-500/30 bg-warning-50 p-5 shadow-sm">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-warning-text"><AlertTriangle size={16} aria-hidden="true" />Próximas salidas con baja venta</p>
+          <p className="mt-3 font-display text-3xl font-bold tabular-nums text-text-900">{datos.salidasEnRiesgo.length}</p>
+          <p className="mt-2 text-xs text-text-700">Salidas por debajo del 40 % de ocupación. Revisar promoción o capacidad.</p>
+        </article>
+      </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-500">Ocupación del período</p>
-            <p className="mt-3 font-display text-3xl font-bold tabular-nums text-text-900">{ocupacionTotal.toFixed(1)} %</p>
-            <p className="mt-2 text-xs text-text-500">{numero.format(vendidos)} asientos ocupados de {numero.format(capacidad)} disponibles · salidas de los últimos {periodo} días</p>
-          </article>
-          <article className="rounded-2xl border border-warning-500/30 bg-warning-50 p-5 shadow-sm">
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-warning-text"><AlertTriangle size={16} aria-hidden="true" />Próximas salidas con baja venta</p>
-            <p className="mt-3 font-display text-3xl font-bold tabular-nums text-text-900">{datos.salidasEnRiesgo.length}</p>
-            <p className="mt-2 text-xs text-text-700">Salidas por debajo del 40 % de ocupación. Revisar promoción o capacidad.</p>
-          </article>
+      <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
+        <h3 className="font-display text-lg font-bold">Ocupación por ruta</h3>
+        <p className="mt-1 text-sm text-text-500">Asientos ocupados ÷ capacidad de salidas realizadas en el período</p>
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-700">
+          <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full" style={{ backgroundColor: 'var(--color-success-500)' }} />Buena (75 % o más)</span>
+          <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full" style={{ backgroundColor: 'var(--color-warning-500)' }} />Regular (60–74 %)</span>
+          <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full" style={{ backgroundColor: 'var(--color-danger-500)' }} />Baja (menos de 60 %)</span>
+          <span className="flex items-center gap-1.5"><i className="h-3 w-0.5 rounded-full bg-text-900" />Meta 75 %</span>
         </div>
+        <ul className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">{datos.ocupacionPorRuta.map((fila) => <MedidorOcupacion key={fila.nombre} fila={fila} />)}</ul>
+      </article>
 
-        <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
-            <h3 className="font-display text-lg font-bold">Ocupación por ruta</h3>
-            <p className="mt-1 text-sm text-text-500">Asientos ocupados ÷ capacidad de salidas realizadas en el período</p>
-            <ul className="mt-6 space-y-5">{datos.ocupacionPorRuta.map((fila) => <BarraOcupacion key={fila.nombre} fila={fila} />)}</ul>
-          </article>
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm sm:p-6">
-            <h3 className="font-display text-lg font-bold">Salidas que necesitan impulso</h3>
-            <p className="mt-1 text-sm text-text-500">Próximos días · ordenadas por menor ocupación</p>
-            <ul className="mt-5 space-y-3">{datos.salidasEnRiesgo.map((fila) => <Salida key={`${fila.ruta}-${fila.salida}`} fila={fila} />)}</ul>
-          </article>
-        </div>
+      <OrigenesDestinos web={web} agencia={agencia} />
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Ranking titulo="Rutas de mayor ingreso" detalle={`5 rutas principales de ambos canales · últimos ${periodo} días`} filas={datos.rutasPorIngreso} color="var(--color-accent-500)" />
-          <Servicios filas={datos.servicios} />
-        </div>
-        <TablaRutas filas={datos.rutasPorIngreso} />
-      </section>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Ranking titulo="Rutas de mayor ingreso" detalle={`5 rutas principales de ambos canales · últimos ${periodo} días`} filas={datos.rutasPorIngreso} />
+        <Servicios filas={datos.servicios} />
+      </div>
+      <TablaRutas filas={datos.rutasPorIngreso} />
+    </div>
+  )
+}
 
-      <section aria-labelledby="incidencias-titulo" className="space-y-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-text">Seguimiento</p>
-          <h2 id="incidencias-titulo" className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">Incidencias del período</h2>
-          <p className="mt-1 text-sm text-text-500">Casos registrados en los últimos {periodo} días.</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm"><RotateCcw size={20} className="text-route-500" aria-hidden="true" /><p className="mt-4 text-xs font-semibold uppercase tracking-wide text-text-500">Devoluciones aprobadas</p><p className="mt-2 font-display text-3xl font-bold tabular-nums">{datos.incidencias.devoluciones}</p></article>
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm"><CalendarClock size={20} className="text-route-500" aria-hidden="true" /><p className="mt-4 text-xs font-semibold uppercase tracking-wide text-text-500">Cambios de fecha</p><p className="mt-2 font-display text-3xl font-bold tabular-nums">{datos.incidencias.cambiosFecha}</p></article>
-          <article className="rounded-2xl border border-border bg-surface-card p-5 shadow-sm"><CreditCard size={20} className="text-route-500" aria-hidden="true" /><p className="mt-4 text-xs font-semibold uppercase tracking-wide text-text-500">Pagos fallidos</p><p className="mt-2 font-display text-3xl font-bold tabular-nums">{datos.incidencias.pagosFallidos}</p></article>
-        </div>
-      </section>
-
-      <section aria-labelledby="conversion-titulo" className="rounded-2xl border border-dashed border-border-strong bg-surface-card p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-text-500">Siguiente etapa</p><h2 id="conversion-titulo" className="mt-1 font-display text-xl font-bold">Conversión del portal</h2><p className="mt-1 text-sm text-text-500">Disponible cuando el portal registre cada paso de la compra.</p></div><span className="rounded-full bg-surface-sunken px-3 py-1 text-xs font-semibold text-text-700">Pendiente de datos</span></div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><Search size={18} aria-hidden="true" />Búsquedas <ArrowRight size={15} className="ml-auto text-text-400" aria-hidden="true" /></div>
-          <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><Ticket size={18} aria-hidden="true" />Reservas <ArrowRight size={15} className="ml-auto text-text-400" aria-hidden="true" /></div>
-          <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><CreditCard size={18} aria-hidden="true" />Pagos confirmados</div>
-        </div>
-      </section>
-    </>
+/** Solo aplica a la web: se muestra en su detalle. */
+export function ConversionPortal() {
+  return (
+    <section aria-labelledby="conversion-titulo" className="rounded-2xl border border-dashed border-border-strong bg-surface-card p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-text-500">Siguiente etapa</p><h2 id="conversion-titulo" className="mt-1 font-display text-xl font-bold">Conversión del portal</h2><p className="mt-1 text-sm text-text-500">Disponible cuando el portal registre cada paso de la compra.</p></div><span className="rounded-full bg-surface-sunken px-3 py-1 text-xs font-semibold text-text-700">Pendiente de datos</span></div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><Search size={18} aria-hidden="true" />Búsquedas <ArrowRight size={15} className="ml-auto text-text-400" aria-hidden="true" /></div>
+        <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><Ticket size={18} aria-hidden="true" />Reservas <ArrowRight size={15} className="ml-auto text-text-400" aria-hidden="true" /></div>
+        <div className="flex items-center gap-3 rounded-xl bg-surface-sunken p-3 text-sm text-text-700"><CreditCard size={18} aria-hidden="true" />Pagos confirmados</div>
+      </div>
+    </section>
   )
 }
